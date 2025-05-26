@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -10,17 +9,17 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Users, Route, Settings, Report, Trip, Overview } from "lucide-react";
+import { Users, Map, Settings, FileText, Car, Home } from "lucide-react";
 
 const menu = [
-  { label: "Overview", icon: Overview, href: "/", active: true, },
-  { label: "Trips", icon: Trip, href: "#" },
-  { label: "Routes", icon: Route, href: "#" },
+  { label: "Overview", icon: Home, href: "/", active: true },
+  { label: "Trips", icon: Car, href: "#" },
+  { label: "Routes", icon: Map, href: "#" },
   { label: "Students", icon: Users, href: "#" },
   { label: "Staff", icon: Users, href: "#" },
   { label: "Parents", icon: Users, href: "#" },
-  { label: "Vehicles", icon: Trip, href: "#" },
-  { label: "Reports", icon: Report, href: "#" },
+  { label: "Vehicles", icon: Car, href: "#" },
+  { label: "Reports", icon: FileText, href: "#" },
 ];
 
 export function AppSidebar() {
@@ -77,4 +76,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-

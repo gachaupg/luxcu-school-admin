@@ -1,4 +1,3 @@
-
 import { Trip, Users, Route } from "lucide-react";
 
 const overviewStats = [
@@ -59,4 +58,3 @@ export function StatOverviewCards() {
     </div>
   );
 }
-
