@@ -1,3 +1,4 @@
+
 import {
   Sidebar,
   SidebarContent,
@@ -10,9 +11,10 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Users, Map, Settings, FileText, Car, Home } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 const menu = [
-  { label: "Overview", icon: Home, href: "/", active: true },
+  { label: "Overview", icon: Home, href: "/" },
   { label: "Trips", icon: Car, href: "#" },
   { label: "Routes", icon: Map, href: "#" },
   { label: "Students", icon: Users, href: "#" },
@@ -23,6 +25,8 @@ const menu = [
 ];
 
 export function AppSidebar() {
+  const location = useLocation();
+
   return (
     <Sidebar>
       <div className="flex flex-col h-full justify-between pt-4">
@@ -45,34 +49,38 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {menu.map((item) => (
-                  <SidebarMenuItem
-                    key={item.label}
-                    className={`mb-1 rounded-lg ${item.active ? "bg-green-500/90 text-white" : "text-gray-800 hover:bg-gray-100"}`}
-                  >
-                    <SidebarMenuButton asChild>
-                      <a href={item.href} className="flex items-center gap-3 px-4 py-2 w-full">
-                        <item.icon size={20} className={item.active ? "text-white" : "text-gray-700"} />
-                        <span className="font-medium">{item.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {menu.map((item) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <SidebarMenuItem
+                      key={item.label}
+                      className={`mb-1 rounded-lg ${isActive ? "bg-green-500/90 text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                    >
+                      <SidebarMenuButton asChild>
+                        <Link to={item.href} className="flex items-center gap-3 px-4 py-2 w-full">
+                          <item.icon size={20} className={isActive ? "text-white" : "text-gray-700"} />
+                          <span className="font-medium">{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
         {/* Settings at the bottom */}
         <SidebarFooter>
-          <a
-            href="#"
+          <Link
+            to="#"
             className="flex items-center gap-3 px-6 py-3 mb-4 rounded-lg hover:bg-gray-100 transition text-gray-700 w-full"
           >
             <Settings size={20}/>
             <span className="font-medium">Settings</span>
-          </a>
+          </Link>
         </SidebarFooter>
       </div>
     </Sidebar>
   );
 }
+
