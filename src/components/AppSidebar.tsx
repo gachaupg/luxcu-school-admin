@@ -15,13 +15,13 @@ import { Link, useLocation } from "react-router-dom";
 
 const menu = [
   { label: "Overview", icon: Home, href: "/" },
-  { label: "Trips", icon: Car, href: "#" },
-  { label: "Routes", icon: Map, href: "#" },
-  { label: "Students", icon: Users, href: "#" },
-  { label: "Staff", icon: Users, href: "#" },
-  { label: "Parents", icon: Users, href: "#" },
-  { label: "Vehicles", icon: Car, href: "#" },
-  { label: "Reports", icon: FileText, href: "#" },
+  { label: "Trips", icon: Car, href: "/trips" },
+  { label: "Routes", icon: Map, href: "/routes" },
+  { label: "Students", icon: Users, href: "/students" },
+  { label: "Staff", icon: Users, href: "/staff" },
+  { label: "Parents", icon: Users, href: "/parents" },
+  { label: "Vehicles", icon: Car, href: "/vehicles" },
+  { label: "Reports", icon: FileText, href: "/reports" },
 ];
 
 export function AppSidebar() {
@@ -72,7 +72,7 @@ export function AppSidebar() {
         {/* Settings at the bottom */}
         <SidebarFooter>
           <Link
-            to="#"
+            to="/settings"
             className="flex items-center gap-3 px-6 py-3 mb-4 rounded-lg hover:bg-gray-100 transition text-gray-700 w-full"
           >
             <Settings size={20}/>
