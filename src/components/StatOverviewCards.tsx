@@ -1,4 +1,5 @@
-import { Trip, Users, Route } from "lucide-react";
+
+import { Car, Users, Route } from "lucide-react";
 
 const overviewStats = [
   {
@@ -7,7 +8,7 @@ const overviewStats = [
     subtitle: "45 expected trips today",
     color: "bg-indigo-100 text-indigo-600",
     accent: "text-green-500",
-    icon: Trip,
+    icon: Car,
   },
   {
     title: "Students Picked",
@@ -23,7 +24,7 @@ const overviewStats = [
     subtitle: "",
     color: "bg-green-100 text-green-600",
     accent: "",
-    icon: Trip,
+    icon: Car,
   },
   {
     title: "Active Routes",
@@ -58,3 +59,4 @@ export function StatOverviewCards() {
     </div>
   );
 }
+
