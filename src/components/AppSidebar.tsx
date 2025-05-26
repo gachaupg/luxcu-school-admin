@@ -10,17 +10,17 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { users, route, settings, report, trip, overview } from "lucide-react";
+import { Users, Route, Settings, Report, Trip, Overview } from "lucide-react";
 
 const menu = [
-  { label: "Overview", icon: overview, href: "/", active: true, },
-  { label: "Trips", icon: trip, href: "#" },
-  { label: "Routes", icon: route, href: "#" },
-  { label: "Students", icon: users, href: "#" },
-  { label: "Staff", icon: users, href: "#" },
-  { label: "Parents", icon: users, href: "#" },
-  { label: "Vehicles", icon: trip, href: "#" },
-  { label: "Reports", icon: report, href: "#" },
+  { label: "Overview", icon: Overview, href: "/", active: true, },
+  { label: "Trips", icon: Trip, href: "#" },
+  { label: "Routes", icon: Route, href: "#" },
+  { label: "Students", icon: Users, href: "#" },
+  { label: "Staff", icon: Users, href: "#" },
+  { label: "Parents", icon: Users, href: "#" },
+  { label: "Vehicles", icon: Trip, href: "#" },
+  { label: "Reports", icon: Report, href: "#" },
 ];
 
 export function AppSidebar() {
@@ -69,7 +69,7 @@ export function AppSidebar() {
             href="#"
             className="flex items-center gap-3 px-6 py-3 mb-4 rounded-lg hover:bg-gray-100 transition text-gray-700 w-full"
           >
-            <settings size={20}/>
+            <Settings size={20}/>
             <span className="font-medium">Settings</span>
           </a>
         </SidebarFooter>

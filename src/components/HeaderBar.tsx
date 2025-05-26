@@ -1,5 +1,5 @@
 
-import { users } from "lucide-react";
+import { Users } from "lucide-react";
 
 export function HeaderBar() {
   return (
@@ -30,3 +30,4 @@ export function HeaderBar() {
     </header>
   );
 }
+
