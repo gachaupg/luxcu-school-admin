@@ -17,14 +17,23 @@ export function StudentViewModal({
   onClose,
   student,
 }: StudentViewModalProps) {
-  if (!student) return null;
+  if (!student || !student.id) {
+    return null;
+  }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    try {
+      if (!dateString) return "N/A";
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Invalid Date";
+    }
   };
 
   return (
@@ -50,8 +59,8 @@ export function StudentViewModal({
                     Full Name
                   </label>
                   <p className="text-lg font-semibold">
-                    {student.first_name} {student.middle_name}{" "}
-                    {student.last_name}
+                    {student.first_name || ""} {student.middle_name || ""}{" "}
+                    {student.last_name || ""}
                   </p>
                 </div>
                 <div>
@@ -59,7 +68,7 @@ export function StudentViewModal({
                     Admission Number
                   </label>
                   <p className="text-lg font-semibold">
-                    {student.admission_number}
+                    {student.admission_number || "N/A"}
                   </p>
                 </div>
                 <div>
@@ -68,14 +77,16 @@ export function StudentViewModal({
                   </label>
                   <p className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-400" />
-                    {formatDate(student.date_of_birth)}
+                    {student.date_of_birth
+                      ? formatDate(student.date_of_birth)
+                      : "N/A"}
                   </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Gender
                   </label>
-                  <p className="capitalize">{student.gender}</p>
+                  <p className="capitalize">{student.gender || "N/A"}</p>
                 </div>
               </div>
             </CardContent>
@@ -95,13 +106,17 @@ export function StudentViewModal({
                   <label className="text-sm font-medium text-gray-500">
                     Grade
                   </label>
-                  <p className="text-lg font-semibold">{student.grade}</p>
+                  <p className="text-lg font-semibold">
+                    {student.grade || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">
                     Section
                   </label>
-                  <p className="text-lg font-semibold">{student.section}</p>
+                  <p className="text-lg font-semibold">
+                    {student.section || "N/A"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -127,7 +142,7 @@ export function StudentViewModal({
           </Card>
 
           {/* Medical Information */}
-          {student.medical_conditions && (
+          {student.medical_conditions && student.medical_conditions.trim() && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -160,13 +175,17 @@ export function StudentViewModal({
                             <label className="text-sm font-medium text-gray-500">
                               Name
                             </label>
-                            <p className="font-medium">{contact.name}</p>
+                            <p className="font-medium">
+                              {contact.name || "N/A"}
+                            </p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-500">
                               Phone
                             </label>
-                            <p className="font-medium">{contact.phone}</p>
+                            <p className="font-medium">
+                              {contact.phone || "N/A"}
+                            </p>
                           </div>
                         </div>
                       </div>

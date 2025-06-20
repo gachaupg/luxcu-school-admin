@@ -144,15 +144,26 @@ export default function Students() {
     }
   }, [dispatch, schoolId]);
 
+  // Clean up delete dialog when selectedStudent changes
+  useEffect(() => {
+    if (!selectedStudent && isDeleteDialogOpen) {
+      setIsDeleteDialogOpen(false);
+    }
+  }, [selectedStudent, isDeleteDialogOpen]);
+
   // Filter students based on search term and status
   const filteredStudents = (students || []).filter((student) => {
     const matchesSearch =
-      student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admission_number
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      student.section.toLowerCase().includes(searchTerm.toLowerCase());
+      (student.first_name?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (student.last_name?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (student.admission_number?.toLowerCase() || "").includes(
+        searchTerm.toLowerCase()
+      ) ||
+      (student.section?.toLowerCase() || "").includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
@@ -209,29 +220,50 @@ export default function Students() {
   };
 
   const handleDeleteStudent = async () => {
-    if (!selectedStudent?.id) return;
+    if (!selectedStudent?.id) {
+      showToast.error("No student selected for deletion");
+      setIsDeleteDialogOpen(false);
+      setSelectedStudent(null);
+      return;
+    }
 
     try {
       await dispatch(deleteStudent(selectedStudent.id)).unwrap();
       showToast.success("Student deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
+      // Refresh students list
+      if (schoolId) {
+        dispatch(fetchStudents({ schoolId }));
+      }
     } catch (error) {
       showToast.error(error as string);
     }
   };
 
   const openEditModal = (student: Student) => {
+    if (!student || !student.id) {
+      showToast.error("Invalid student data");
+      return;
+    }
     setSelectedStudent(student);
     setIsEditModalOpen(true);
   };
 
   const openViewModal = (student: Student) => {
+    if (!student || !student.id) {
+      showToast.error("Invalid student data");
+      return;
+    }
     setSelectedStudent(student);
     setIsViewModalOpen(true);
   };
 
   const openDeleteDialog = (student: Student) => {
+    if (!student || !student.id) {
+      showToast.error("Invalid student data");
+      return;
+    }
     setSelectedStudent(student);
     setIsDeleteDialogOpen(true);
   };
@@ -458,33 +490,34 @@ export default function Students() {
                                   </div>
                                   <div className="ml-2">
                                     <p className="text-sm font-medium text-gray-900">
-                                      {student.first_name} {student.middle_name}{" "}
-                                      {student.last_name}
+                                      {student.first_name || ""}{" "}
+                                      {student.middle_name || ""}{" "}
+                                      {student.last_name || ""}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      ID: {student.id}
+                                      ID: {student.id || "N/A"}
                                     </p>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-2 px-3">
                                 <span className="text-sm font-medium text-gray-900">
-                                  {student.admission_number}
+                                  {student.admission_number || "N/A"}
                                 </span>
                               </td>
                               <td className="py-2 px-3">
                                 <div>
                                   <p className="text-sm font-medium text-gray-900">
-                                    Grade {student.grade}
+                                    Grade {student.grade || "N/A"}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    Section {student.section}
+                                    Section {student.section || "N/A"}
                                   </p>
                                 </div>
                               </td>
                               <td className="py-2 px-3">
                                 <span className="text-sm text-gray-900 capitalize">
-                                  {student.gender}
+                                  {student.gender || "N/A"}
                                 </span>
                               </td>
                               <td className="py-2 px-3">
@@ -711,31 +744,34 @@ export default function Students() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              student "{selectedStudent?.first_name}{" "}
-              {selectedStudent?.last_name}" and remove their data from our
-              servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteStudent}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete Student
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {selectedStudent && (
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                student "{selectedStudent?.first_name || "Unknown"}{" "}
+                {selectedStudent?.last_name || ""}" and remove their data from
+                our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteStudent}
+                className="bg-red-600 hover:bg-red-700"
+                disabled={!selectedStudent?.id}
+              >
+                Delete Student
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
 
       <GradeModal
         isOpen={isCreateGradeModalOpen}
@@ -766,8 +802,8 @@ export default function Students() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              grade "{selectedGrade?.name}" and remove its data from our
-              servers.
+              grade "{selectedGrade?.name || "Unknown"}" and remove its data
+              from our servers.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -775,6 +811,7 @@ export default function Students() {
             <AlertDialogAction
               onClick={handleDeleteGrade}
               className="bg-red-600 hover:bg-red-700"
+              disabled={!selectedGrade?.id}
             >
               Delete Grade
             </AlertDialogAction>

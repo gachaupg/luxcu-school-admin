@@ -52,252 +52,41 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
-export default function Vehicles() {
-  const dispatch = useAppDispatch();
-  const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { vehicles, loading, error } = useAppSelector(
-    (state) => state.vehicles
-  );
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { schools } = useAppSelector((state) => state.schools);
-  const { drivers, loading: driversLoading } = useAppSelector(
-    (state) => state.drivers
-  );
-
-  // Table state management
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-
-  // Action modals state
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  // Filter schools for the current admin
-  const filteredSchools =
-    schools?.filter((school) => school.admin === user?.id) || [];
-
-  // Get the first school's ID (assuming admin has one school)
-  const schoolId = filteredSchools[0]?.id;
-
-  // Filter drivers for the school
-  const filteredDrivers =
-    drivers?.filter((driver) => driver.school === schoolId) || [];
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        if (schoolId) {
-          await dispatch(fetchVehicles({ schoolId }));
-        }
-        await dispatch(fetchDrivers());
-      } catch (err) {
-        console.error("Failed to load data:", err);
-      }
-    };
-    loadData();
-  }, [dispatch, schoolId]);
-
-  useEffect(() => {
-    console.log("Debug data:", {
-      user: {
-        id: user?.id,
-        type: user?.user_type,
-      },
-      schoolId,
-      schools: {
-        all: schools,
-        filtered: filteredSchools,
-        count: schools?.length,
-      },
-      drivers: {
-        all: drivers,
-        filtered: filteredDrivers,
-        count: drivers?.length,
-        loading: driversLoading,
-      },
-    });
-  }, [
-    user,
-    schoolId,
-    schools,
-    drivers,
-    filteredSchools,
-    filteredDrivers,
-    driversLoading,
-  ]);
-
-  // Filter and search logic
-  const filteredAndSearchedVehicles = vehicles.filter((vehicle) => {
-    const matchesSearch =
-      vehicle.registration_number
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.vehicle_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (
-        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
-          .first_name || ""
-      )
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (
-        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
-          .last_name || ""
-      )
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && vehicle.is_active) ||
-      (statusFilter === "inactive" && !vehicle.is_active);
-
-    return matchesSearch && matchesStatus;
-  });
-
-  // Pagination logic
-  const totalPages = Math.ceil(
-    filteredAndSearchedVehicles.length / itemsPerPage
-  );
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedVehicles = filteredAndSearchedVehicles.slice(
-    startIndex,
-    endIndex
-  );
-
-  // Reset to first page when search or filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
-
-  // Action handlers
-  const handleView = (vehicle) => {
-    setSelectedVehicle(vehicle);
-    setIsViewModalOpen(true);
-  };
-
-  const handleEdit = (vehicle) => {
-    setSelectedVehicle(vehicle);
-    setFormData({
-      registration_number: vehicle.registration_number,
-      vehicle_type: vehicle.vehicle_type,
-      capacity: vehicle.capacity,
-      school: vehicle.school,
-      driver: vehicle.driver,
-      manufacturer: vehicle.manufacturer,
-      model: vehicle.model,
-      year: vehicle.year,
-      fuel_type: vehicle.fuel_type,
-      is_active: vehicle.is_active,
-      mileage: vehicle.mileage,
-      has_gps: vehicle.has_gps,
-      has_camera: vehicle.has_camera,
-      has_emergency_button: vehicle.has_emergency_button,
-    });
-    setIsEditModalOpen(true);
-  };
-
-  const handleDelete = (vehicle) => {
-    setSelectedVehicle(vehicle);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      // TODO: Implement delete vehicle API call
-      toast({
-        title: "Success",
-        description: "Vehicle deleted successfully",
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedVehicle(null);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete vehicle",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const [formData, setFormData] = useState({
-    registration_number: "",
-    vehicle_type: "bus",
-    capacity: 40,
-    school: schoolId || 0,
-    driver: 0,
-    manufacturer: "",
-    model: "",
-    year: new Date().getFullYear(),
-    fuel_type: "diesel",
-    is_active: true,
-    mileage: 0,
-    has_gps: true,
-    has_camera: true,
-    has_emergency_button: true,
-  });
-
+// Form component moved outside to prevent recreation on every render
+const AddVehicleForm = ({
+  formData,
+  setFormData,
+  onSubmit,
+  loading,
+  filteredDrivers,
+  driversLoading,
+}: {
+  formData: any;
+  setFormData: (data: any) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  loading: boolean;
+  filteredDrivers: any[];
+  driversLoading: boolean;
+}) => {
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       [name]: type === "number" ? Number(value) : value,
     }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
-      [name]: value,
+      [name]: name === "driver" ? Number(value) : value,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await dispatch(addVehicle(formData)).unwrap();
-      toast({
-        title: "Success",
-        description: "Vehicle added successfully",
-      });
-      setIsDialogOpen(false);
-      // Reset form
-      setFormData({
-        registration_number: "",
-        vehicle_type: "bus",
-        capacity: 40,
-        school: schoolId || 0,
-        driver: 0,
-        manufacturer: "",
-        model: "",
-        year: new Date().getFullYear(),
-        fuel_type: "diesel",
-        is_active: true,
-        mileage: 0,
-        has_gps: true,
-        has_camera: true,
-        has_emergency_button: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error as string,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const AddVehicleForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="registration_number">Registration Number</Label>
@@ -446,7 +235,10 @@ export default function Vehicles() {
               id="has_gps"
               checked={formData.has_gps}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, has_gps: e.target.checked }))
+                setFormData((prev: any) => ({
+                  ...prev,
+                  has_gps: e.target.checked,
+                }))
               }
             />
             <Label htmlFor="has_gps">GPS</Label>
@@ -457,7 +249,7 @@ export default function Vehicles() {
               id="has_camera"
               checked={formData.has_camera}
               onChange={(e) =>
-                setFormData((prev) => ({
+                setFormData((prev: any) => ({
                   ...prev,
                   has_camera: e.target.checked,
                 }))
@@ -471,7 +263,7 @@ export default function Vehicles() {
               id="has_emergency_button"
               checked={formData.has_emergency_button}
               onChange={(e) =>
-                setFormData((prev) => ({
+                setFormData((prev: any) => ({
                   ...prev,
                   has_emergency_button: e.target.checked,
                 }))
@@ -487,6 +279,255 @@ export default function Vehicles() {
       </Button>
     </form>
   );
+};
+
+export default function Vehicles() {
+  const dispatch = useAppDispatch();
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { vehicles, loading, error } = useAppSelector(
+    (state) => state.vehicles
+  );
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { schools } = useAppSelector((state) => state.schools);
+  const { drivers, loading: driversLoading } = useAppSelector(
+    (state) => state.drivers
+  );
+
+  // Table state management
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Action modals state
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Filter schools for the current admin
+  const filteredSchools =
+    schools?.filter((school) => school.admin === user?.id) || [];
+
+  // Get the first school's ID (assuming admin has one school)
+  const schoolId = filteredSchools[0]?.id;
+  console.log("schoolId", schoolId);
+  // Filter drivers for the school
+  const filteredDrivers =
+    drivers?.filter((driver) => driver.school === schoolId) || [];
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (schoolId) {
+          await dispatch(fetchVehicles({ schoolId }));
+        }
+        await dispatch(fetchDrivers());
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      }
+    };
+    loadData();
+  }, [dispatch, schoolId]);
+
+  useEffect(() => {
+    console.log("Debug data:", {
+      user: {
+        id: user?.id,
+        type: user?.user_type,
+      },
+      schoolId,
+      schools: {
+        all: schools,
+        filtered: filteredSchools,
+        count: schools?.length,
+      },
+      drivers: {
+        all: drivers,
+        filtered: filteredDrivers,
+        count: drivers?.length,
+        loading: driversLoading,
+      },
+    });
+  }, [
+    user,
+    schoolId,
+    schools,
+    drivers,
+    filteredSchools,
+    filteredDrivers,
+    driversLoading,
+  ]);
+
+  // Filter and search logic
+  const filteredAndSearchedVehicles = vehicles.filter((vehicle) => {
+    const matchesSearch =
+      vehicle.registration_number
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.vehicle_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (
+        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
+          .first_name || ""
+      )
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (
+        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
+          .last_name || ""
+      )
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && vehicle.is_active) ||
+      (statusFilter === "inactive" && !vehicle.is_active);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(
+    filteredAndSearchedVehicles.length / itemsPerPage
+  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedVehicles = filteredAndSearchedVehicles.slice(
+    startIndex,
+    endIndex
+  );
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  // Action handlers
+  const handleView = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEdit = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setFormData({
+      registration_number: vehicle.registration_number,
+      vehicle_type: vehicle.vehicle_type,
+      capacity: vehicle.capacity,
+      school: schoolId,
+      driver: vehicle.driver,
+      manufacturer: vehicle.manufacturer,
+      model: vehicle.model,
+      year: vehicle.year,
+      fuel_type: vehicle.fuel_type,
+      is_active: vehicle.is_active,
+      mileage: vehicle.mileage,
+      has_gps: vehicle.has_gps,
+      has_camera: vehicle.has_camera,
+      has_emergency_button: vehicle.has_emergency_button,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      // TODO: Implement delete vehicle API call
+      toast({
+        title: "Success",
+        description: "Vehicle deleted successfully",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedVehicle(null);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete vehicle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [formData, setFormData] = useState({
+    registration_number: "",
+    vehicle_type: "bus",
+    capacity: 40,
+    school: schoolId || null,
+    driver: 0,
+    manufacturer: "",
+    model: "",
+    year: new Date().getFullYear(),
+    fuel_type: "diesel",
+    is_active: true,
+    mileage: 0,
+    has_gps: true,
+    has_camera: true,
+    has_emergency_button: true,
+  });
+
+  // Update formData when schoolId changes
+  useEffect(() => {
+    if (schoolId) {
+      setFormData((prev) => ({
+        ...prev,
+        school: schoolId,
+      }));
+    }
+  }, [schoolId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate that we have a valid school ID
+    if (!schoolId) {
+      toast({
+        title: "Error",
+        description: "No school found. Please contact your administrator.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await dispatch(addVehicle(formData)).unwrap();
+      toast({
+        title: "Success",
+        description: "Vehicle added successfully",
+      });
+      setIsDialogOpen(false);
+      // Reset form
+      setFormData({
+        registration_number: "",
+        vehicle_type: "bus",
+        capacity: 40,
+        school: schoolId,
+        driver: 0,
+        manufacturer: "",
+        model: "",
+        year: new Date().getFullYear(),
+        fuel_type: "diesel",
+        is_active: true,
+        mileage: 0,
+        has_gps: true,
+        has_camera: true,
+        has_emergency_button: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error as string,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex w-full">
@@ -499,7 +540,15 @@ export default function Vehicles() {
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600">
+                <Button
+                  className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  disabled={!schoolId}
+                  title={
+                    !schoolId
+                      ? "No school found. Please contact your administrator."
+                      : ""
+                  }
+                >
                   Add New Vehicle
                 </Button>
               </DialogTrigger>
@@ -507,7 +556,14 @@ export default function Vehicles() {
                 <DialogHeader>
                   <DialogTitle>Add New Vehicle</DialogTitle>
                 </DialogHeader>
-                <AddVehicleForm />
+                <AddVehicleForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onSubmit={handleSubmit}
+                  loading={loading}
+                  filteredDrivers={filteredDrivers}
+                  driversLoading={driversLoading}
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -795,7 +851,14 @@ export default function Vehicles() {
           <DialogHeader>
             <DialogTitle>Edit Vehicle</DialogTitle>
           </DialogHeader>
-          <AddVehicleForm />
+          <AddVehicleForm
+            formData={formData}
+            setFormData={setFormData}
+            onSubmit={handleSubmit}
+            loading={loading}
+            filteredDrivers={filteredDrivers}
+            driversLoading={driversLoading}
+          />
         </DialogContent>
       </Dialog>
 

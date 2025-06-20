@@ -122,18 +122,18 @@ const AppContent = () => {
   );
 };
 
-function ErrorFallback({ error }: { error: Error }) {
-  return (
-    <div role="alert" className="p-4">
-      <p>Something went wrong:</p>
-      <pre className="text-red-500">{error.message}</pre>
-    </div>
-  );
-}
+// function ErrorFallback({ error }: { error: Error }) {
+//   return (
+//     // <div role="alert" className="p-4">
+//     //   <p>Something went wrong:</p>
+//     //   <pre className="text-red-500">{error.message}</pre>
+//     // </div>
+//   );
+// }
 
 function App() {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    // <ErrorBoundary FallbackComponent={ErrorFallback}>
       <ReduxProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
@@ -143,7 +143,7 @@ function App() {
           </TooltipProvider>
         </QueryClientProvider>
       </ReduxProvider>
-    </ErrorBoundary>
+    // </ErrorBoundary>
   );
 }
 

@@ -49,14 +49,16 @@ const initialState: ParentsState = {
 export const registerParent = createAsyncThunk<
   Parent,
   {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone_number: string;
-    password: string;
-    confirm_password: string;
-    user_type: string;
-    profile_image: string | null;
+    user: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone_number: string;
+      password: string;
+      confirm_password: string;
+      user_type: string;
+      profile_image: string | null;
+    };
     address: string;
     emergency_contact: string;
     school: number;
@@ -69,15 +71,62 @@ export const registerParent = createAsyncThunk<
   { rejectValue: string }
 >("parents/registerParent", async (parentData, { rejectWithValue }) => {
   try {
-    const response = await api.post(API_ENDPOINTS.PARENTS, parentData);
+    // Send all data in a single request to the parents endpoint
+    // The API should handle both user creation and parent profile creation
+    const payload = {
+      user_data: {
+        first_name: parentData.user.first_name,
+        last_name: parentData.user.last_name,
+        email: parentData.user.email,
+        phone_number: parentData.user.phone_number,
+        password: parentData.user.password,
+        confirm_password: parentData.user.confirm_password,
+        user_type: parentData.user.user_type,
+        profile_image: parentData.user.profile_image,
+      },
+      address: parentData.address,
+      emergency_contact: parentData.emergency_contact,
+      school: parentData.school,
+      preferred_contact_method: parentData.preferred_contact_method,
+      secondary_phone: parentData.secondary_phone,
+      authorized_pickup_persons: parentData.authorized_pickup_persons,
+    };
+
+    console.log("Creating parent with all data:", payload);
+    const response = await api.post(API_ENDPOINTS.PARENTS, payload);
+    console.log("Parent creation response:", response.data);
     return response.data;
   } catch (error: unknown) {
+    console.error("Parent registration error:", error);
     const apiError = error as {
-      response?: { data?: { message?: string }; status?: number };
+      response?: {
+        data?: {
+          message?: string;
+          [key: string]: any;
+        };
+        status?: number;
+      };
     };
-    return rejectWithValue(
-      apiError.response?.data?.message || "Failed to register parent"
-    );
+
+    // Check for specific field validation errors
+    if (apiError.response?.data) {
+      const errorData = apiError.response.data;
+      console.error("API Error details:", errorData);
+
+      // Look for field-specific errors
+      for (const [field, errors] of Object.entries(errorData)) {
+        if (Array.isArray(errors) && errors.length > 0) {
+          return rejectWithValue(`${field}: ${errors[0]}`);
+        }
+      }
+
+      // If no specific field errors, return the general message
+      if (errorData.message) {
+        return rejectWithValue(errorData.message);
+      }
+    }
+
+    return rejectWithValue("Failed to register parent");
   }
 });
 

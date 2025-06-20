@@ -96,24 +96,41 @@ const Drivers = () => {
 
   const handleEdit = (driver) => {
     setSelectedDriver(driver);
+
+    // Handle current_location which can be either an object or string
+    let latitude = -1.286389;
+    let longitude = 36.817223;
+
+    if (driver.current_location) {
+      if (typeof driver.current_location === "object") {
+        latitude = driver.current_location.latitude;
+        longitude = driver.current_location.longitude;
+      } else if (typeof driver.current_location === "string") {
+        // Handle the old string format "SRID=4326;POINT (longitude latitude)"
+        const match = driver.current_location.match(
+          /POINT \(([^ ]+) ([^)]+)\)/
+        );
+        if (match) {
+          longitude = parseFloat(match[1]);
+          latitude = parseFloat(match[2]);
+        }
+      }
+    }
+
     setFormData({
-      firstName: driver.user_details.first_name,
-      lastName: driver.user_details.last_name,
-      email: driver.user_details.email,
-      phoneNumber: driver.user_details.username,
+      firstName: driver.user_details?.first_name || "",
+      lastName: driver.user_details?.last_name || "",
+      email: driver.user_details?.email || "",
+      phoneNumber: driver.user_details?.phone_number || "",
       password: "",
       confirmPassword: "",
-      licenseNumber: driver.license_number,
-      licenseClass: driver.license_class,
-      licenseExpiry: driver.license_expiry,
-      lastHealthCheck: driver.last_health_check,
-      lastBackgroundCheck: driver.last_background_check,
-      latitude: driver.current_location
-        ? parseFloat(driver.current_location.split(" ")[2])
-        : -1.286389,
-      longitude: driver.current_location
-        ? parseFloat(driver.current_location.split(" ")[1].replace("(", ""))
-        : 36.817223,
+      licenseNumber: driver.license_number || "",
+      licenseClass: driver.license_class || "",
+      licenseExpiry: driver.license_expiry || "",
+      lastHealthCheck: driver.last_health_check || "",
+      lastBackgroundCheck: driver.last_background_check || "",
+      latitude,
+      longitude,
     });
     setIsEditModalOpen(true);
   };
@@ -206,52 +223,73 @@ const Drivers = () => {
   const schoolId = filteredSchools[0]?.id;
 
   // Filter drivers for the school
+  // Temporarily show all drivers to debug the issue
   const filteredDrivers =
     drivers?.filter((driver) => driver.school === schoolId) || [];
 
-  useEffect(() => {
-    if (schools && Array.isArray(schools) && schools.length > 0) {
-      console.log("Filtered schools:", filteredSchools);
-      console.log("Filtered drivers:", filteredDrivers);
-      console.log("user", user);
-    }
-  }, [schools, drivers, user]);
-
   // Filter and search logic
   const filteredAndSearchedDrivers = filteredDrivers.filter((driver) => {
+    console.log("Checking driver:", driver);
+    // Check if driver and user_details exist before accessing properties
+    if (!driver || !driver.user_details) {
+      console.log("Skipping driver - no user_details:", driver);
+      return false; // Skip drivers without user_details
+    }
+
     const matchesSearch =
-      driver.user_details.first_name
+      (driver.user_details.first_name || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      driver.user_details.last_name
+      (driver.user_details.last_name || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      driver.user_details.email
+      (driver.user_details.email || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      driver.user_details.username
+      (driver.user_details.phone_number || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      driver.license_number.toLowerCase().includes(searchTerm.toLowerCase());
+      (driver.license_number || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "available" && driver.is_available) ||
       (statusFilter === "unavailable" && !driver.is_available);
 
+    console.log(
+      "Driver matches search:",
+      matchesSearch,
+      "matches status:",
+      matchesStatus
+    );
     return matchesSearch && matchesStatus;
   });
 
   // Pagination logic
-  const totalPages = Math.ceil(
-    filteredAndSearchedDrivers.length / itemsPerPage
-  );
+  const totalPages = Math.ceil(filteredDrivers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedDrivers = filteredAndSearchedDrivers.slice(
-    startIndex,
-    endIndex
+  const paginatedDrivers = filteredDrivers.slice(startIndex, endIndex);
+
+  console.log("=== PAGINATION DEBUG ===");
+  console.log(
+    "filteredAndSearchedDrivers length:",
+    filteredAndSearchedDrivers.length
   );
+  console.log("totalPages:", totalPages);
+  console.log("startIndex:", startIndex);
+  console.log("endIndex:", endIndex);
+  console.log("paginatedDrivers:", paginatedDrivers);
+  console.log("=== END PAGINATION DEBUG ===");
+
+  // Temporary: Show all drivers without any filtering
+  console.log("=== ALL DRIVERS TEST ===");
+  console.log("Raw drivers from Redux:", drivers);
+  console.log("Drivers length:", drivers?.length);
+  console.log("First driver:", drivers?.[0]);
+  console.log("=== END ALL DRIVERS TEST ===");
 
   // Reset to first page when search or filter changes
   useEffect(() => {
@@ -322,23 +360,29 @@ const Drivers = () => {
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
-        username: formData.phoneNumber,
+        phone_number: formData.phoneNumber,
+        password: formData.password,
+        confirm_password: formData.confirmPassword,
         user_type: "driver",
       },
       license_number: formData.licenseNumber,
       license_expiry: formData.licenseExpiry,
       license_class: formData.licenseClass,
-      school: 1,
+      school: schoolId || 1,
       is_available: true,
-      current_location: `SRID=4326;POINT (${formData.longitude} ${formData.latitude})`,
-      safety_rating: "4.8",
-      on_time_rating: "4.9",
+      current_location: {
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+      },
+      safety_rating: 4.8,
+      on_time_rating: 4.9,
       last_health_check: formData.lastHealthCheck,
       last_background_check: formData.lastBackgroundCheck,
     };
 
     try {
       await dispatch(addDriver(submitData)).unwrap();
+      window.location.reload();
       toast({
         title: "Success",
         description: "Driver added successfully",
@@ -688,13 +732,18 @@ const Drivers = () => {
                   paginatedDrivers.map((driver) => (
                     <TableRow key={driver.id}>
                       <TableCell>
-                        {driver.user_details.first_name}{" "}
-                        {driver.user_details.last_name}
+                        {driver.user_details?.first_name || "N/A"}{" "}
+                        {driver.user_details?.last_name || "N/A"}
                       </TableCell>
-                      <TableCell>{driver.user_details.email}</TableCell>
-                      <TableCell>{driver.user_details.username}</TableCell>
                       <TableCell>
-                        {driver.license_number} ({driver.license_class})
+                        {driver.user_details?.email || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {driver.user_details?.phone_number || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {driver.license_number || "N/A"} (
+                        {driver.license_class || "N/A"})
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -705,8 +754,12 @@ const Drivers = () => {
                           {driver.is_available ? "Available" : "Unavailable"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{driver.safety_rating}</TableCell>
-                      <TableCell>{driver.on_time_rating}</TableCell>
+                      <TableCell>
+                        {driver.safety_rating?.toString() || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {driver.on_time_rating?.toString() || "N/A"}
+                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -741,7 +794,7 @@ const Drivers = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center">
+                    <TableCell colSpan={8} className="text-center">
                       No drivers found
                     </TableCell>
                   </TableRow>
@@ -808,29 +861,29 @@ const Drivers = () => {
                 <div>
                   <Label className="font-semibold">Name</Label>
                   <p>
-                    {selectedDriver.user_details.first_name}{" "}
-                    {selectedDriver.user_details.last_name}
+                    {selectedDriver.user_details?.first_name || "N/A"}{" "}
+                    {selectedDriver.user_details?.last_name || "N/A"}
                   </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Email</Label>
-                  <p>{selectedDriver.user_details.email}</p>
+                  <p>{selectedDriver.user_details?.email || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Phone</Label>
-                  <p>{selectedDriver.user_details.username}</p>
+                  <p>{selectedDriver.user_details?.phone_number || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">License Number</Label>
-                  <p>{selectedDriver.license_number}</p>
+                  <p>{selectedDriver.license_number || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">License Class</Label>
-                  <p>{selectedDriver.license_class}</p>
+                  <p>{selectedDriver.license_class || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">License Expiry</Label>
-                  <p>{selectedDriver.license_expiry}</p>
+                  <p>{selectedDriver.license_expiry || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Status</Label>
@@ -844,19 +897,19 @@ const Drivers = () => {
                 </div>
                 <div>
                   <Label className="font-semibold">Safety Rating</Label>
-                  <p>{selectedDriver.safety_rating}</p>
+                  <p>{selectedDriver.safety_rating?.toString() || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">On-time Rating</Label>
-                  <p>{selectedDriver.on_time_rating}</p>
+                  <p>{selectedDriver.on_time_rating?.toString() || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Last Health Check</Label>
-                  <p>{selectedDriver.last_health_check}</p>
+                  <p>{selectedDriver.last_health_check || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Last Background Check</Label>
-                  <p>{selectedDriver.last_background_check}</p>
+                  <p>{selectedDriver.last_background_check || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -886,7 +939,9 @@ const Drivers = () => {
               This action cannot be undone. This will permanently delete the
               driver
               {selectedDriver &&
-                ` "${selectedDriver.user_details.first_name} ${selectedDriver.user_details.last_name}"`}
+                ` "${selectedDriver.user_details?.first_name || "Unknown"} ${
+                  selectedDriver.user_details?.last_name || "Driver"
+                }"`}
               .
             </AlertDialogDescription>
           </AlertDialogHeader>

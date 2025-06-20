@@ -64,6 +64,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { ParentViewModal } from "@/components/ParentViewModal";
 import { ParentEditModal } from "@/components/ParentEditModal";
+import { RootState } from "@/redux/store";
 
 interface AuthorizedPerson {
   name: string;
@@ -122,7 +123,7 @@ export default function Parents() {
     parents = [],
     loading,
     error,
-  } = useAppSelector((state) => state.parents);
+  } = useAppSelector((state: RootState) => state.parents);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -170,7 +171,30 @@ export default function Parents() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    if (name.startsWith("user_data.")) {
+
+    // Convert phone numbers to international format
+    if (
+      name === "user_data.phone_number" ||
+      name === "secondary_phone" ||
+      name === "emergency_contact"
+    ) {
+      const convertedValue = convertToInternationalFormat(value);
+      if (name.startsWith("user_data.")) {
+        const field = name.split(".")[1];
+        setFormData((prev) => ({
+          ...prev,
+          user_data: {
+            ...prev.user_data,
+            [field]: convertedValue,
+          },
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          [name]: convertedValue,
+        }));
+      }
+    } else if (name.startsWith("user_data.")) {
       const field = name.split(".")[1];
       setFormData((prev) => ({
         ...prev,
@@ -185,6 +209,35 @@ export default function Parents() {
         [name]: value,
       }));
     }
+  };
+
+  // Function to convert local phone numbers to international format
+  const convertToInternationalFormat = (phoneNumber: string): string => {
+    // Remove all non-digit characters
+    const cleaned = phoneNumber.replace(/\D/g, "");
+
+    // If it's already in international format, return as is
+    if (cleaned.startsWith("254")) {
+      return `+${cleaned}`;
+    }
+
+    // If it starts with 0, replace with +254
+    if (cleaned.startsWith("0")) {
+      return `+254${cleaned.substring(1)}`;
+    }
+
+    // If it's 9 digits (Kenyan number without country code), add +254
+    if (cleaned.length === 9) {
+      return `+254${cleaned}`;
+    }
+
+    // If it's already 12 digits and starts with 254, add +
+    if (cleaned.length === 12 && cleaned.startsWith("254")) {
+      return `+${cleaned}`;
+    }
+
+    // Return as is if it doesn't match any pattern
+    return phoneNumber;
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -211,7 +264,10 @@ export default function Parents() {
     value: string
   ) => {
     const newPersons = [...authorizedPersons];
-    newPersons[index] = { ...newPersons[index], [field]: value };
+    // Convert phone numbers to international format
+    const convertedValue =
+      field === "phone" ? convertToInternationalFormat(value) : value;
+    newPersons[index] = { ...newPersons[index], [field]: convertedValue };
     setAuthorizedPersons(newPersons);
     setFormData((prev) => ({
       ...prev,
@@ -223,26 +279,91 @@ export default function Parents() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate passwords match
+    if (formData.user_data?.password !== formData.user_data?.confirm_password) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password strength
+    if (
+      formData.user_data?.password &&
+      formData.user_data.password.length < 8
+    ) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Transform form data to match API structure
+      // Get the actual school ID from localStorage
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        toast({
+          title: "Error",
+          description: "School ID not found. Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Filter out empty authorized persons
+      const validAuthorizedPersons = authorizedPersons.filter(
+        (person) =>
+          person.name.trim() && person.relation.trim() && person.phone.trim()
+      );
+
+      // Ensure phone numbers are properly formatted
+      const formattedEmergencyContact = convertToInternationalFormat(
+        formData.emergency_contact
+      );
+      const formattedSecondaryPhone = convertToInternationalFormat(
+        formData.secondary_phone
+      );
+      const formattedUserPhone = convertToInternationalFormat(
+        formData.user_data?.phone_number || ""
+      );
+
+      // Transform form data to match API structure with user data nested
       const apiData = {
-        first_name: formData.user_data?.first_name || "",
-        last_name: formData.user_data?.last_name || "",
-        email: formData.user_data?.email || "",
-        phone_number: formData.user_data?.phone_number || "",
-        password: formData.user_data?.password || "",
-        confirm_password: formData.user_data?.confirm_password || "",
-        user_type: formData.user_data?.user_type || "parent",
-        profile_image: formData.user_data?.profile_image || null,
+        user: {
+          first_name: formData.user_data?.first_name || "",
+          last_name: formData.user_data?.last_name || "",
+          email: formData.user_data?.email || "",
+          phone_number: formattedUserPhone,
+          password: formData.user_data?.password || "",
+          confirm_password: formData.user_data?.confirm_password || "",
+          user_type: formData.user_data?.user_type || "parent",
+          profile_image: formData.user_data?.profile_image || null,
+        },
         address: formData.address,
-        emergency_contact: formData.emergency_contact,
-        school: formData.school,
+        emergency_contact: formattedEmergencyContact,
+        school: parseInt(schoolId),
         preferred_contact_method: formData.preferred_contact_method,
-        secondary_phone: formData.secondary_phone,
-        authorized_pickup_persons: formData.authorized_pickup_persons,
+        secondary_phone: formattedSecondaryPhone,
+        authorized_pickup_persons: {
+          persons: validAuthorizedPersons.map((person) => ({
+            ...person,
+            phone: convertToInternationalFormat(person.phone),
+          })),
+        },
       };
 
-      await dispatch(registerParent(apiData)).unwrap();
+      console.log("Form data before submission:", formData);
+      console.log("API data being sent:", apiData);
+      console.log("School ID:", schoolId);
+
+      const result = await dispatch(registerParent(apiData)).unwrap();
+      console.log("Registration successful:", result);
+
       toast({
         title: "Success",
         description: "Parent registered successfully",
@@ -262,7 +383,7 @@ export default function Parents() {
         },
         address: "",
         emergency_contact: "",
-        school: 1,
+        school: parseInt(schoolId),
         preferred_contact_method: "email",
         secondary_phone: "",
         authorized_pickup_persons: {
@@ -271,9 +392,15 @@ export default function Parents() {
       });
       setAuthorizedPersons([{ name: "", relation: "", phone: "" }]);
     } catch (error) {
+      console.error("Parent registration error:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
       toast({
         title: "Error",
-        description: error as string,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
     }
@@ -467,8 +594,7 @@ export default function Parents() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-               <p>Parents</p>
-               
+                {/* <p>Parents</p> */}
               </div>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
@@ -525,8 +651,13 @@ export default function Parents() {
                           name="user_data.phone_number"
                           value={formData.user_data?.phone_number || ""}
                           onChange={handleInputChange}
+                          placeholder="e.g., 0722858508 or +254722858508"
                           required
                         />
+                        <p className="text-xs text-gray-500">
+                          Enter local format (0722858508) or international
+                          format (+254722858508)
+                        </p>
                       </div>
                     </div>
 
@@ -606,6 +737,7 @@ export default function Parents() {
                           name="emergency_contact"
                           value={formData.emergency_contact}
                           onChange={handleInputChange}
+                          placeholder="e.g., 0722858508 or +254722858508"
                           required
                         />
                       </div>
@@ -616,6 +748,7 @@ export default function Parents() {
                           name="secondary_phone"
                           value={formData.secondary_phone}
                           onChange={handleInputChange}
+                          placeholder="e.g., 0722858508 or +254722858508"
                         />
                       </div>
                     </div>
@@ -698,6 +831,7 @@ export default function Parents() {
                                     e.target.value
                                   )
                                 }
+                                placeholder="e.g., 0722858508 or +254722858508"
                                 required
                               />
                               {index > 0 && (
