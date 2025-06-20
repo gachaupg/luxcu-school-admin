@@ -1,62 +1,97 @@
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Users, Bus, MapPin, Route, UserCheck, Building } from "lucide-react";
+import { useAppSelector } from "@/redux/hooks";
 
-import { Car, Users, Route } from "lucide-react";
+export const StatOverviewCards = () => {
+  const { stats, loading } = useAppSelector((state) => state.overview);
 
-const overviewStats = [
-  {
-    title: "Trips Today",
-    value: 12,
-    subtitle: "45 expected trips today",
-    color: "bg-indigo-100 text-indigo-600",
-    accent: "text-green-500",
-    icon: Car,
-  },
-  {
-    title: "Students Picked",
-    value: 267,
-    subtitle: "353 expected today",
-    color: "bg-yellow-100 text-yellow-600",
-    accent: "text-green-500",
-    icon: Users,
-  },
-  {
-    title: "Total Vehicles",
-    value: 18,
-    subtitle: "",
-    color: "bg-green-100 text-green-600",
-    accent: "",
-    icon: Car,
-  },
-  {
-    title: "Active Routes",
-    value: 19,
-    subtitle: "",
-    color: "bg-red-100 text-red-400",
-    accent: "",
-    icon: Route,
-  },
-];
+  const statCards = [
+    {
+      title: "Total Students",
+      value: stats.totalStudents.toString(),
+      icon: Users,
+      description: "Active students",
+      color: "text-blue-600",
+    },
+    {
+      title: "Total Parents",
+      value: stats.totalParents.toString(),
+      icon: UserCheck,
+      description: "Registered parents",
+      color: "text-green-600",
+    },
+    {
+      title: "Total Staff",
+      value: stats.totalStaff.toString(),
+      icon: Building,
+      description: "School staff",
+      color: "text-purple-600",
+    },
+    {
+      title: "Total Vehicles",
+      value: stats.totalVehicles.toString(),
+      icon: Bus,
+      description: "Fleet vehicles",
+      color: "text-orange-600",
+    },
+    {
+      title: "Active Routes",
+      value: stats.activeRoutes.toString(),
+      icon: Route,
+      description: "Current routes",
+      color: "text-indigo-600",
+    },
+    {
+      title: "Total Routes",
+      value: stats.totalRoutes.toString(),
+      icon: MapPin,
+      description: "All routes",
+      color: "text-red-600",
+    },
+  ];
 
-export function StatOverviewCards() {
+  if (loading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full">
+        {statCards.map((stat) => (
+          <Card key={stat.title} className="w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.title}
+              </CardTitle>
+              <stat.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {stat.description}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full mt-4">
-      {overviewStats.map((stat, idx) => (
-        <div
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full">
+      {statCards.map((stat) => (
+        <Card
           key={stat.title}
-          className="rounded-2xl bg-white shadow p-6 flex gap-4 items-center min-w-0 animate-fade-in"
+          className="w-full hover:shadow-md transition-shadow"
         >
-          <div className={`rounded-xl w-12 h-12 flex items-center justify-center ${stat.color}`}>
-            <stat.icon size={28} />
-          </div>
-          <div>
-            <div className="font-bold text-2xl">{stat.value}</div>
-            <div className="font-medium text-gray-600">{stat.title}</div>
-            {stat.subtitle && (
-              <div className={`text-sm mt-1 ${stat.accent}`}>{stat.subtitle}</div>
-            )}
-          </div>
-        </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${stat.color}`}>
+              {stat.value}
+            </div>
+            <p className="text-xs text-muted-foreground">{stat.description}</p>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
-}
-
+};

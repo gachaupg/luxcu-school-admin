@@ -1,43 +1,829 @@
-
-import { SidebarProvider } from "../components/ui/sidebar";
-import { AppSidebar } from "../components/AppSidebar";
-import { HeaderBar } from "../components/HeaderBar";
-import { Car } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
+import { fetchVehicles, addVehicle } from "../redux/slices/vehiclesSlice";
+import { fetchDrivers } from "../redux/slices/driversSlice";
+import {
+  Car,
+  MoreVertical,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye as ViewIcon,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 export default function Vehicles() {
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen bg-gray-100 flex w-full">
-        {/* Sidebar */}
-        <div className="hidden md:block w-64 border-r bg-white">
-          <AppSidebar />
+  const dispatch = useAppDispatch();
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { vehicles, loading, error } = useAppSelector(
+    (state) => state.vehicles
+  );
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { schools } = useAppSelector((state) => state.schools);
+  const { drivers, loading: driversLoading } = useAppSelector(
+    (state) => state.drivers
+  );
+
+  // Table state management
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Action modals state
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Filter schools for the current admin
+  const filteredSchools =
+    schools?.filter((school) => school.admin === user?.id) || [];
+
+  // Get the first school's ID (assuming admin has one school)
+  const schoolId = filteredSchools[0]?.id;
+
+  // Filter drivers for the school
+  const filteredDrivers =
+    drivers?.filter((driver) => driver.school === schoolId) || [];
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (schoolId) {
+          await dispatch(fetchVehicles({ schoolId }));
+        }
+        await dispatch(fetchDrivers());
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      }
+    };
+    loadData();
+  }, [dispatch, schoolId]);
+
+  useEffect(() => {
+    console.log("Debug data:", {
+      user: {
+        id: user?.id,
+        type: user?.user_type,
+      },
+      schoolId,
+      schools: {
+        all: schools,
+        filtered: filteredSchools,
+        count: schools?.length,
+      },
+      drivers: {
+        all: drivers,
+        filtered: filteredDrivers,
+        count: drivers?.length,
+        loading: driversLoading,
+      },
+    });
+  }, [
+    user,
+    schoolId,
+    schools,
+    drivers,
+    filteredSchools,
+    filteredDrivers,
+    driversLoading,
+  ]);
+
+  // Filter and search logic
+  const filteredAndSearchedVehicles = vehicles.filter((vehicle) => {
+    const matchesSearch =
+      vehicle.registration_number
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.vehicle_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (
+        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
+          .first_name || ""
+      )
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (
+        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
+          .last_name || ""
+      )
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && vehicle.is_active) ||
+      (statusFilter === "inactive" && !vehicle.is_active);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(
+    filteredAndSearchedVehicles.length / itemsPerPage
+  );
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedVehicles = filteredAndSearchedVehicles.slice(
+    startIndex,
+    endIndex
+  );
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  // Action handlers
+  const handleView = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEdit = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setFormData({
+      registration_number: vehicle.registration_number,
+      vehicle_type: vehicle.vehicle_type,
+      capacity: vehicle.capacity,
+      school: vehicle.school,
+      driver: vehicle.driver,
+      manufacturer: vehicle.manufacturer,
+      model: vehicle.model,
+      year: vehicle.year,
+      fuel_type: vehicle.fuel_type,
+      is_active: vehicle.is_active,
+      mileage: vehicle.mileage,
+      has_gps: vehicle.has_gps,
+      has_camera: vehicle.has_camera,
+      has_emergency_button: vehicle.has_emergency_button,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      // TODO: Implement delete vehicle API call
+      toast({
+        title: "Success",
+        description: "Vehicle deleted successfully",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedVehicle(null);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to delete vehicle",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const [formData, setFormData] = useState({
+    registration_number: "",
+    vehicle_type: "bus",
+    capacity: 40,
+    school: schoolId || 0,
+    driver: 0,
+    manufacturer: "",
+    model: "",
+    year: new Date().getFullYear(),
+    fuel_type: "diesel",
+    is_active: true,
+    mileage: 0,
+    has_gps: true,
+    has_camera: true,
+    has_emergency_button: true,
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await dispatch(addVehicle(formData)).unwrap();
+      toast({
+        title: "Success",
+        description: "Vehicle added successfully",
+      });
+      setIsDialogOpen(false);
+      // Reset form
+      setFormData({
+        registration_number: "",
+        vehicle_type: "bus",
+        capacity: 40,
+        school: schoolId || 0,
+        driver: 0,
+        manufacturer: "",
+        model: "",
+        year: new Date().getFullYear(),
+        fuel_type: "diesel",
+        is_active: true,
+        mileage: 0,
+        has_gps: true,
+        has_camera: true,
+        has_emergency_button: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error as string,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const AddVehicleForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="registration_number">Registration Number</Label>
+          <Input
+            id="registration_number"
+            name="registration_number"
+            value={formData.registration_number}
+            onChange={handleInputChange}
+            required
+          />
         </div>
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-screen">
-          <HeaderBar />
-          <main className="flex-1 px-8 py-6 bg-gray-100">
-            <div className="mb-4 flex items-center gap-3">
-              <Car className="text-green-500" size={32} />
-              <h2 className="text-2xl font-bold text-gray-800">Vehicles</h2>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-lg font-semibold text-gray-700 mb-2">
-                Keep track of vehicles in your fleet.
-              </p>
-              <ul className="text-gray-600 space-y-1 list-disc list-inside mb-2">
-                <li>View, add, or update bus details.</li>
-                <li>Assign vehicles to routes or trips.</li>
-                <li>Monitor maintenance, insurance, and inspections.</li>
-              </ul>
-              <img
-                src="https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?w=500&q=80"
-                alt="Vehicles"
-                className="rounded-lg shadow-md object-cover h-36 w-full mt-4"
-              />
-            </div>
-          </main>
+        <div className="space-y-2">
+          <Label htmlFor="vehicle_type">Vehicle Type</Label>
+          <Select
+            value={formData.vehicle_type}
+            onValueChange={(value) => handleSelectChange("vehicle_type", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select vehicle type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bus">Bus</SelectItem>
+              <SelectItem value="van">Van</SelectItem>
+              <SelectItem value="car">Car</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
-    </SidebarProvider>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="capacity">Capacity</Label>
+          <Input
+            id="capacity"
+            name="capacity"
+            type="number"
+            value={formData.capacity}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="driver">Driver</Label>
+          <Select
+            value={formData.driver.toString()}
+            onValueChange={(value) => handleSelectChange("driver", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select driver" />
+            </SelectTrigger>
+            <SelectContent>
+              {driversLoading ? (
+                <SelectItem value="loading" disabled>
+                  Loading drivers...
+                </SelectItem>
+              ) : filteredDrivers.length === 0 ? (
+                <SelectItem value="none" disabled>
+                  No drivers available
+                </SelectItem>
+              ) : (
+                filteredDrivers.map((driver) => (
+                  <SelectItem key={driver.id} value={driver.id.toString()}>
+                    {driver.user_details.first_name}{" "}
+                    {driver.user_details.last_name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="manufacturer">Manufacturer</Label>
+          <Input
+            id="manufacturer"
+            name="manufacturer"
+            value={formData.manufacturer}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="model">Model</Label>
+          <Input
+            id="model"
+            name="model"
+            value={formData.model}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="year">Year</Label>
+          <Input
+            id="year"
+            name="year"
+            type="number"
+            value={formData.year}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fuel_type">Fuel Type</Label>
+          <Select
+            value={formData.fuel_type}
+            onValueChange={(value) => handleSelectChange("fuel_type", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select fuel type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="diesel">Diesel</SelectItem>
+              <SelectItem value="petrol">Petrol</SelectItem>
+              <SelectItem value="electric">Electric</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="mileage">Mileage</Label>
+          <Input
+            id="mileage"
+            name="mileage"
+            type="number"
+            value={formData.mileage}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Features</Label>
+        <div className="flex gap-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="has_gps"
+              checked={formData.has_gps}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, has_gps: e.target.checked }))
+              }
+            />
+            <Label htmlFor="has_gps">GPS</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="has_camera"
+              checked={formData.has_camera}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  has_camera: e.target.checked,
+                }))
+              }
+            />
+            <Label htmlFor="has_camera">Camera</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="has_emergency_button"
+              checked={formData.has_emergency_button}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  has_emergency_button: e.target.checked,
+                }))
+              }
+            />
+            <Label htmlFor="has_emergency_button">Emergency Button</Label>
+          </div>
+        </div>
+      </div>
+
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? "Adding Vehicle..." : "Add Vehicle"}
+      </Button>
+    </form>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex w-full">
+      <div className="flex-1 flex flex-col min-h-screen">
+        <main className="flex-1 px-8 py-6 bg-gray-100">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <Car className="text-green-500" size={32} />
+              <h2 className="text-2xl font-bold text-gray-800">All Vehicles</h2>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-500 hover:bg-green-600">
+                  Add New Vehicle
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Add New Vehicle</DialogTitle>
+                </DialogHeader>
+                <AddVehicleForm />
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="bg-white rounded-lg shadow">
+            {/* Search and Filter Controls */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search vehicles by registration, manufacturer, model, or driver..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Vehicles</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Results Summary */}
+              <div className="text-sm text-gray-600 mt-4">
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
+                {filteredAndSearchedVehicles.length} vehicles
+                {searchTerm && ` matching "${searchTerm}"`}
+                {statusFilter !== "all" && ` (${statusFilter})`}
+              </div>
+            </div>
+
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Registration No.
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Driver
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Capacity
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-center">
+                      Loading vehicles...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-3 text-center text-red-500"
+                    >
+                      {error}
+                    </td>
+                  </tr>
+                ) : vehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-center">
+                      No vehicles found
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedVehicles.map((vehicle) => (
+                    <tr key={vehicle.id}>
+                      <td className="px-4 py-3">
+                        {vehicle.registration_number}
+                      </td>
+                      <td className="px-4 py-3">
+                        {
+                          filteredDrivers.find((d) => d.id === vehicle.driver)
+                            ?.user_details.first_name
+                        }{" "}
+                        {
+                          filteredDrivers.find((d) => d.id === vehicle.driver)
+                            ?.user_details.last_name
+                        }
+                      </td>
+                      <td className="px-4 py-3 capitalize">
+                        {vehicle.vehicle_type}
+                      </td>
+                      <td className="px-4 py-3">{vehicle.capacity}</td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant={vehicle.is_active ? "default" : "secondary"}
+                        >
+                          {vehicle.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleView(vehicle)}
+                            >
+                              <ViewIcon className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(vehicle)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(vehicle)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-6 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className="w-8 h-8 p-0"
+                        >
+                          {page}
+                        </Button>
+                      )
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* View Vehicle Modal */}
+      <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Vehicle Details</DialogTitle>
+          </DialogHeader>
+          {selectedVehicle && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-semibold">Registration Number</Label>
+                  <p>{selectedVehicle.registration_number}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Vehicle Type</Label>
+                  <p className="capitalize">{selectedVehicle.vehicle_type}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Manufacturer</Label>
+                  <p>{selectedVehicle.manufacturer}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Model</Label>
+                  <p>{selectedVehicle.model}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Year</Label>
+                  <p>{selectedVehicle.year}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Capacity</Label>
+                  <p>{selectedVehicle.capacity} passengers</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Fuel Type</Label>
+                  <p className="capitalize">{selectedVehicle.fuel_type}</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Mileage</Label>
+                  <p>{selectedVehicle.mileage} km</p>
+                </div>
+                <div>
+                  <Label className="font-semibold">Status</Label>
+                  <Badge
+                    variant={
+                      selectedVehicle.is_active ? "default" : "secondary"
+                    }
+                  >
+                    {selectedVehicle.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="font-semibold">Driver</Label>
+                  <p>
+                    {
+                      filteredDrivers.find(
+                        (d) => d.id === selectedVehicle.driver
+                      )?.user_details.first_name
+                    }{" "}
+                    {filteredDrivers.find(
+                      (d) => d.id === selectedVehicle.driver
+                    )?.user_details.last_name || "Not assigned"}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <Label className="font-semibold">Features</Label>
+                <div className="flex gap-2 mt-2">
+                  {selectedVehicle.has_gps && (
+                    <Badge variant="outline">GPS</Badge>
+                  )}
+                  {selectedVehicle.has_camera && (
+                    <Badge variant="outline">Camera</Badge>
+                  )}
+                  {selectedVehicle.has_emergency_button && (
+                    <Badge variant="outline">Emergency Button</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Vehicle Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Vehicle</DialogTitle>
+          </DialogHeader>
+          <AddVehicleForm />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              vehicle
+              {selectedVehicle && ` "${selectedVehicle.registration_number}"`}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
