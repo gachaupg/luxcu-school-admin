@@ -120,20 +120,24 @@ export default function RoutesPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   // Filter schools for the current admin
   const filteredSchools =
-    schools?.filter((school) => school.admin === user?.id) || [];
-  const schoolId = filteredSchools[0]?.id;
+    schools?.filter((school) => school && school.admin === user?.id) || [];
+  const schoolId = localStorage.getItem("schoolId");
   console.log("school", user, schoolId);
 
   // Filter and search logic
   const filteredAndSearchedRoutes =
     routes?.filter((route) => {
+      // Add null check for route
+      if (!route) return false;
+
       const matchesSearch =
-        route.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        route.schedule_days.some((day) =>
-          day.toLowerCase().includes(searchTerm.toLowerCase())
+        route.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        route.schedule_days?.some((day) =>
+          day?.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
       const matchesStatus =
@@ -157,29 +161,38 @@ export default function RoutesPage() {
 
   // Action handlers
   const handleView = (route) => {
+    if (!route) return;
     setSelectedRoute(route);
     setIsViewModalOpen(true);
   };
 
   const handleEdit = (route) => {
+    if (!route) return;
     setSelectedRoute(route);
     form.reset({
-      name: route.name,
-      school: route.school,
-      start_lat: route.start_lat,
-      start_lng: route.start_lng,
-      end_lat: route.end_lat,
-      end_lng: route.end_lng,
-      total_distance: route.total_distance,
-      estimated_duration: route.estimated_duration,
-      is_active: route.is_active,
-      schedule_days: route.schedule_days,
-      traffic_factor: route.traffic_factor,
+      name: route.name || "",
+      school: route.school || parseInt(schoolId || "1"),
+      start_lat: route.start_lat || 0,
+      start_lng: route.start_lng || 0,
+      end_lat: route.end_lat || 0,
+      end_lng: route.end_lng || 0,
+      total_distance: route.total_distance || 0,
+      estimated_duration: route.estimated_duration || "00:00:00",
+      is_active: route.is_active ?? true,
+      schedule_days: route.schedule_days || [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+      ],
+      traffic_factor: route.traffic_factor || 1.3,
     });
     setIsEditModalOpen(true);
   };
 
   const handleDelete = (route) => {
+    if (!route) return;
     setSelectedRoute(route);
     setIsDeleteDialogOpen(true);
   };
@@ -206,7 +219,7 @@ export default function RoutesPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      school: schoolId || 1,
+      school: parseInt(schoolId || "1"),
       start_lat: 0,
       start_lng: 0,
       end_lat: 0,
@@ -474,7 +487,7 @@ export default function RoutesPage() {
     try {
       const routeData = {
         name: values.name,
-        school: schoolId,
+        school: parseInt(schoolId || "1"),
         start_lat: values.start_lat,
         start_lng: values.start_lng,
         end_lat: values.end_lat,
@@ -491,6 +504,15 @@ export default function RoutesPage() {
         title: "Success",
         description: "Route added successfully",
       });
+
+      // Close dialog and reset form
+      setIsAddDialogOpen(false);
+      form.reset();
+      setStartPlace("");
+      setEndPlace("");
+      setCalculatedDistance(null);
+      setCalculatedDuration(null);
+      setIsCalculatingRoute(false);
     } catch (err) {
       toast({
         title: "Error",
@@ -510,9 +532,26 @@ export default function RoutesPage() {
               <Map className="text-green-500" size={32} />
               <h2 className="text-2xl font-bold text-gray-800">All Routes</h2>
             </div>
-            <Dialog>
+            <Dialog
+              open={isAddDialogOpen}
+              onOpenChange={(open) => {
+                setIsAddDialogOpen(open);
+                if (!open) {
+                  // Reset form and state when dialog closes
+                  form.reset();
+                  setStartPlace("");
+                  setEndPlace("");
+                  setCalculatedDistance(null);
+                  setCalculatedDuration(null);
+                  setIsCalculatingRoute(false);
+                }
+              }}
+            >
               <DialogTrigger asChild>
-                <Button className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow">
+                <Button
+                  className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+                  onClick={() => setIsAddDialogOpen(true)}
+                >
                   Add New Route
                 </Button>
               </DialogTrigger>
@@ -803,52 +842,61 @@ export default function RoutesPage() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedRoutes.map((route) => (
-                    <tr key={route.id}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {route.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {route.total_distance} km
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {route.schedule_days.join(", ")}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge
-                          variant={route.is_active ? "default" : "secondary"}
-                        >
-                          {route.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleView(route)}>
-                              <ViewIcon className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEdit(route)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(route)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))
+                  paginatedRoutes.map((route) => {
+                    // Skip rendering if route is null or undefined
+                    if (!route) return null;
+
+                    return (
+                      <tr key={route.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {route.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {route.total_distance} km
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {route.schedule_days.join(", ")}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            variant={route.is_active ? "default" : "secondary"}
+                          >
+                            {route.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleView(route)}
+                              >
+                                <ViewIcon className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(route)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(route)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -857,7 +905,9 @@ export default function RoutesPage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between p-6 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
+                  Showing {startIndex + 1}-
+                  {Math.min(endIndex, filteredAndSearchedRoutes.length)} of{" "}
+                  {filteredAndSearchedRoutes.length} routes
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

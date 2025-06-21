@@ -36,14 +36,6 @@ const Index = () => {
           <AppNavbar onMenuClick={toggleSidebar} />
           <main className="flex-1 overflow-y-auto bg-gray-100">
             <div className="h-full w-full">
-              {!isHomePage && (
-                <div className="mb-6 px-8 pt-6">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {location.pathname.split("/")[1].charAt(0).toUpperCase() +
-                      location.pathname.split("/")[1].slice(1)}
-                  </h2>
-                </div>
-              )}
               <div className="h-full w-full">
                 <Outlet />
               </div>

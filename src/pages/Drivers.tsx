@@ -655,9 +655,9 @@ const Drivers = () => {
   );
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container w-full ">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row w-full items-center justify-between">
           <CardTitle>Drivers</CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -805,9 +805,11 @@ const Drivers = () => {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
               <div className="text-sm text-gray-600">
-                Page {currentPage} of {totalPages}
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, filteredAndSearchedDrivers.length)} of{" "}
+                {filteredAndSearchedDrivers.length} drivers
               </div>
               <div className="flex items-center gap-2">
                 <Button

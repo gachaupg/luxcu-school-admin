@@ -13,6 +13,8 @@ import {
   Filter,
   MoreHorizontal,
   GraduationCap,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   createStudent,
@@ -102,6 +104,11 @@ export default function Students() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [gradeSearchTerm, setGradeSearchTerm] = useState("");
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [currentGradePage, setCurrentGradePage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   // Get school ID from localStorage or find it from schools
   const getSchoolId = () => {
     const storedSchoolId = localStorage.getItem("schoolId");
@@ -115,21 +122,6 @@ export default function Students() {
   };
 
   const schoolId = getSchoolId();
-
-  // Debug logging
-  console.log("Debug Students page:");
-  console.log("User:", user);
-  console.log("User ID:", user?.id);
-  console.log("Schools:", schools);
-  console.log("School ID:", schoolId);
-  console.log("All students:", students);
-  console.log("Students loading:", loading);
-  console.log("Students error:", error);
-  console.log("All grades:", grades);
-  console.log("Grades type:", typeof grades);
-  console.log("Grades is array:", Array.isArray(grades));
-  console.log("Grades loading:", gradesLoading);
-  console.log("Grades error:", gradesError);
 
   useEffect(() => {
     // Always fetch schools first
@@ -183,6 +175,27 @@ export default function Students() {
       );
     }
   );
+
+  // Pagination logic for students
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+
+  // Pagination logic for grades
+  const totalGradePages = Math.ceil(filteredGrades.length / itemsPerPage);
+  const startGradeIndex = (currentGradePage - 1) * itemsPerPage;
+  const endGradeIndex = startGradeIndex + itemsPerPage;
+  const paginatedGrades = filteredGrades.slice(startGradeIndex, endGradeIndex);
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    setCurrentGradePage(1);
+  }, [gradeSearchTerm]);
 
   const handleCreateStudent = async (studentData: Omit<Student, "id">) => {
     try {
@@ -357,10 +370,10 @@ export default function Students() {
                 <div>
                   <p className="text-sm text-gray-600 mt-1">
                     {activeTab === "students"
-                      ? `Showing ${filteredStudents.length} of ${
+                      ? `Showing ${paginatedStudents.length} of ${
                           students?.length || 0
                         } students`
-                      : `Showing ${filteredGrades.length} of ${
+                      : `Showing ${paginatedGrades.length} of ${
                           grades?.length || 0
                         } grades`}
                   </p>
@@ -478,7 +491,7 @@ export default function Students() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {filteredStudents.map((student) => (
+                          {paginatedStudents.map((student) => (
                             <tr
                               key={student.id}
                               className="hover:bg-gray-50 transition-colors"
@@ -558,7 +571,7 @@ export default function Students() {
                         </tbody>
                       </table>
 
-                      {filteredStudents.length === 0 && (
+                      {paginatedStudents.length === 0 && (
                         <div className="text-center py-12">
                           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                           <p className="text-gray-500">No students found</p>
@@ -567,6 +580,55 @@ export default function Students() {
                               ? "Try adjusting your search or filter criteria"
                               : "Get started by adding your first student"}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Pagination Controls for Students */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+                          <div className="text-sm text-gray-600">
+                            Showing {startIndex + 1}-
+                            {Math.min(endIndex, filteredStudents.length)} of{" "}
+                            {filteredStudents.length} students
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(currentPage - 1)}
+                              disabled={currentPage === 1}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                              Previous
+                            </Button>
+                            <div className="flex items-center gap-1">
+                              {Array.from(
+                                { length: totalPages },
+                                (_, i) => i + 1
+                              ).map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={
+                                    currentPage === page ? "default" : "outline"
+                                  }
+                                  size="sm"
+                                  onClick={() => setCurrentPage(page)}
+                                  className="w-8 h-8 p-0"
+                                >
+                                  {page}
+                                </Button>
+                              ))}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(currentPage + 1)}
+                              disabled={currentPage === totalPages}
+                            >
+                              Next
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -627,7 +689,7 @@ export default function Students() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {filteredGrades.map((grade) => (
+                          {paginatedGrades.map((grade) => (
                             <tr
                               key={grade.id}
                               className="hover:bg-gray-50 transition-colors"
@@ -693,7 +755,7 @@ export default function Students() {
                         </tbody>
                       </table>
 
-                      {filteredGrades.length === 0 && (
+                      {paginatedGrades.length === 0 && (
                         <div className="text-center py-12">
                           <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                           <p className="text-gray-500">No grades found</p>
@@ -702,6 +764,61 @@ export default function Students() {
                               ? "Try adjusting your search criteria"
                               : "Get started by adding your first grade"}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Pagination Controls for Grades */}
+                      {totalGradePages > 1 && (
+                        <div className="flex items-center justify-between p-6 border-t border-gray-200">
+                          <div className="text-sm text-gray-600">
+                            Showing {startGradeIndex + 1}-
+                            {Math.min(endGradeIndex, filteredGrades.length)} of{" "}
+                            {filteredGrades.length} grades
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCurrentGradePage(currentGradePage - 1)
+                              }
+                              disabled={currentGradePage === 1}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                              Previous
+                            </Button>
+                            <div className="flex items-center gap-1">
+                              {Array.from(
+                                { length: totalGradePages },
+                                (_, i) => i + 1
+                              ).map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={
+                                    currentGradePage === page
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  size="sm"
+                                  onClick={() => setCurrentGradePage(page)}
+                                  className="w-8 h-8 p-0"
+                                >
+                                  {page}
+                                </Button>
+                              ))}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCurrentGradePage(currentGradePage + 1)
+                              }
+                              disabled={currentGradePage === totalGradePages}
+                            >
+                              Next
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>

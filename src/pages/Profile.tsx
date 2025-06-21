@@ -136,11 +136,12 @@ const Profile = () => {
         new_password: "",
         confirm_password: "",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
       toast({
         title: "Error",
         description:
-          error.response?.data?.message || "Failed to change password",
+          apiError.response?.data?.message || "Failed to change password",
         variant: "destructive",
       });
     }

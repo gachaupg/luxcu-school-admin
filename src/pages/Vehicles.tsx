@@ -53,6 +53,32 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
 // Form component moved outside to prevent recreation on every render
+interface VehicleFormData {
+  registration_number: string;
+  vehicle_type: string;
+  capacity: number;
+  school: number | null;
+  driver: number;
+  manufacturer: string;
+  model: string;
+  year: number;
+  fuel_type: string;
+  is_active: boolean;
+  mileage: number;
+  has_gps: boolean;
+  has_camera: boolean;
+  has_emergency_button: boolean;
+  [key: string]: string | number | boolean | null;
+}
+
+interface Driver {
+  id: number;
+  user_details: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
 const AddVehicleForm = ({
   formData,
   setFormData,
@@ -61,32 +87,32 @@ const AddVehicleForm = ({
   filteredDrivers,
   driversLoading,
 }: {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: VehicleFormData;
+  setFormData: React.Dispatch<React.SetStateAction<VehicleFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   loading: boolean;
-  filteredDrivers: any[];
+  filteredDrivers: Driver[];
   driversLoading: boolean;
 }) => {
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev: any) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === "number" ? Number(value) : value,
     }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev: any) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: name === "driver" ? Number(value) : value,
     }));
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="registration_number">Registration Number</Label>
@@ -235,7 +261,7 @@ const AddVehicleForm = ({
               id="has_gps"
               checked={formData.has_gps}
               onChange={(e) =>
-                setFormData((prev: any) => ({
+                setFormData((prev) => ({
                   ...prev,
                   has_gps: e.target.checked,
                 }))
@@ -249,7 +275,7 @@ const AddVehicleForm = ({
               id="has_camera"
               checked={formData.has_camera}
               onChange={(e) =>
-                setFormData((prev: any) => ({
+                setFormData((prev) => ({
                   ...prev,
                   has_camera: e.target.checked,
                 }))
@@ -263,7 +289,7 @@ const AddVehicleForm = ({
               id="has_emergency_button"
               checked={formData.has_emergency_button}
               onChange={(e) =>
-                setFormData((prev: any) => ({
+                setFormData((prev) => ({
                   ...prev,
                   has_emergency_button: e.target.checked,
                 }))
@@ -456,7 +482,7 @@ export default function Vehicles() {
     }
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VehicleFormData>({
     registration_number: "",
     vehicle_type: "bus",
     capacity: 40,
@@ -530,9 +556,9 @@ export default function Vehicles() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex w-full">
+    <div className="min-h-screen bg-gray-100 p-3 flex w-full">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-8 py-6 bg-gray-100">
+        <main className="flex-1 bg-gray-100">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center gap-3">
               <Car className="text-green-500" size={32} />
@@ -596,14 +622,6 @@ export default function Vehicles() {
                 </div>
               </div>
 
-              {/* Results Summary */}
-              <div className="text-sm text-gray-600 mt-4">
-                Showing {startIndex + 1}-
-                {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
-                {filteredAndSearchedVehicles.length} vehicles
-                {searchTerm && ` matching "${searchTerm}"`}
-                {statusFilter !== "all" && ` (${statusFilter})`}
-              </div>
             </div>
 
             <table className="min-w-full divide-y divide-gray-200">
@@ -718,7 +736,9 @@ export default function Vehicles() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between p-6 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                  Page {currentPage} of {totalPages}
+                  Showing {startIndex + 1}-
+                  {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
+                  {filteredAndSearchedVehicles.length} vehicles
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
