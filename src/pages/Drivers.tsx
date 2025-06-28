@@ -41,6 +41,12 @@ import {
   Edit,
   Trash2,
   Eye as ViewIcon,
+  Users,
+  MoreVertical,
+  Plus,
+  User,
+  Download,
+  Check,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -60,6 +66,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SidebarProvider } from "../components/ui/sidebar";
+import { AppSidebar } from "../components/AppSidebar";
+import { HeaderBar } from "../components/HeaderBar";
+import { Textarea } from "@/components/ui/textarea";
+import { parseDriverError } from "@/utils/errorHandler";
 
 const Drivers = () => {
   const dispatch = useAppDispatch();
@@ -405,9 +416,33 @@ const Drivers = () => {
         longitude: 36.817223,
       });
     } catch (err) {
+      console.error("Driver creation error:", err);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to add driver";
+
+      if (err instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(err.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = err.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = err.message;
+        }
+      } else {
+        errorMessage = String(err);
+      }
+
       toast({
         title: "Error",
-        description: "Failed to add driver",
+        description: errorMessage,
         variant: "destructive",
       });
     }

@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   DRIVERS: `${API_BASE_URL}/drivers/`,
   VEHICLES: `${API_BASE_URL}/vehicles/`,
   ROUTES: `${API_BASE_URL}/routes/`,
+  ROUTE_ASSIGNMENTS: `${API_BASE_URL}/route-assignments/`,
   STAFF: `${API_BASE_URL}/staff/`,
   SCHOOLS_ROLES: `${API_BASE_URL}/schools-roles`,
   STUDENTS: `${API_BASE_URL}/students/`,

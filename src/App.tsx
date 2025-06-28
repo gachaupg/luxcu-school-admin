@@ -7,7 +7,7 @@ import {
 import { ReduxProvider } from "./redux/provider";
 import Login from "./pages/Login";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
-import { checkTokenExpiration } from "./redux/slices/authSlice";
+import { checkTokenExpiration, initializeAuth } from "./redux/slices/authSlice";
 import { fetchSchools } from "./redux/slices/schoolsSlice";
 import Index from "./pages/Index";
 import Overview from "./pages/Overview";
@@ -35,7 +35,16 @@ const queryClient = new QueryClient();
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { token } = useAppSelector((state) => state.auth);
+  const { token, isInitialized } = useAppSelector((state) => state.auth);
+
+  // Don't redirect until auth is initialized
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        Loading...
+      </div>
+    );
+  }
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -46,38 +55,58 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
-  const { token } = useAppSelector((state) => state.auth);
+  const { token, isInitialized, user } = useAppSelector((state) => state.auth);
   const {
     schools = [],
     loading,
     error,
   } = useAppSelector((state) => state.schools);
 
-  const { user } = useSelector((state: RootState) => state.auth);
   const schoolId = schools.find((school) => school.admin === user?.id)?.id;
-  console.log("schools on main app", schoolId);
+
+  // Debug logging
+  console.log("App state:", {
+    token: token ? "exists" : "null",
+    isInitialized,
+    user: user
+      ? { id: user.id, name: `${user.first_name} ${user.last_name}` }
+      : "null",
+    schoolsCount: schools.length,
+    schoolId,
+    schoolsLoading: loading,
+    schoolsError: error,
+  });
+
+  // Initialize auth state
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
 
   useEffect(() => {
     localStorage.setItem("schoolId", schoolId?.toString() || "");
   }, [schoolId]);
 
-  // Check log token expiration every minute
+  // Check token expiration every minute
   React.useEffect(() => {
-    if (token) {
+    if (token && isInitialized) {
       const interval = setInterval(() => {
         dispatch(checkTokenExpiration());
       }, 60000); // Check every minute
 
       return () => clearInterval(interval);
     }
-  }, [token, dispatch]);
+  }, [token, isInitialized, dispatch]);
 
-  // Fetch schools when component mounts
+  // Fetch schools when component mounts and token is available
   React.useEffect(() => {
-    if (token) {
+    if (token && isInitialized) {
+      console.log(
+        "Fetching schools with token:",
+        token.substring(0, 20) + "..."
+      );
       dispatch(fetchSchools());
     }
-  }, [token, dispatch]);
+  }, [token, isInitialized, dispatch]);
 
   // Log schools data
   React.useEffect(() => {
@@ -122,18 +151,36 @@ const AppContent = () => {
   );
 };
 
-// function ErrorFallback({ error }: { error: Error }) {
-//   return (
-//     // <div role="alert" className="p-4">
-//     //   <p>Something went wrong:</p>
-//     //   <pre className="text-red-500">{error.message}</pre>
-//     // </div>
-//   );
-// }
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <div
+      role="alert"
+      className="flex items-center justify-center min-h-screen p-4"
+    >
+      <div className="max-w-md mx-auto text-center">
+        <h2 className="text-xl font-bold text-red-600 mb-4">
+          Something went wrong
+        </h2>
+        <p className="text-gray-600 mb-4">
+          An unexpected error occurred. Please try refreshing the page.
+        </p>
+        <pre className="text-sm text-red-500 bg-red-50 p-3 rounded overflow-auto">
+          {error.message}
+        </pre>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Refresh Page
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   return (
-    // <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
       <ReduxProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
@@ -143,7 +190,7 @@ function App() {
           </TooltipProvider>
         </QueryClientProvider>
       </ReduxProvider>
-    // </ErrorBoundary>
+    </ErrorBoundary>
   );
 }
 

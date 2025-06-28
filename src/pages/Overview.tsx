@@ -6,7 +6,7 @@ import { RecentTripsTable } from "@/components/RecentTripsTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle } from "lucide-react";
+import { RefreshCw, AlertCircle, Loader2 } from "lucide-react";
 
 const Overview = () => {
   const dispatch = useAppDispatch();
@@ -14,7 +14,11 @@ const Overview = () => {
     (state) => state.overview
   );
   const { user } = useAppSelector((state) => state.auth);
-  const { schools } = useAppSelector((state) => state.schools);
+  const {
+    schools,
+    loading: schoolsLoading,
+    error: schoolsError,
+  } = useAppSelector((state) => state.schools);
 
   // Get school ID from localStorage or find it from schools
   const getSchoolId = () => {
@@ -42,6 +46,39 @@ const Overview = () => {
     }
   };
 
+  // Show loading state while schools are being fetched
+  if (schoolsLoading) {
+    return (
+      <div className="h-full w-full bg-gray-100 p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span>Loading school information...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if schools failed to load
+  if (schoolsError) {
+    return (
+      <div className="h-full w-full bg-gray-100 p-8">
+        <div className="max-w-4xl mx-auto">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load school information: {schoolsError}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no school is associated with the user
   if (!schoolId) {
     return (
       <div className="h-full w-full bg-gray-100 p-8">
@@ -51,6 +88,10 @@ const Overview = () => {
             <AlertDescription>
               No school ID found. Please ensure you are associated with a
               school.
+              {schools.length === 0 && " No schools available."}
+              {schools.length > 0 &&
+                user &&
+                ` Available schools: ${schools.length}, User ID: ${user.id}`}
             </AlertDescription>
           </Alert>
         </div>
@@ -95,10 +136,6 @@ const Overview = () => {
 
           {/* Recent Trips */}
           <RecentTripsTable />
-
-       
-
-      
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import parentsReducer from "./slices/parentsSlice";
 import driversReducer from "./slices/driversSlice";
 import vehiclesReducer from "./slices/vehiclesSlice";
 import routesReducer from "./slices/routesSlice";
+import routeAssignmentsReducer from "./slices/routeAssignmentsSlice";
 import staffReducer from "./slices/staffSlice";
 import roleReducer from "./slices/roleSlice";
 import studentsReducer from "./slices/studentsSlice";
@@ -31,6 +32,7 @@ const rootReducer = {
   drivers: driversReducer,
   vehicles: vehiclesReducer,
   routes: routesReducer,
+  routeAssignments: routeAssignmentsReducer,
   staff: staffReducer,
   roles: roleReducer,
   students: studentsReducer,

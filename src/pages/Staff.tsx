@@ -1,23 +1,61 @@
 import { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { SidebarProvider } from "../components/ui/sidebar";
 import { AppSidebar } from "../components/AppSidebar";
 import { HeaderBar } from "../components/HeaderBar";
-import { Users, MoreVertical, Shield } from "lucide-react";
+import {
+  Users,
+  MoreVertical,
+  Plus,
+  Eye,
+  Edit,
+  Trash2,
+  User,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Shield,
+} from "lucide-react";
 import { fetchStaff, addStaff } from "../redux/slices/staffSlice";
-import { createRole, fetchRoles } from "../redux/slices/roleSlice";
-import { RootState, AppDispatch } from "../redux/store";
+import { fetchSchools } from "../redux/slices/schoolsSlice";
+import { fetchRoles, createRole } from "../redux/slices/roleSlice";
 import { showToast } from "../utils/toast";
 import { StaffModal } from "../components/StaffModal";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { RoleModal } from "../components/RoleModal";
+import { parseStaffError } from "@/utils/errorHandler";
 
 export default function Staff() {
-  const dispatch = useDispatch<AppDispatch>();
-  const { staff, loading, error } = useSelector(
-    (state: RootState) => state.staff
-  );
-  const { roles } = useSelector((state: RootState) => state.roles);
-  const { schools } = useSelector((state: RootState) => state.schools);
+  const dispatch = useAppDispatch();
+  const { staff, loading, error } = useAppSelector((state) => state.staff);
+  const { roles } = useAppSelector((state) => state.roles);
+  const { schools } = useAppSelector((state) => state.schools);
   const data = JSON.parse(localStorage.getItem("profile") || "{}");
   const user = data;
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,6 +70,9 @@ export default function Staff() {
     if (schoolId) {
       dispatch(fetchStaff({ schoolId }));
       dispatch(fetchRoles(schoolId));
+    } else {
+      // Fetch schools if we don't have a schoolId yet
+      dispatch(fetchSchools());
     }
   }, [dispatch, schoolId]);
 
@@ -72,8 +113,31 @@ export default function Staff() {
         showToast.error("Error", errorMessage);
       }
     } catch (err) {
-      showToast.error("Error", "Failed to add staff member");
-      console.error("Error adding staff:", err);
+      console.error("Staff creation error:", err);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to add staff member";
+
+      if (err instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(err.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = err.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = err.message;
+        }
+      } else {
+        errorMessage = String(err);
+      }
+
+      showToast.error("Error", errorMessage);
     }
   };
 

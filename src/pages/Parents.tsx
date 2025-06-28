@@ -65,6 +65,14 @@ import { toast } from "@/components/ui/use-toast";
 import { ParentViewModal } from "@/components/ParentViewModal";
 import { ParentEditModal } from "@/components/ParentEditModal";
 import { RootState } from "@/redux/store";
+import {
+  parseParentError,
+  parseApiError,
+  handleParentError,
+  handleParentUpdateError,
+  handleParentDeleteError,
+  parseReduxError,
+} from "@/utils/errorHandler";
 
 interface AuthorizedPerson {
   name: string;
@@ -117,6 +125,23 @@ interface ParentFormData {
   };
 }
 
+interface FormErrors {
+  user_data?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone_number?: string;
+    password?: string;
+    confirm_password?: string;
+  };
+  address?: string;
+  emergency_contact?: string;
+  secondary_phone?: string;
+  preferred_contact_method?: string;
+  authorized_pickup_persons?: string;
+  general?: string;
+}
+
 export default function Parents() {
   const dispatch = useAppDispatch();
   const {
@@ -145,6 +170,7 @@ export default function Parents() {
   >([{ name: "", relation: "", phone: "" }]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const [formData, setFormData] = useState<ParentFormData>({
     user_data: {
@@ -280,24 +306,91 @@ export default function Parents() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate passwords match
-    if (formData.user_data?.password !== formData.user_data?.confirm_password) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
+    // Clear previous errors
+    setFormErrors({});
+
+    // Enhanced client-side validation
+    const validationErrors: FormErrors = {};
+
+    // Validate required fields
+    if (!formData.user_data?.first_name?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        first_name: "First name is required",
+      };
     }
 
-    // Validate password strength
+    if (!formData.user_data?.last_name?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        last_name: "Last name is required",
+      };
+    }
+
+    if (!formData.user_data?.email?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        email: "Email is required",
+      };
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.user_data.email)) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        email: "Please enter a valid email address",
+      };
+    }
+
+    if (!formData.user_data?.phone_number?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        phone_number: "Phone number is required",
+      };
+    }
+
+    if (!formData.user_data?.password?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        password: "Password is required",
+      };
+    } else if (formData.user_data.password.length < 8) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        password: "Password must be at least 8 characters long",
+      };
+    }
+
+    if (!formData.user_data?.confirm_password?.trim()) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        confirm_password: "Please confirm your password",
+      };
+    }
+
+    if (!formData.address?.trim()) {
+      validationErrors.address = "Address is required";
+    }
+
+    if (!formData.emergency_contact?.trim()) {
+      validationErrors.emergency_contact = "Emergency contact is required";
+    }
+
+    // Validate passwords match
     if (
       formData.user_data?.password &&
-      formData.user_data.password.length < 8
+      formData.user_data?.confirm_password &&
+      formData.user_data.password !== formData.user_data.confirm_password
     ) {
+      validationErrors.user_data = {
+        ...validationErrors.user_data,
+        confirm_password: "Passwords do not match",
+      };
+    }
+
+    // If there are validation errors, display them and return
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
       toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long",
+        title: "Validation Error",
+        description: "Please check the form for errors",
         variant: "destructive",
       });
       return;
@@ -391,16 +484,45 @@ export default function Parents() {
         },
       });
       setAuthorizedPersons([{ name: "", relation: "", phone: "" }]);
+      setFormErrors({});
     } catch (error) {
       console.error("Parent registration error:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : error,
-        stack: error instanceof Error ? error.stack : undefined,
+      console.error("Error type:", typeof error);
+      console.error("Error instanceof Error:", error instanceof Error);
+      console.error("Raw error:", error);
+
+      // Use the Redux-specific error parser
+      const { message: errorMessage, fieldErrors } = parseReduxError(error);
+
+      console.log("Parsed error message:", errorMessage);
+      console.log("Parsed field errors:", fieldErrors);
+
+      // Convert field errors to the expected format
+      const formFieldErrors: FormErrors = {};
+
+      Object.entries(fieldErrors || {}).forEach(([field, errorMsg]) => {
+        console.log(`Processing field: ${field} with error: ${errorMsg}`);
+        if (field.startsWith("user_data.")) {
+          const userField = field.split(".")[1];
+          formFieldErrors.user_data = {
+            ...formFieldErrors.user_data,
+            [userField]: errorMsg,
+          };
+          console.log(`Mapped to user_data.${userField}: ${errorMsg}`);
+        } else {
+          (formFieldErrors as Record<string, string>)[field] = errorMsg;
+          console.log(`Mapped to ${field}: ${errorMsg}`);
+        }
       });
 
+      console.log("Final form field errors:", formFieldErrors);
+
+      setFormErrors(formFieldErrors);
+
+      // Show toast with the main error message
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : String(error),
+        title: "Registration Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -421,9 +543,14 @@ export default function Parents() {
         dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
       }
     } catch (error) {
+      console.error("Parent update error:", error);
+
+      // Use the enhanced parent-specific error parser
+      const { message: errorMessage } = handleParentUpdateError(error);
+
       toast({
-        title: "Error",
-        description: error as string,
+        title: "Update Failed",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;
@@ -442,9 +569,14 @@ export default function Parents() {
       setIsDeleteDialogOpen(false);
       setSelectedParent(null);
     } catch (error) {
+      console.error("Parent delete error:", error);
+
+      // Use the enhanced parent-specific error parser
+      const { message: errorMessage } = handleParentDeleteError(error);
+
       toast({
-        title: "Error",
-        description: error as string,
+        title: "Delete Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -607,6 +739,125 @@ export default function Parents() {
                     <DialogTitle>Add New Parent</DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* General Error Display */}
+                    {formErrors.general && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg
+                              className="h-5 w-5 text-red-400"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-red-800">
+                              Registration Error
+                            </h3>
+                            <div className="mt-2 text-sm text-red-700">
+                              <p>{formErrors.general}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Validation Summary */}
+                    {Object.keys(formErrors).length > 0 &&
+                      !formErrors.general && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <svg
+                                className="h-5 w-5 text-yellow-400"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-yellow-800">
+                                Please fix the following errors:
+                              </h3>
+                              <div className="mt-2 text-sm text-yellow-700">
+                                <ul className="list-disc pl-5 space-y-1">
+                                  {formErrors.user_data?.first_name && (
+                                    <li>
+                                      First name:{" "}
+                                      {formErrors.user_data.first_name}
+                                    </li>
+                                  )}
+                                  {formErrors.user_data?.last_name && (
+                                    <li>
+                                      Last name:{" "}
+                                      {formErrors.user_data.last_name}
+                                    </li>
+                                  )}
+                                  {formErrors.user_data?.email && (
+                                    <li>Email: {formErrors.user_data.email}</li>
+                                  )}
+                                  {formErrors.user_data?.phone_number && (
+                                    <li>
+                                      Phone number:{" "}
+                                      {formErrors.user_data.phone_number}
+                                    </li>
+                                  )}
+                                  {formErrors.user_data?.password && (
+                                    <li>
+                                      Password: {formErrors.user_data.password}
+                                    </li>
+                                  )}
+                                  {formErrors.user_data?.confirm_password && (
+                                    <li>
+                                      Confirm password:{" "}
+                                      {formErrors.user_data.confirm_password}
+                                    </li>
+                                  )}
+                                  {formErrors.address && (
+                                    <li>Address: {formErrors.address}</li>
+                                  )}
+                                  {formErrors.emergency_contact && (
+                                    <li>
+                                      Emergency contact:{" "}
+                                      {formErrors.emergency_contact}
+                                    </li>
+                                  )}
+                                  {formErrors.secondary_phone && (
+                                    <li>
+                                      Secondary phone:{" "}
+                                      {formErrors.secondary_phone}
+                                    </li>
+                                  )}
+                                  {formErrors.preferred_contact_method && (
+                                    <li>
+                                      Preferred contact method:{" "}
+                                      {formErrors.preferred_contact_method}
+                                    </li>
+                                  )}
+                                  {formErrors.authorized_pickup_persons && (
+                                    <li>
+                                      Authorized pickup persons:{" "}
+                                      {formErrors.authorized_pickup_persons}
+                                    </li>
+                                  )}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="user_data.first_name">First Name</Label>
@@ -616,7 +867,17 @@ export default function Parents() {
                           value={formData.user_data?.first_name || ""}
                           onChange={handleInputChange}
                           required
+                          className={
+                            formErrors.user_data?.first_name
+                              ? "border-red-500"
+                              : ""
+                          }
                         />
+                        {formErrors.user_data?.first_name && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.first_name}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="user_data.last_name">Last Name</Label>
@@ -626,7 +887,17 @@ export default function Parents() {
                           value={formData.user_data?.last_name || ""}
                           onChange={handleInputChange}
                           required
+                          className={
+                            formErrors.user_data?.last_name
+                              ? "border-red-500"
+                              : ""
+                          }
                         />
+                        {formErrors.user_data?.last_name && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.last_name}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -640,7 +911,15 @@ export default function Parents() {
                           value={formData.user_data?.email || ""}
                           onChange={handleInputChange}
                           required
+                          className={
+                            formErrors.user_data?.email ? "border-red-500" : ""
+                          }
                         />
+                        {formErrors.user_data?.email && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.email}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="user_data.phone_number">
@@ -653,7 +932,17 @@ export default function Parents() {
                           onChange={handleInputChange}
                           placeholder="e.g., 0722858508 or +254722858508"
                           required
+                          className={
+                            formErrors.user_data?.phone_number
+                              ? "border-red-500"
+                              : ""
+                          }
                         />
+                        {formErrors.user_data?.phone_number && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.phone_number}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500">
                           Enter local format (0722858508) or international
                           format (+254722858508)
@@ -672,6 +961,11 @@ export default function Parents() {
                             value={formData.user_data?.password || ""}
                             onChange={handleInputChange}
                             required
+                            className={
+                              formErrors.user_data?.password
+                                ? "border-red-500"
+                                : ""
+                            }
                           />
                           <button
                             type="button"
@@ -685,6 +979,11 @@ export default function Parents() {
                             )}
                           </button>
                         </div>
+                        {formErrors.user_data?.password && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.password}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="user_data.confirm_password">
@@ -698,6 +997,11 @@ export default function Parents() {
                             value={formData.user_data?.confirm_password || ""}
                             onChange={handleInputChange}
                             required
+                            className={
+                              formErrors.user_data?.confirm_password
+                                ? "border-red-500"
+                                : ""
+                            }
                           />
                           <button
                             type="button"
@@ -713,6 +1017,11 @@ export default function Parents() {
                             )}
                           </button>
                         </div>
+                        {formErrors.user_data?.confirm_password && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.user_data.confirm_password}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -724,7 +1033,13 @@ export default function Parents() {
                         value={formData.address}
                         onChange={handleInputChange}
                         required
+                        className={formErrors.address ? "border-red-500" : ""}
                       />
+                      {formErrors.address && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.address}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -739,7 +1054,15 @@ export default function Parents() {
                           onChange={handleInputChange}
                           placeholder="e.g., 0722858508 or +254722858508"
                           required
+                          className={
+                            formErrors.emergency_contact ? "border-red-500" : ""
+                          }
                         />
+                        {formErrors.emergency_contact && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.emergency_contact}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="secondary_phone">Secondary Phone</Label>
@@ -749,7 +1072,15 @@ export default function Parents() {
                           value={formData.secondary_phone}
                           onChange={handleInputChange}
                           placeholder="e.g., 0722858508 or +254722858508"
+                          className={
+                            formErrors.secondary_phone ? "border-red-500" : ""
+                          }
                         />
+                        {formErrors.secondary_phone && (
+                          <p className="text-sm text-red-500">
+                            {formErrors.secondary_phone}
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -763,7 +1094,13 @@ export default function Parents() {
                           handleSelectChange("preferred_contact_method", value)
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger
+                          className={
+                            formErrors.preferred_contact_method
+                              ? "border-red-500"
+                              : ""
+                          }
+                        >
                           <SelectValue placeholder="Select contact method" />
                         </SelectTrigger>
                         <SelectContent>
@@ -772,6 +1109,11 @@ export default function Parents() {
                           <SelectItem value="sms">SMS</SelectItem>
                         </SelectContent>
                       </Select>
+                      {formErrors.preferred_contact_method && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.preferred_contact_method}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-4">
@@ -786,6 +1128,11 @@ export default function Parents() {
                           <Plus className="h-4 w-4 mr-2" /> Add Person
                         </Button>
                       </div>
+                      {formErrors.authorized_pickup_persons && (
+                        <p className="text-sm text-red-500">
+                          {formErrors.authorized_pickup_persons}
+                        </p>
+                      )}
                       {authorizedPersons.map((person, index) => (
                         <div
                           key={index}

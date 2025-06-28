@@ -40,8 +40,11 @@ export const addRoute = createAsyncThunk<
     return response.data.data;
   } catch (error) {
     const axiosError = error as AxiosError<{ message: string }>;
+    // Return the original error data structure to preserve field-specific errors
     return rejectWithValue(
-      axiosError.response?.data?.message || "Failed to add route"
+      JSON.stringify(
+        axiosError.response?.data || { message: "Failed to add route" }
+      )
     );
   }
 });

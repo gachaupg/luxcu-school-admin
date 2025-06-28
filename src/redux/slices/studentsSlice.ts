@@ -45,8 +45,11 @@ export const createStudent = createAsyncThunk<
     return response.data.data;
   } catch (error) {
     if (error instanceof AxiosError) {
+      // Return the original error data structure to preserve field-specific errors
       return rejectWithValue(
-        error.response?.data?.message || "Failed to create student"
+        JSON.stringify(
+          error.response?.data || { message: "Failed to create student" }
+        )
       );
     }
     return rejectWithValue("Failed to create student");
@@ -81,6 +84,14 @@ export const fetchStudents = createAsyncThunk<
     // Check if response.data.data exists, otherwise use response.data
     const studentsData = response.data?.data || response.data;
     console.log("Final students data to return:", studentsData);
+    console.log("Students data type:", typeof studentsData);
+    console.log("Students data is array:", Array.isArray(studentsData));
+
+    // Ensure we always return an array
+    if (!Array.isArray(studentsData)) {
+      console.warn("Students data is not an array, returning empty array");
+      return [];
+    }
 
     return studentsData;
   } catch (error) {
@@ -104,8 +115,11 @@ export const updateStudent = createAsyncThunk<
     return response.data.data;
   } catch (error) {
     if (error instanceof AxiosError) {
+      // Return the original error data structure to preserve field-specific errors
       return rejectWithValue(
-        error.response?.data?.message || "Failed to update student"
+        JSON.stringify(
+          error.response?.data || { message: "Failed to update student" }
+        )
       );
     }
     return rejectWithValue("Failed to update student");
@@ -122,8 +136,11 @@ export const deleteStudent = createAsyncThunk<
     return id;
   } catch (error) {
     if (error instanceof AxiosError) {
+      // Return the original error data structure to preserve field-specific errors
       return rejectWithValue(
-        error.response?.data?.message || "Failed to delete student"
+        JSON.stringify(
+          error.response?.data || { message: "Failed to delete student" }
+        )
       );
     }
     return rejectWithValue("Failed to delete student");
@@ -146,8 +163,23 @@ const studentsSlice = createSlice({
         state.error = null;
       })
       .addCase(createStudent.fulfilled, (state, action) => {
+        console.log("createStudent.fulfilled - payload:", action.payload);
+        console.log(
+          "createStudent.fulfilled - previous state.students:",
+          state.students
+        );
+
         state.loading = false;
         state.students.push(action.payload);
+
+        console.log(
+          "createStudent.fulfilled - state.students after push:",
+          state.students
+        );
+        console.log(
+          "createStudent.fulfilled - state.students length:",
+          state.students.length
+        );
       })
       .addCase(createStudent.rejected, (state, action) => {
         state.loading = false;
@@ -168,11 +200,21 @@ const studentsSlice = createSlice({
           "fetchStudents.fulfilled - is array:",
           Array.isArray(action.payload)
         );
+        console.log(
+          "fetchStudents.fulfilled - previous state.students:",
+          state.students
+        );
+
         state.loading = false;
-        state.students = action.payload;
+        state.students = Array.isArray(action.payload) ? action.payload : [];
+
         console.log(
           "fetchStudents.fulfilled - state.students after update:",
           state.students
+        );
+        console.log(
+          "fetchStudents.fulfilled - state.students length:",
+          state.students.length
         );
       })
       .addCase(fetchStudents.rejected, (state, action) => {

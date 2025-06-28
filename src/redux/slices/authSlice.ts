@@ -27,6 +27,7 @@ interface AuthState {
   error: string | null;
   userId: number | null;
   verificationStatus: "idle" | "pending" | "verified" | "failed";
+  isInitialized: boolean;
 }
 
 interface LoginResponse {
@@ -46,18 +47,51 @@ interface ApiError {
   message: string;
 }
 
+// Helper function to initialize token from localStorage
+const getInitialToken = (): string | null => {
+  try {
+    const token = localStorage.getItem("persist:auth");
+    if (token) {
+      const parsed = JSON.parse(token);
+      const authState = JSON.parse(parsed.token || "null");
+      if (authState && !isTokenExpired(authState)) {
+        return authState;
+      }
+    }
+  } catch (error) {
+    console.error("Error parsing persisted token:", error);
+  }
+  return null;
+};
+
+// Helper function to initialize user from localStorage
+const getInitialUser = (): User | null => {
+  try {
+    const userData = localStorage.getItem("persist:auth");
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      const userState = JSON.parse(parsed.user || "null");
+      return userState;
+    }
+  } catch (error) {
+    console.error("Error parsing persisted user:", error);
+  }
+  return null;
+};
+
 const initialState: AuthState = {
-  user: null,
-  token: null,
+  user: getInitialUser(),
+  token: getInitialToken(),
   loading: false,
   error: null,
   userId: null,
   verificationStatus: "idle",
+  isInitialized: false,
 };
 
-// Check token expiration on initial load
-if (initialState.token && isTokenExpired(initialState.token)) {
-  initialState.token = null;
+// Initialize API headers if token exists
+if (initialState.token) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${initialState.token}`;
 }
 
 export const login = createAsyncThunk<
@@ -165,7 +199,9 @@ const authSlice = createSlice({
       state.token = null;
       state.userId = null;
       state.verificationStatus = "idle";
+      state.isInitialized = true;
       localStorage.removeItem("schoolId");
+      localStorage.removeItem("persist:auth");
       delete api.defaults.headers.common["Authorization"];
     },
     clearError: (state) => {
@@ -180,8 +216,14 @@ const authSlice = createSlice({
         state.token = null;
         state.userId = null;
         state.verificationStatus = "idle";
+        state.isInitialized = true;
+        localStorage.removeItem("schoolId");
+        localStorage.removeItem("persist:auth");
         delete api.defaults.headers.common["Authorization"];
       }
+    },
+    initializeAuth: (state) => {
+      state.isInitialized = true;
     },
   },
   extraReducers: (builder) => {
@@ -195,10 +237,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.isInitialized = true;
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Login failed. Please try again.";
+        state.isInitialized = true;
       })
       // OTP Verification
       .addCase(verifyOTP.pending, (state) => {
@@ -212,12 +256,14 @@ const authSlice = createSlice({
           state.user = action.payload.user;
           state.token = action.payload.token;
           state.verificationStatus = "verified";
+          state.isInitialized = true;
         }
       )
       .addCase(verifyOTP.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "OTP verification failed";
         state.verificationStatus = "failed";
+        state.isInitialized = true;
       })
       // Register
       .addCase(register.pending, (state) => {
@@ -228,10 +274,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.token = action.payload.token;
+        state.isInitialized = true;
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Registration failed";
+        state.isInitialized = true;
       });
   },
 });
@@ -241,5 +289,6 @@ export const {
   clearError,
   resetVerificationStatus,
   checkTokenExpiration,
+  initializeAuth,
 } = authSlice.actions;
 export default authSlice.reducer;

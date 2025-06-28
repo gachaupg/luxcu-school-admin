@@ -98,6 +98,9 @@ export const registerParent = createAsyncThunk<
     return response.data;
   } catch (error: unknown) {
     console.error("Parent registration error:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error instanceof Error:", error instanceof Error);
+
     const apiError = error as {
       response?: {
         data?: {
@@ -108,24 +111,25 @@ export const registerParent = createAsyncThunk<
       };
     };
 
+    console.error("API Error object:", apiError);
+    console.error("API Error response:", apiError.response);
+    console.error("API Error response data:", apiError.response?.data);
+    console.error("API Error status:", apiError.response?.status);
+
     // Check for specific field validation errors
     if (apiError.response?.data) {
       const errorData = apiError.response.data;
       console.error("API Error details:", errorData);
+      console.error("Error data type:", typeof errorData);
+      console.error("Error data keys:", Object.keys(errorData));
 
-      // Look for field-specific errors
-      for (const [field, errors] of Object.entries(errorData)) {
-        if (Array.isArray(errors) && errors.length > 0) {
-          return rejectWithValue(`${field}: ${errors[0]}`);
-        }
-      }
-
-      // If no specific field errors, return the general message
-      if (errorData.message) {
-        return rejectWithValue(errorData.message);
-      }
+      // Return the original error data structure to preserve field-specific errors
+      const errorString = JSON.stringify(errorData);
+      console.error("Returning error string:", errorString);
+      return rejectWithValue(errorString);
     }
 
+    console.error("No response data, returning generic error");
     return rejectWithValue("Failed to register parent");
   }
 });

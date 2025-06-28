@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { SidebarProvider } from "../components/ui/sidebar";
 import { AppSidebar } from "../components/AppSidebar";
@@ -67,6 +67,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
+import { parseStudentError } from "@/utils/errorHandler";
 
 export default function Students() {
   const dispatch = useAppDispatch();
@@ -80,6 +81,12 @@ export default function Students() {
   } = useAppSelector((state) => state.grades);
   const { schools } = useAppSelector((state) => state.schools);
   const { user } = useAppSelector((state) => state.auth);
+
+  // Debug logging for students data
+  console.log("Students component render - students:", students);
+  console.log("Students component render - students length:", students?.length);
+  console.log("Students component render - loading:", loading);
+  console.log("Students component render - error:", error);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState("students");
@@ -109,19 +116,28 @@ export default function Students() {
   const [currentGradePage, setCurrentGradePage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // Get school ID from localStorage or find it from schools
-  const getSchoolId = () => {
+  // Get school ID from localStorage or find it from schools - use useMemo to prevent unnecessary recalculations
+  const schoolId = useMemo(() => {
     const storedSchoolId = localStorage.getItem("schoolId");
     if (storedSchoolId) {
-      return parseInt(storedSchoolId);
+      const parsedId = parseInt(storedSchoolId);
+      if (!isNaN(parsedId)) {
+        return parsedId;
+      }
     }
 
     // Fallback: find school by admin user
-    const school = schools.find((school) => school.admin === user?.id);
-    return school?.id;
-  };
+    if (schools.length > 0 && user?.id) {
+      const school = schools.find((school) => school.admin === user.id);
+      if (school?.id) {
+        // Store the found school ID in localStorage for future use
+        localStorage.setItem("schoolId", school.id.toString());
+        return school.id;
+      }
+    }
 
-  const schoolId = getSchoolId();
+    return undefined;
+  }, [schools, user?.id]);
 
   useEffect(() => {
     // Always fetch schools first
@@ -130,9 +146,12 @@ export default function Students() {
 
   useEffect(() => {
     if (schoolId) {
+      console.log("Fetching data for schoolId:", schoolId);
       dispatch(fetchStudents({ schoolId }));
       dispatch(fetchParents({ schoolId }));
       dispatch(fetchGrades({ schoolId }));
+    } else {
+      console.log("No schoolId available, skipping data fetch");
     }
   }, [dispatch, schoolId]);
 
@@ -164,6 +183,11 @@ export default function Students() {
 
     return matchesSearch && matchesStatus;
   });
+
+  console.log("Filtered students:", filteredStudents);
+  console.log("Filtered students length:", filteredStudents.length);
+  console.log("Search term:", searchTerm);
+  console.log("Status filter:", statusFilter);
 
   // Filter grades based on search term
   const filteredGrades = (Array.isArray(grades) ? grades : []).filter(
@@ -199,15 +223,51 @@ export default function Students() {
 
   const handleCreateStudent = async (studentData: Omit<Student, "id">) => {
     try {
+      console.log("Creating student with data:", studentData);
+      console.log("Current schoolId:", schoolId);
+
       await dispatch(createStudent(studentData)).unwrap();
       showToast.success("Student created successfully");
       setIsCreateModalOpen(false);
+
       // Refresh students list
       if (schoolId) {
-        dispatch(fetchStudents({ schoolId }));
+        console.log("Refreshing students list for schoolId:", schoolId);
+        await dispatch(fetchStudents({ schoolId })).unwrap();
+        console.log("Students list refreshed successfully");
+      } else {
+        console.error("No schoolId available for refreshing students list");
+        showToast.error(
+          "Error",
+          "Unable to refresh students list - no school ID available"
+        );
       }
     } catch (error) {
-      showToast.error(error as string);
+      console.error("Student creation error:", error);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to create student";
+
+      if (error instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(error.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = error.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
+      showToast.error("Error", errorMessage);
     }
   };
 
@@ -228,7 +288,31 @@ export default function Students() {
         dispatch(fetchStudents({ schoolId }));
       }
     } catch (error) {
-      showToast.error(error as string);
+      console.error("Student update error:", error);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to update student";
+
+      if (error instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(error.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = error.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
+      showToast.error("Error", errorMessage);
     }
   };
 
@@ -250,7 +334,31 @@ export default function Students() {
         dispatch(fetchStudents({ schoolId }));
       }
     } catch (error) {
-      showToast.error(error as string);
+      console.error("Student deletion error:", error);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to delete student";
+
+      if (error instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(error.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = error.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
+      showToast.error("Error", errorMessage);
     }
   };
 

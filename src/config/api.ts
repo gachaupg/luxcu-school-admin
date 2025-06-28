@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { API_BASE_URL } from "@/utils/api";
 import { handleApiError } from "@/utils/errorHandler";
 import { store } from "@/redux/store";
+import { logout } from "@/redux/slices/authSlice";
 
 interface ApiClientConfig {
   timeout?: number;
@@ -87,6 +88,15 @@ addAuthInterceptor(api);
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized errors (token expired)
+    if (error.response?.status === 401) {
+      console.log("Token expired, logging out user");
+      store.dispatch(logout());
+      // Redirect to login page
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
     handleApiError(error);
     return Promise.reject(error);
   }

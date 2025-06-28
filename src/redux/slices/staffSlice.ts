@@ -68,7 +68,9 @@ export const addStaff = createAsyncThunk(
     } catch (error) {
       if (error instanceof AxiosError) {
         return rejectWithValue(
-          error.response?.data?.message || "Failed to add staff"
+          JSON.stringify(
+            error.response?.data || { message: "Failed to add staff" }
+          )
         );
       }
       return rejectWithValue("Failed to add staff");

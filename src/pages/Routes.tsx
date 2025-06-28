@@ -12,9 +12,15 @@ import {
   Edit,
   Trash2,
   Eye as ViewIcon,
+  Users,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { addRoute, fetchRoutes, type Route } from "../redux/slices/routesSlice";
+import {
+  createRouteAssignment,
+  type RouteAssignment,
+} from "../redux/slices/routeAssignmentsSlice";
+import { fetchStudents, type Student } from "../redux/slices/studentsSlice";
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSelector } from "react-redux";
@@ -66,6 +72,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { parseRouteError } from "@/utils/errorHandler";
 
 declare global {
   interface Window {
@@ -87,11 +94,24 @@ const formSchema = z.object({
   traffic_factor: z.number(),
 });
 
+const assignmentFormSchema = z.object({
+  student: z.number().min(1, "Please select a student"),
+  route: z.number().min(1, "Please select a route"),
+  pickup_stop: z.number().min(1, "Pickup stop is required"),
+  dropoff_stop: z.number().min(1, "Dropoff stop is required"),
+  is_active: z.boolean(),
+  schedule_days: z
+    .array(z.string())
+    .min(1, "At least one schedule day is required"),
+});
+
 type FormValues = z.infer<typeof formSchema>;
+type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
 
 export default function RoutesPage() {
   const dispatch = useAppDispatch();
   const { routes, loading, error } = useAppSelector((state) => state.routes);
+  const { students } = useAppSelector((state) => state.students);
   const data = JSON.parse(localStorage.getItem("profile") || "{}");
   const user = data;
   const { schools } = useAppSelector((state) => state.schools);
@@ -121,12 +141,19 @@ export default function RoutesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
 
   // Filter schools for the current admin
   const filteredSchools =
     schools?.filter((school) => school && school.admin === user?.id) || [];
   const schoolId = localStorage.getItem("schoolId");
   console.log("school", user, schoolId);
+
+  // Filter students for the current school
+  const filteredStudents =
+    students?.filter(
+      (student) => student && student.school === parseInt(schoolId || "0")
+    ) || [];
 
   // Filter and search logic
   const filteredAndSearchedRoutes =
@@ -232,10 +259,23 @@ export default function RoutesPage() {
     },
   });
 
+  const assignmentForm = useForm<AssignmentFormValues>({
+    resolver: zodResolver(assignmentFormSchema),
+    defaultValues: {
+      student: 0,
+      route: 0,
+      pickup_stop: 1,
+      dropoff_stop: 1,
+      is_active: true,
+      schedule_days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    },
+  });
+
   useEffect(() => {
     const schoolId = localStorage.getItem("schoolId");
     if (schoolId) {
       dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
     }
   }, [dispatch]);
 
@@ -514,9 +554,79 @@ export default function RoutesPage() {
       setCalculatedDuration(null);
       setIsCalculatingRoute(false);
     } catch (err) {
+      console.error("Route creation error:", err);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to add route";
+
+      if (err instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(err.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = err.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = err.message;
+        }
+      } else {
+        errorMessage = String(err);
+      }
+
       toast({
         title: "Error",
-        description: "Failed to add route",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAssignRoute = async (values: AssignmentFormValues) => {
+    try {
+      const assignmentData = {
+        student: values.student,
+        route: values.route,
+        is_active: values.is_active,
+        schedule_days: values.schedule_days,
+      } satisfies Omit<RouteAssignment, "id">;
+
+      await dispatch(createRouteAssignment(assignmentData)).unwrap();
+      toast({
+        title: "Success",
+        description: "Route assigned to student successfully",
+      });
+
+      // Close dialog and reset form
+      setIsAssignRouteModalOpen(false);
+      assignmentForm.reset();
+    } catch (err) {
+      console.error("Route assignment error:", err);
+
+      let errorMessage = "Failed to assign route to student";
+
+      if (err instanceof Error) {
+        try {
+          const errorData = JSON.parse(err.message);
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = err.message;
+          }
+        } catch (parseError) {
+          errorMessage = err.message;
+        }
+      } else {
+        errorMessage = String(err);
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -532,234 +642,422 @@ export default function RoutesPage() {
               <Map className="text-green-500" size={32} />
               <h2 className="text-2xl font-bold text-gray-800">All Routes</h2>
             </div>
-            <Dialog
-              open={isAddDialogOpen}
-              onOpenChange={(open) => {
-                setIsAddDialogOpen(open);
-                if (!open) {
-                  // Reset form and state when dialog closes
-                  form.reset();
-                  setStartPlace("");
-                  setEndPlace("");
-                  setCalculatedDistance(null);
-                  setCalculatedDuration(null);
-                  setIsCalculatingRoute(false);
-                }
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-                  onClick={() => setIsAddDialogOpen(true)}
-                >
-                  Add New Route
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Add New Route</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(handleAddRoute)}
-                    className="space-y-4"
+            <div className="flex gap-3">
+              <Dialog
+                open={isAssignRouteModalOpen}
+                onOpenChange={(open) => {
+                  setIsAssignRouteModalOpen(open);
+                  if (!open) {
+                    assignmentForm.reset();
+                  }
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Assign Route to Student
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Assign Route to Student</DialogTitle>
+                  </DialogHeader>
+                  <Form {...assignmentForm}>
+                    <form
+                      onSubmit={assignmentForm.handleSubmit(handleAssignRoute)}
+                      className="space-y-4"
+                    >
+                      <FormField
+                        control={assignmentForm.control}
+                        name="student"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Select Student</FormLabel>
+                            <Select
+                              onValueChange={(value) =>
+                                field.onChange(parseInt(value))
+                              }
+                              value={field.value.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Choose a student" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {filteredStudents.map((student) => (
+                                  <SelectItem
+                                    key={student.id}
+                                    value={student.id?.toString() || ""}
+                                  >
+                                    {student.first_name} {student.last_name} -{" "}
+                                    {student.admission_number}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={assignmentForm.control}
+                        name="route"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Select Route</FormLabel>
+                            <Select
+                              onValueChange={(value) =>
+                                field.onChange(parseInt(value))
+                              }
+                              value={field.value.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Choose a route" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {routes?.map((route) => (
+                                  <SelectItem
+                                    key={route.id}
+                                    value={route.id?.toString() || ""}
+                                  >
+                                    {route.name} - {route.total_distance}km
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={assignmentForm.control}
+                        name="is_active"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel>Active Status</FormLabel>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={assignmentForm.control}
+                        name="schedule_days"
+                        render={() => (
+                          <FormItem>
+                            <div className="mb-4">
+                              <FormLabel>Schedule Days</FormLabel>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <FormField
+                                  key={day}
+                                  control={assignmentForm.control}
+                                  name="schedule_days"
+                                  render={({ field }) => {
+                                    return (
+                                      <FormItem
+                                        key={day}
+                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                      >
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(day)}
+                                            onCheckedChange={(checked) => {
+                                              return checked
+                                                ? field.onChange([
+                                                    ...field.value,
+                                                    day,
+                                                  ])
+                                                : field.onChange(
+                                                    field.value?.filter(
+                                                      (value) => value !== day
+                                                    )
+                                                  );
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormLabel className="font-normal capitalize">
+                                          {day}
+                                        </FormLabel>
+                                      </FormItem>
+                                    );
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          className="bg-green-500 hover:bg-green-600"
+                        >
+                          Assign Route
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog
+                open={isAddDialogOpen}
+                onOpenChange={(open) => {
+                  setIsAddDialogOpen(open);
+                  if (!open) {
+                    // Reset form and state when dialog closes
+                    form.reset();
+                    setStartPlace("");
+                    setEndPlace("");
+                    setCalculatedDistance(null);
+                    setCalculatedDuration(null);
+                    setIsCalculatingRoute(false);
+                  }
+                }}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+                    onClick={() => setIsAddDialogOpen(true)}
                   >
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
+                    Add New Route
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Route</DialogTitle>
+                  </DialogHeader>
+                  <Form {...form}>
+                    <form
+                      onSubmit={form.handleSubmit(handleAddRoute)}
+                      className="space-y-4"
+                    >
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Route Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Enter route name"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
                         <FormItem>
-                          <FormLabel>Route Name</FormLabel>
+                          <FormLabel>Start Location</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter route name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormItem>
-                        <FormLabel>Start Location</FormLabel>
-                        <FormControl>
-                          <Input
-                            ref={startInputRef}
-                            placeholder="Type to search for a location"
-                            value={startPlace}
-                            onChange={(e) => setStartPlace(e.target.value)}
-                            className="w-full"
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                      </FormItem>
-                      <FormItem>
-                        <FormLabel>End Location</FormLabel>
-                        <FormControl>
-                          <Input
-                            ref={endInputRef}
-                            placeholder="Type to search for a location"
-                            value={endPlace}
-                            onChange={(e) => setEndPlace(e.target.value)}
-                            className="w-full"
-                            autoComplete="off"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="total_distance"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Total Distance (km)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min="0"
-                                  value={calculatedDistance ?? field.value}
-                                  onChange={(e) => {
-                                    const value = parseFloat(e.target.value);
-                                    setCalculatedDistance(value);
-                                    field.onChange(value);
-                                  }}
-                                  disabled={isCalculatingRoute}
-                                />
-                                {isCalculatingRoute && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                                    Calculating...
-                                  </div>
-                                )}
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="estimated_duration"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Estimated Duration (HH:MM:SS)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Input
-                                  type="text"
-                                  value={calculatedDuration ?? field.value}
-                                  onChange={(e) => {
-                                    setCalculatedDuration(e.target.value);
-                                    field.onChange(e.target.value);
-                                  }}
-                                  disabled={isCalculatingRoute}
-                                  placeholder="00:00:00"
-                                  pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}"
-                                />
-                                {isCalculatingRoute && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
-                                    Calculating...
-                                  </div>
-                                )}
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="is_active"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Active Status</FormLabel>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
+                            <Input
+                              ref={startInputRef}
+                              placeholder="Type to search for a location"
+                              value={startPlace}
+                              onChange={(e) => setStartPlace(e.target.value)}
+                              className="w-full"
+                              autoComplete="off"
                             />
                           </FormControl>
                         </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="schedule_days"
-                      render={() => (
                         <FormItem>
-                          <div className="mb-4">
-                            <FormLabel>Schedule Days</FormLabel>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            {[
-                              "monday",
-                              "tuesday",
-                              "wednesday",
-                              "thursday",
-                              "friday",
-                              "saturday",
-                              "sunday",
-                            ].map((day) => (
-                              <FormField
-                                key={day}
-                                control={form.control}
-                                name="schedule_days"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={day}
-                                      className="flex flex-row items-start space-x-3 space-y-0"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(day)}
-                                          onCheckedChange={(checked) => {
-                                            return checked
-                                              ? field.onChange([
-                                                  ...field.value,
-                                                  day,
-                                                ])
-                                              : field.onChange(
-                                                  field.value?.filter(
-                                                    (value) => value !== day
-                                                  )
-                                                );
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="font-normal capitalize">
-                                        {day}
-                                      </FormLabel>
-                                    </FormItem>
-                                  );
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <FormMessage />
+                          <FormLabel>End Location</FormLabel>
+                          <FormControl>
+                            <Input
+                              ref={endInputRef}
+                              placeholder="Type to search for a location"
+                              value={endPlace}
+                              onChange={(e) => setEndPlace(e.target.value)}
+                              className="w-full"
+                              autoComplete="off"
+                            />
+                          </FormControl>
                         </FormItem>
-                      )}
-                    />
+                      </div>
 
-                    <div className="flex justify-end">
-                      <Button
-                        type="submit"
-                        className="bg-green-500 hover:bg-green-600"
-                      >
-                        Create Route
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="total_distance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Total Distance (km)</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={calculatedDistance ?? field.value}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value);
+                                      setCalculatedDistance(value);
+                                      field.onChange(value);
+                                    }}
+                                    disabled={isCalculatingRoute}
+                                  />
+                                  {isCalculatingRoute && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                                      Calculating...
+                                    </div>
+                                  )}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="estimated_duration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>
+                                Estimated Duration (HH:MM:SS)
+                              </FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    type="text"
+                                    value={calculatedDuration ?? field.value}
+                                    onChange={(e) => {
+                                      setCalculatedDuration(e.target.value);
+                                      field.onChange(e.target.value);
+                                    }}
+                                    disabled={isCalculatingRoute}
+                                    placeholder="00:00:00"
+                                    pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}"
+                                  />
+                                  {isCalculatingRoute && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                                      Calculating...
+                                    </div>
+                                  )}
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="is_active"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                            <div className="space-y-0.5">
+                              <FormLabel>Active Status</FormLabel>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="schedule_days"
+                        render={() => (
+                          <FormItem>
+                            <div className="mb-4">
+                              <FormLabel>Schedule Days</FormLabel>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              {[
+                                "monday",
+                                "tuesday",
+                                "wednesday",
+                                "thursday",
+                                "friday",
+                                "saturday",
+                                "sunday",
+                              ].map((day) => (
+                                <FormField
+                                  key={day}
+                                  control={form.control}
+                                  name="schedule_days"
+                                  render={({ field }) => {
+                                    return (
+                                      <FormItem
+                                        key={day}
+                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                      >
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(day)}
+                                            onCheckedChange={(checked) => {
+                                              return checked
+                                                ? field.onChange([
+                                                    ...field.value,
+                                                    day,
+                                                  ])
+                                                : field.onChange(
+                                                    field.value?.filter(
+                                                      (value) => value !== day
+                                                    )
+                                                  );
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormLabel className="font-normal capitalize">
+                                          {day}
+                                        </FormLabel>
+                                      </FormItem>
+                                    );
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          className="bg-green-500 hover:bg-green-600"
+                        >
+                          Create Route
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
           <div className="bg-white rounded-lg shadow overflow-x-auto">
             {/* Search and Filter Controls */}

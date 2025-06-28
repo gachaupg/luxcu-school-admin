@@ -51,6 +51,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import { SidebarProvider } from "../components/ui/sidebar";
+import { AppSidebar } from "../components/AppSidebar";
+import { HeaderBar } from "../components/HeaderBar";
+import { Plus, Download } from "lucide-react";
+import { parseVehicleError } from "@/utils/errorHandler";
 
 // Form component moved outside to prevent recreation on every render
 interface VehicleFormData {
@@ -547,9 +552,33 @@ export default function Vehicles() {
         has_emergency_button: true,
       });
     } catch (error) {
+      console.error("Vehicle creation error:", error);
+
+      // Show the actual database error response
+      let errorMessage = "Failed to add vehicle";
+
+      if (error instanceof Error) {
+        try {
+          // Try to parse the error message as JSON to get field-specific errors
+          const errorData = JSON.parse(error.message);
+
+          // If it's an object with field errors, display the raw data
+          if (typeof errorData === "object" && errorData !== null) {
+            errorMessage = JSON.stringify(errorData, null, 2);
+          } else {
+            errorMessage = error.message;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use the original error message
+          errorMessage = error.message;
+        }
+      } else {
+        errorMessage = String(error);
+      }
+
       toast({
         title: "Error",
-        description: error as string,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -621,7 +650,6 @@ export default function Vehicles() {
                   </Select>
                 </div>
               </div>
-
             </div>
 
             <table className="min-w-full divide-y divide-gray-200">

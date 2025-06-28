@@ -57,8 +57,11 @@ export const addDriver = createAsyncThunk<
   } catch (error) {
     console.error("Add driver error:", error);
     const axiosError = error as AxiosError<{ message: string }>;
+    // Return the original error data structure to preserve field-specific errors
     return rejectWithValue(
-      axiosError.response?.data?.message || "Failed to add driver"
+      JSON.stringify(
+        axiosError.response?.data || { message: "Failed to add driver" }
+      )
     );
   }
 });

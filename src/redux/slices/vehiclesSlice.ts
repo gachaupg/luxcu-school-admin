@@ -69,8 +69,11 @@ export const addVehicle = createAsyncThunk<
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
+    // Return the original error data structure to preserve field-specific errors
     return rejectWithValue(
-      apiError.response?.data?.message || "Failed to add vehicle"
+      JSON.stringify(
+        apiError.response?.data || { message: "Failed to add vehicle" }
+      )
     );
   }
 });
