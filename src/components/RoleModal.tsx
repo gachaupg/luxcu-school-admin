@@ -5,16 +5,19 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
+import { useEffect } from "react";
 
 interface RoleModalProps {
   isOpen: boolean;
   onClose: () => void;
+  schoolId?: number;
   onSubmit: (roleData: {
     name: string;
     description: string;
     school: number;
     permissions: string[];
     is_system_role: boolean;
+    parent_role?: number;
   }) => void;
 }
 
@@ -29,15 +32,26 @@ const availablePermissions = [
   "manage_timetable",
   "manage_exams",
   "manage_parents",
+  "manage_vehicles",
+  "manage_routes",
+  "manage_trips",
+  "manage_grades",
+  "manage_settings",
 ];
 
-export function RoleModal({ isOpen, onClose, onSubmit }: RoleModalProps) {
+export function RoleModal({
+  isOpen,
+  onClose,
+  schoolId,
+  onSubmit,
+}: RoleModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    school: 3, // Default school ID
+    school: schoolId || 1, // Default school ID
     permissions: [] as string[],
     is_system_role: false,
+    parent_role: undefined as number | undefined,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -53,6 +67,12 @@ export function RoleModal({ isOpen, onClose, onSubmit }: RoleModalProps) {
         : [...prev.permissions, permission],
     }));
   };
+
+  useEffect(() => {
+    if (schoolId) {
+      setFormData((prev) => ({ ...prev, school: schoolId }));
+    }
+  }, [schoolId]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

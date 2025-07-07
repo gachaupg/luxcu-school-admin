@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://smarshule.eujimsolutions.com/api";
+export const API_BASE_URL = "https://api.eujimsolutions.com/api";
 
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/login/`,

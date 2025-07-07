@@ -83,9 +83,57 @@ const Drivers = () => {
     error: schoolsError,
   } = useAppSelector((state) => state.schools);
   const { toast } = useToast();
+
+  // Form state - declare this first
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
+    confirmPassword: "",
+    licenseNumber: "",
+    licenseClass: "",
+    licenseExpiry: "",
+    lastHealthCheck: "",
+    lastBackgroundCheck: "",
+    latitude: "-1.286389",
+    longitude: "36.817223",
+  });
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const firstNameInputRef = useRef<HTMLInputElement>(null);
+
+  // Function to reset form to initial state
+  const resetForm = () => {
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+      licenseNumber: "",
+      licenseClass: "",
+      licenseExpiry: "",
+      lastHealthCheck: "",
+      lastBackgroundCheck: "",
+      latitude: "-1.286389",
+      longitude: "36.817223",
+    });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  // Handle modal open/close
+  const handleModalOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
 
   // Table state management
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,8 +188,8 @@ const Drivers = () => {
       licenseExpiry: driver.license_expiry || "",
       lastHealthCheck: driver.last_health_check || "",
       lastBackgroundCheck: driver.last_background_check || "",
-      latitude,
-      longitude,
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
     });
     setIsEditModalOpen(true);
   };
@@ -172,16 +220,10 @@ const Drivers = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        console.log("Starting to fetch data...");
-        const driversResult = await dispatch(fetchDrivers()).unwrap();
-        console.log("Drivers fetched successfully:", driversResult);
-
-        console.log("Starting to fetch schools...");
+        await dispatch(fetchDrivers()).unwrap();
         try {
           const schoolsResult = await dispatch(fetchSchools()).unwrap();
-          if (Array.isArray(schoolsResult)) {
-            console.log("Schools fetched successfully:", schoolsResult);
-          } else {
+          if (!Array.isArray(schoolsResult)) {
             console.error("Invalid schools data format:", schoolsResult);
           }
         } catch (schoolsError) {
@@ -199,32 +241,10 @@ const Drivers = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (schools && Array.isArray(schools) && schools.length > 0) {
-      console.log(
-        "Schools data loaded:",
-        schools.map((school) => ({
-          id: school.id,
-          name: school.name,
-          location: school.location,
-          contact: school.contact_number,
-          email: school.email,
-          operatingHours: `${school.operating_hours_start} - ${school.operating_hours_end}`,
-          isActive: school.is_active,
-        }))
-      );
-    } else if (schoolsLoading) {
-      console.log("Loading schools...", { schoolsLoading, schoolsError });
-    } else if (schoolsError) {
+    if (schoolsError) {
       console.error("Error loading schools:", schoolsError);
-    } else {
-      console.log("Schools state:", {
-        schools: schools || [],
-        schoolsLoading,
-        schoolsError,
-        isArray: Array.isArray(schools),
-      });
     }
-  }, [schools, schoolsLoading, schoolsError]);
+  }, [schoolsError]);
 
   // Filter schools for the current admin
   const filteredSchools =
@@ -240,10 +260,8 @@ const Drivers = () => {
 
   // Filter and search logic
   const filteredAndSearchedDrivers = filteredDrivers.filter((driver) => {
-    console.log("Checking driver:", driver);
     // Check if driver and user_details exist before accessing properties
     if (!driver || !driver.user_details) {
-      console.log("Skipping driver - no user_details:", driver);
       return false; // Skip drivers without user_details
     }
 
@@ -269,12 +287,6 @@ const Drivers = () => {
       (statusFilter === "available" && driver.is_available) ||
       (statusFilter === "unavailable" && !driver.is_available);
 
-    console.log(
-      "Driver matches search:",
-      matchesSearch,
-      "matches status:",
-      matchesStatus
-    );
     return matchesSearch && matchesStatus;
   });
 
@@ -284,52 +296,20 @@ const Drivers = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedDrivers = filteredDrivers.slice(startIndex, endIndex);
 
-  console.log("=== PAGINATION DEBUG ===");
-  console.log(
-    "filteredAndSearchedDrivers length:",
-    filteredAndSearchedDrivers.length
-  );
-  console.log("totalPages:", totalPages);
-  console.log("startIndex:", startIndex);
-  console.log("endIndex:", endIndex);
-  console.log("paginatedDrivers:", paginatedDrivers);
-  console.log("=== END PAGINATION DEBUG ===");
-
-  // Temporary: Show all drivers without any filtering
-  console.log("=== ALL DRIVERS TEST ===");
-  console.log("Raw drivers from Redux:", drivers);
-  console.log("Drivers length:", drivers?.length);
-  console.log("First driver:", drivers?.[0]);
-  console.log("=== END ALL DRIVERS TEST ===");
-
   // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
 
-  // Form state
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phoneNumber: "",
-    password: "",
-    confirmPassword: "",
-    licenseNumber: "",
-    licenseClass: "",
-    licenseExpiry: "",
-    lastHealthCheck: "",
-    lastBackgroundCheck: "",
-    latitude: -1.286389,
-    longitude: 36.817223,
-  });
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "number" ? Number(value) : value,
-    }));
+    const { name, value } = e.target;
+    // Use a timeout to avoid immediate re-render issues
+    setTimeout(() => {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }, 0);
   };
 
   const updateLocation = () => {
@@ -338,8 +318,8 @@ const Drivers = () => {
         (position) => {
           setFormData((prev) => ({
             ...prev,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
+            latitude: position.coords.latitude.toString(),
+            longitude: position.coords.longitude.toString(),
           }));
           toast({
             title: "Success",
@@ -366,6 +346,66 @@ const Drivers = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate required fields
+    const requiredFields = [
+      { field: "firstName", label: "First Name" },
+      { field: "lastName", label: "Last Name" },
+      { field: "email", label: "Email" },
+      { field: "phoneNumber", label: "Phone Number" },
+      { field: "password", label: "Password" },
+      { field: "confirmPassword", label: "Confirm Password" },
+      { field: "licenseNumber", label: "License Number" },
+      { field: "licenseClass", label: "License Class" },
+      { field: "licenseExpiry", label: "License Expiry" },
+      { field: "lastHealthCheck", label: "Last Health Check" },
+      { field: "lastBackgroundCheck", label: "Last Background Check" },
+    ];
+
+    for (const { field, label } of requiredFields) {
+      if (
+        !formData[field as keyof typeof formData] ||
+        formData[field as keyof typeof formData] === ""
+      ) {
+        toast({
+          title: "Error",
+          description: `${label} is required`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const submitData = {
       user_details: {
         first_name: formData.firstName,
@@ -382,8 +422,8 @@ const Drivers = () => {
       school: schoolId || 1,
       is_available: true,
       current_location: {
-        latitude: formData.latitude,
-        longitude: formData.longitude,
+        latitude: Number(formData.latitude),
+        longitude: Number(formData.longitude),
       },
       safety_rating: 4.8,
       on_time_rating: 4.9,
@@ -393,28 +433,17 @@ const Drivers = () => {
 
     try {
       await dispatch(addDriver(submitData)).unwrap();
-      window.location.reload();
       toast({
         title: "Success",
         description: "Driver added successfully",
       });
+
+      // Reset form and close modal
+      resetForm();
       setIsDialogOpen(false);
-      // Reset form
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phoneNumber: "",
-        password: "",
-        confirmPassword: "",
-        licenseNumber: "",
-        licenseClass: "",
-        licenseExpiry: "",
-        lastHealthCheck: "",
-        lastBackgroundCheck: "",
-        latitude: -1.286389,
-        longitude: 36.817223,
-      });
+
+      // Refresh the drivers list
+      dispatch(fetchDrivers());
     } catch (err) {
       console.error("Driver creation error:", err);
 
@@ -428,7 +457,18 @@ const Drivers = () => {
 
           // If it's an object with field errors, display the raw data
           if (typeof errorData === "object" && errorData !== null) {
-            errorMessage = JSON.stringify(errorData, null, 2);
+            // Check for specific field errors
+            if (errorData.email) {
+              errorMessage = `Email: ${errorData.email.join(", ")}`;
+            } else if (errorData.phone_number) {
+              errorMessage = `Phone: ${errorData.phone_number.join(", ")}`;
+            } else if (errorData.license_number) {
+              errorMessage = `License: ${errorData.license_number.join(", ")}`;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else {
+              errorMessage = JSON.stringify(errorData, null, 2);
+            }
           } else {
             errorMessage = err.message;
           }
@@ -448,253 +488,474 @@ const Drivers = () => {
     }
   };
 
-  const AddDriverForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
-          <Input
-            id="firstName"
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleInputChange}
-            type="text"
-            placeholder="Enter first name"
-            required
-            className="w-full"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input
-            id="lastName"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleInputChange}
-            type="text"
-            placeholder="Enter last name"
-            required
-            className="w-full"
-          />
-        </div>
-      </div>
+  const AddDriverForm = () => {
+    // Local state for the form - completely separate from the main component state
+    const [localFormData, setLocalFormData] = useState({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+      licenseNumber: "",
+      licenseClass: "",
+      licenseExpiry: "",
+      lastHealthCheck: "",
+      lastBackgroundCheck: "",
+      latitude: "-1.286389",
+      longitude: "36.817223",
+    });
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleInputChange}
-            type="email"
-            placeholder="Enter email address"
-            required
-            className="w-full"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phoneNumber">Phone Number</Label>
-          <Input
-            id="phoneNumber"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleInputChange}
-            type="tel"
-            placeholder="Enter phone number"
-            required
-            className="w-full"
-          />
-        </div>
-      </div>
+    const [localShowPassword, setLocalShowPassword] = useState(false);
+    const [localShowConfirmPassword, setLocalShowConfirmPassword] = useState(false);
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Input
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter password"
+    const handleLocalInputChange = (e) => {
+      const { name, value } = e.target;
+      setLocalFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    };
+
+    const handleLocalSubmit = async (e) => {
+      e.preventDefault();
+      
+      // Validate required fields
+      const requiredFields = [
+        { field: 'firstName', label: 'First Name' },
+        { field: 'lastName', label: 'Last Name' },
+        { field: 'email', label: 'Email' },
+        { field: 'phoneNumber', label: 'Phone Number' },
+        { field: 'password', label: 'Password' },
+        { field: 'confirmPassword', label: 'Confirm Password' },
+        { field: 'licenseNumber', label: 'License Number' },
+        { field: 'licenseClass', label: 'License Class' },
+        { field: 'licenseExpiry', label: 'License Expiry' },
+        { field: 'lastHealthCheck', label: 'Last Health Check' },
+        { field: 'lastBackgroundCheck', label: 'Last Background Check' },
+      ];
+
+      for (const { field, label } of requiredFields) {
+        if (!localFormData[field] || localFormData[field] === '') {
+          toast({
+            title: "Error",
+            description: `${label} is required`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      // Validate password match
+      if (localFormData.password !== localFormData.confirmPassword) {
+        toast({
+          title: "Error",
+          description: "Passwords do not match",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate password length
+      if (localFormData.password.length < 8) {
+        toast({
+          title: "Error",
+          description: "Password must be at least 8 characters long",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(localFormData.email)) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid email address",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const submitData = {
+        user_details: {
+          first_name: localFormData.firstName,
+          last_name: localFormData.lastName,
+          email: localFormData.email,
+          phone_number: localFormData.phoneNumber,
+          password: localFormData.password,
+          confirm_password: localFormData.confirmPassword,
+          user_type: "driver",
+        },
+        license_number: localFormData.licenseNumber,
+        license_expiry: localFormData.licenseExpiry,
+        license_class: localFormData.licenseClass,
+        school: schoolId || 1,
+        is_available: true,
+        current_location: {
+          latitude: Number(localFormData.latitude),
+          longitude: Number(localFormData.longitude),
+        },
+        safety_rating: 4.8,
+        on_time_rating: 4.9,
+        last_health_check: localFormData.lastHealthCheck,
+        last_background_check: localFormData.lastBackgroundCheck,
+      };
+
+      try {
+        await dispatch(addDriver(submitData)).unwrap();
+        toast({
+          title: "Success",
+          description: "Driver added successfully",
+        });
+        
+        // Reset local form
+        setLocalFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phoneNumber: "",
+          password: "",
+          confirmPassword: "",
+          licenseNumber: "",
+          licenseClass: "",
+          licenseExpiry: "",
+          lastHealthCheck: "",
+          lastBackgroundCheck: "",
+          latitude: "-1.286389",
+          longitude: "36.817223",
+        });
+        setLocalShowPassword(false);
+        setLocalShowConfirmPassword(false);
+        
+        // Close modal
+        setIsDialogOpen(false);
+        
+        // Refresh the drivers list
+        dispatch(fetchDrivers());
+      } catch (err) {
+        console.error("Driver creation error:", err);
+        let errorMessage = "Failed to add driver";
+
+        if (err instanceof Error) {
+          try {
+            const errorData = JSON.parse(err.message);
+            if (typeof errorData === "object" && errorData !== null) {
+              if (errorData.email) {
+                errorMessage = `Email: ${errorData.email.join(", ")}`;
+              } else if (errorData.phone_number) {
+                errorMessage = `Phone: ${errorData.phone_number.join(", ")}`;
+              } else if (errorData.license_number) {
+                errorMessage = `License: ${errorData.license_number.join(", ")}`;
+              } else if (errorData.message) {
+                errorMessage = errorData.message;
+              } else {
+                errorMessage = JSON.stringify(errorData, null, 2);
+              }
+            } else {
+              errorMessage = err.message;
+            }
+          } catch (parseError) {
+            errorMessage = err.message;
+          }
+        } else {
+          errorMessage = String(err);
+        }
+
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    };
+
+    const updateLocalLocation = () => {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLocalFormData((prev) => ({
+              ...prev,
+              latitude: position.coords.latitude.toString(),
+              longitude: position.coords.longitude.toString(),
+            }));
+            toast({
+              title: "Success",
+              description: "Current location updated",
+            });
+          },
+          (error) => {
+            toast({
+              title: "Error",
+              description: "Failed to get current location: " + error.message,
+              variant: "destructive",
+            });
+          }
+        );
+      } else {
+        toast({
+          title: "Error",
+          description: "Geolocation is not supported by your browser",
+          variant: "destructive",
+        });
+      }
+    };
+
+    return (
+      <form onSubmit={handleLocalSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+            <input
+              id="firstName"
+              name="firstName"
+              value={localFormData.firstName}
+              onChange={handleLocalInputChange}
+              type="text"
+              placeholder="Enter first name"
               required
-              minLength={8}
-              className="w-full pr-10"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+            <input
+              id="lastName"
+              name="lastName"
+              value={localFormData.lastName}
+              onChange={handleLocalInputChange}
+              type="text"
+              placeholder="Enter last name"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm password"
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">Email</label>
+            <input
+              id="email"
+              name="email"
+              value={localFormData.email}
+              onChange={handleLocalInputChange}
+              type="email"
+              placeholder="Enter email address"
               required
-              minLength={8}
-              className="w-full pr-10"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              value={localFormData.phoneNumber}
+              onChange={handleLocalInputChange}
+              type="tel"
+              placeholder="Enter phone number"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="licenseNumber">License Number</Label>
-          <Input
-            id="licenseNumber"
-            name="licenseNumber"
-            value={formData.licenseNumber}
-            onChange={handleInputChange}
-            type="text"
-            placeholder="Enter license number"
-            required
-            className="w-full"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium">Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                value={localFormData.password}
+                onChange={handleLocalInputChange}
+                type={localShowPassword ? "text" : "password"}
+                placeholder="Enter password"
+                required
+                minLength={8}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setLocalShowPassword(!localShowPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {localShowPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                value={localFormData.confirmPassword}
+                onChange={handleLocalInputChange}
+                type={localShowConfirmPassword ? "text" : "password"}
+                placeholder="Confirm password"
+                required
+                minLength={8}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setLocalShowConfirmPassword(!localShowConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {localShowConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="licenseClass">License Class</Label>
-          <Input
-            id="licenseClass"
-            name="licenseClass"
-            value={formData.licenseClass}
-            onChange={handleInputChange}
-            type="text"
-            placeholder="Enter license class"
-            required
-            className="w-full"
-          />
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="licenseExpiry">License Expiry</Label>
-          <Input
-            id="licenseExpiry"
-            name="licenseExpiry"
-            value={formData.licenseExpiry}
-            onChange={handleInputChange}
-            type="date"
-            required
-            className="w-full"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="licenseNumber" className="text-sm font-medium">License Number</label>
+            <input
+              id="licenseNumber"
+              name="licenseNumber"
+              value={localFormData.licenseNumber}
+              onChange={handleLocalInputChange}
+              type="text"
+              placeholder="Enter license number"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="licenseClass" className="text-sm font-medium">License Class</label>
+            <input
+              id="licenseClass"
+              name="licenseClass"
+              value={localFormData.licenseClass}
+              onChange={handleLocalInputChange}
+              type="text"
+              placeholder="Enter license class"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastHealthCheck">Last Health Check</Label>
-          <Input
-            id="lastHealthCheck"
-            name="lastHealthCheck"
-            value={formData.lastHealthCheck}
-            onChange={handleInputChange}
-            type="date"
-            required
-            className="w-full"
-          />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="licenseExpiry" className="text-sm font-medium">License Expiry</label>
+            <input
+              id="licenseExpiry"
+              name="licenseExpiry"
+              value={localFormData.licenseExpiry}
+              onChange={handleLocalInputChange}
+              type="date"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="lastHealthCheck" className="text-sm font-medium">Last Health Check</label>
+            <input
+              id="lastHealthCheck"
+              name="lastHealthCheck"
+              value={localFormData.lastHealthCheck}
+              onChange={handleLocalInputChange}
+              type="date"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="lastBackgroundCheck">Last Background Check</Label>
-          <Input
-            id="lastBackgroundCheck"
-            name="lastBackgroundCheck"
-            value={formData.lastBackgroundCheck}
-            onChange={handleInputChange}
-            type="date"
-            required
-            className="w-full"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="lastBackgroundCheck" className="text-sm font-medium">Last Background Check</label>
+            <input
+              id="lastBackgroundCheck"
+              name="lastBackgroundCheck"
+              value={localFormData.lastBackgroundCheck}
+              onChange={handleLocalInputChange}
+              type="date"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="latitude">Latitude</Label>
-          <Input
-            id="latitude"
-            name="latitude"
-            value={formData.latitude}
-            onChange={handleInputChange}
-            type="number"
-            step="any"
-            placeholder="Enter latitude"
-            required
-            className="w-full"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label htmlFor="latitude" className="text-sm font-medium">Latitude</label>
+            <input
+              id="latitude"
+              name="latitude"
+              value={localFormData.latitude}
+              onChange={handleLocalInputChange}
+              type="number"
+              step="any"
+              placeholder="Enter latitude"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="longitude" className="text-sm font-medium">Longitude</label>
+            <input
+              id="longitude"
+              name="longitude"
+              value={localFormData.longitude}
+              onChange={handleLocalInputChange}
+              type="number"
+              step="any"
+              placeholder="Enter longitude"
+              required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="longitude">Longitude</Label>
-          <Input
-            id="longitude"
-            name="longitude"
-            value={formData.longitude}
-            onChange={handleInputChange}
-            type="number"
-            step="any"
-            placeholder="Enter longitude"
-            required
-            className="w-full"
-          />
+
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={updateLocalLocation}
+            className="bg-blue-600 hover:bg-blue-700 mb-4"
+          >
+            Get Current Location
+          </Button>
         </div>
-      </div>
 
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          onClick={updateLocation}
-          className="bg-blue-600 hover:bg-blue-700 mb-4"
-        >
-          Get Current Location
-        </Button>
-      </div>
-
-      <Button
-        type="submit"
-        disabled={loading}
-        className="bg-green-600 hover:bg-green-700 w-full"
-      >
-        {loading ? "Adding Driver..." : "Add Driver"}
-      </Button>
-
-      {error && <p className="text-red-500">{error}</p>}
-    </form>
-  );
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsDialogOpen(false)}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="bg-green-600 hover:bg-green-700 flex-1"
+          >
+            Add Driver
+          </Button>
+        </div>
+      </form>
+    );
+  };
 
   return (
-    <div className="container w-full ">
+    <div className="container w-full">
       <Card>
         <CardHeader className="flex flex-row w-full items-center justify-between">
           <CardTitle>Drivers</CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleModalOpenChange}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700">
                 Add Driver

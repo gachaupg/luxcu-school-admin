@@ -3,7 +3,7 @@ import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { AxiosError } from "axios";
 
-interface Driver {
+export interface Driver {
   id: number;
   user_details: {
     id?: number;

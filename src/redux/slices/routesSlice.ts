@@ -7,6 +7,7 @@ export interface Route {
   id?: number;
   name: string;
   school: number;
+  driver: number;
   start_lat: number;
   start_lng: number;
   end_lat: number;

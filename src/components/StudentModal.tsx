@@ -121,8 +121,7 @@ export function StudentModal({
       onSubmit({ id: student.id, data: formData });
     } else {
       onSubmit(formData);
-      
-      window.location.reload();
+      // Removed window.location.reload() - Redux will handle state updates
     }
   };
 

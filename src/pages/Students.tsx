@@ -162,6 +162,14 @@ export default function Students() {
     }
   }, [selectedStudent, isDeleteDialogOpen]);
 
+  // Additional safety check - ensure selectedStudent is valid when dialogs are open
+  useEffect(() => {
+    if (isDeleteDialogOpen && (!selectedStudent || !selectedStudent.id)) {
+      setIsDeleteDialogOpen(false);
+      setSelectedStudent(null);
+    }
+  }, [isDeleteDialogOpen, selectedStudent]);
+
   // Filter students based on search term and status
   const filteredStudents = (students || []).filter((student) => {
     const matchesSearch =
@@ -230,18 +238,11 @@ export default function Students() {
       showToast.success("Student created successfully");
       setIsCreateModalOpen(false);
 
-      // Refresh students list
-      if (schoolId) {
-        console.log("Refreshing students list for schoolId:", schoolId);
-        await dispatch(fetchStudents({ schoolId })).unwrap();
-        console.log("Students list refreshed successfully");
-      } else {
-        console.error("No schoolId available for refreshing students list");
-        showToast.error(
-          "Error",
-          "Unable to refresh students list - no school ID available"
-        );
-      }
+      // Ensure selectedStudent is reset to prevent any undefined access
+      setSelectedStudent(null);
+
+      // No need to refresh - Redux slice automatically updates the state
+      console.log("Student created successfully - state updated automatically");
     } catch (error) {
       console.error("Student creation error:", error);
 
@@ -283,10 +284,8 @@ export default function Students() {
       showToast.success("Student updated successfully");
       setIsEditModalOpen(false);
       setSelectedStudent(null);
-      // Refresh students list
-      if (schoolId) {
-        dispatch(fetchStudents({ schoolId }));
-      }
+      // No need to refresh - Redux slice automatically updates the state
+      console.log("Student updated successfully - state updated automatically");
     } catch (error) {
       console.error("Student update error:", error);
 
@@ -329,10 +328,8 @@ export default function Students() {
       showToast.success("Student deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
-      // Refresh students list
-      if (schoolId) {
-        dispatch(fetchStudents({ schoolId }));
-      }
+      // No need to refresh - Redux slice automatically updates the state
+      console.log("Student deleted successfully - state updated automatically");
     } catch (error) {
       console.error("Student deletion error:", error);
 
@@ -466,6 +463,91 @@ export default function Students() {
     }
   };
 
+  // Show loading state while determining schoolId
+  if (!schoolId && schools.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex w-full">
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 px-6 py-4 bg-gray-50">
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Initializing
+                  </h3>
+                  <p className="text-gray-600">
+                    Setting up your school dashboard...
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no schoolId is available after schools are loaded
+  if (!schoolId && schools.length > 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex w-full">
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 px-6 py-4 bg-gray-50">
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-8 h-8 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    School Configuration Required
+                  </h3>
+                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                    We couldn't determine which school you're managing. Please
+                    contact your administrator to set up your school access.
+                  </p>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    className="mt-4"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                    Refresh Page
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex w-full">
       {/* Main Content Area */}
@@ -560,15 +642,68 @@ export default function Students() {
                   {/* Loading State */}
                   {loading && (
                     <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto"></div>
-                      <p className="mt-2 text-gray-600">Loading students...</p>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Loading Students
+                      </h3>
+                      <p className="text-gray-600">
+                        Please wait while we fetch your student data...
+                      </p>
                     </div>
                   )}
 
                   {/* Error State */}
                   {error && (
                     <div className="text-center py-12">
-                      <p className="text-red-500">Error: {error}</p>
+                      <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-8 h-8 text-red-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Unable to Load Students
+                      </h3>
+                      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                        We encountered an issue while loading your students.
+                        Please try again.
+                      </p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md max-w-md mx-auto">
+                          {error}
+                        </p>
+                        <Button
+                          onClick={() =>
+                            schoolId && dispatch(fetchStudents({ schoolId }))
+                          }
+                          variant="outline"
+                          className="mt-4"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          Try Again
+                        </Button>
+                      </div>
                     </div>
                   )}
 
@@ -681,13 +816,28 @@ export default function Students() {
 
                       {paginatedStudents.length === 0 && (
                         <div className="text-center py-12">
-                          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500">No students found</p>
-                          <p className="text-sm text-gray-400 mt-1">
+                          <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Users className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
                             {searchTerm || statusFilter !== "all"
-                              ? "Try adjusting your search or filter criteria"
-                              : "Get started by adding your first student"}
+                              ? "No Students Found"
+                              : "No Students Yet"}
+                          </h3>
+                          <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                            {searchTerm || statusFilter !== "all"
+                              ? "No students match your current search or filter criteria. Try adjusting your search terms or filters."
+                              : "Get started by adding your first student to the system."}
                           </p>
+                          {!searchTerm && statusFilter === "all" && (
+                            <Button
+                              onClick={() => setIsCreateModalOpen(true)}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Your First Student
+                            </Button>
+                          )}
                         </div>
                       )}
 
@@ -761,15 +911,68 @@ export default function Students() {
                   {/* Loading State */}
                   {gradesLoading && (
                     <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-                      <p className="mt-2 text-gray-600">Loading grades...</p>
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Loading Grades
+                      </h3>
+                      <p className="text-gray-600">
+                        Please wait while we fetch your grade data...
+                      </p>
                     </div>
                   )}
 
                   {/* Error State */}
                   {gradesError && (
                     <div className="text-center py-12">
-                      <p className="text-red-500">Error: {gradesError}</p>
+                      <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg
+                          className="w-8 h-8 text-red-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Unable to Load Grades
+                      </h3>
+                      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                        We encountered an issue while loading your grades.
+                        Please try again.
+                      </p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md max-w-md mx-auto">
+                          {gradesError}
+                        </p>
+                        <Button
+                          onClick={() =>
+                            schoolId && dispatch(fetchGrades({ schoolId }))
+                          }
+                          variant="outline"
+                          className="mt-4"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            />
+                          </svg>
+                          Try Again
+                        </Button>
+                      </div>
                     </div>
                   )}
 
@@ -865,13 +1068,28 @@ export default function Students() {
 
                       {paginatedGrades.length === 0 && (
                         <div className="text-center py-12">
-                          <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500">No grades found</p>
-                          <p className="text-sm text-gray-400 mt-1">
+                          <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                            <GraduationCap className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
                             {gradeSearchTerm
-                              ? "Try adjusting your search criteria"
-                              : "Get started by adding your first grade"}
+                              ? "No Grades Found"
+                              : "No Grades Yet"}
+                          </h3>
+                          <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                            {gradeSearchTerm
+                              ? "No grades match your current search criteria. Try adjusting your search terms."
+                              : "Get started by adding your first grade to the system."}
                           </p>
+                          {!gradeSearchTerm && (
+                            <Button
+                              onClick={() => setIsCreateGradeModalOpen(true)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Your First Grade
+                            </Button>
+                          )}
                         </div>
                       )}
 
@@ -979,8 +1197,8 @@ export default function Students() {
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the
-                student "{selectedStudent?.first_name || "Unknown"}{" "}
-                {selectedStudent?.last_name || ""}" and remove their data from
+                student "{selectedStudent.first_name || "Unknown"}{" "}
+                {selectedStudent.last_name || ""}" and remove their data from
                 our servers.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -989,7 +1207,7 @@ export default function Students() {
               <AlertDialogAction
                 onClick={handleDeleteStudent}
                 className="bg-red-600 hover:bg-red-700"
-                disabled={!selectedStudent?.id}
+                disabled={!selectedStudent.id}
               >
                 Delete Student
               </AlertDialogAction>

@@ -65,14 +65,6 @@ import { toast } from "@/components/ui/use-toast";
 import { ParentViewModal } from "@/components/ParentViewModal";
 import { ParentEditModal } from "@/components/ParentEditModal";
 import { RootState } from "@/redux/store";
-import {
-  parseParentError,
-  parseApiError,
-  handleParentError,
-  handleParentUpdateError,
-  handleParentDeleteError,
-  parseReduxError,
-} from "@/utils/errorHandler";
 
 interface AuthorizedPerson {
   name: string;
@@ -491,16 +483,106 @@ export default function Parents() {
       console.error("Error instanceof Error:", error instanceof Error);
       console.error("Raw error:", error);
 
-      // Use the Redux-specific error parser
-      const { message: errorMessage, fieldErrors } = parseReduxError(error);
+      // Handle different types of errors
+      let errorMessage = "Failed to register parent";
+      const fieldErrors: Record<string, string> = {};
 
-      console.log("Parsed error message:", errorMessage);
-      console.log("Parsed field errors:", fieldErrors);
+      if (typeof error === "string") {
+        try {
+          // Try to parse as JSON (Redux error format)
+          const parsedError = JSON.parse(error);
+          console.log("Successfully parsed error as JSON:", parsedError);
+
+          if (typeof parsedError === "object" && parsedError !== null) {
+            // This is a field-specific error object
+            Object.entries(parsedError).forEach(([field, errorValue]) => {
+              const errorMsg = Array.isArray(errorValue)
+                ? errorValue[0]
+                : String(errorValue);
+              console.log(
+                `Processing field: ${field} with value: ${errorValue}, extracted message: ${errorMsg}`
+              );
+
+              // Map database field names to form field names
+              if (field === "email") {
+                fieldErrors["user_data.email"] = errorMsg;
+                console.log(
+                  `Mapped email error to user_data.email: ${errorMsg}`
+                );
+              } else if (field === "phone_number") {
+                fieldErrors["user_data.phone_number"] = errorMsg;
+                console.log(
+                  `Mapped phone_number error to user_data.phone_number: ${errorMsg}`
+                );
+              } else if (field === "first_name") {
+                fieldErrors["user_data.first_name"] = errorMsg;
+                console.log(
+                  `Mapped first_name error to user_data.first_name: ${errorMsg}`
+                );
+              } else if (field === "last_name") {
+                fieldErrors["user_data.last_name"] = errorMsg;
+                console.log(
+                  `Mapped last_name error to user_data.last_name: ${errorMsg}`
+                );
+              } else if (field === "password") {
+                fieldErrors["user_data.password"] = errorMsg;
+                console.log(
+                  `Mapped password error to user_data.password: ${errorMsg}`
+                );
+              } else if (field === "confirm_password") {
+                fieldErrors["user_data.confirm_password"] = errorMsg;
+                console.log(
+                  `Mapped confirm_password error to user_data.confirm_password: ${errorMsg}`
+                );
+              } else if (field === "user") {
+                // Handle nested user object errors
+                if (typeof errorValue === "object" && errorValue !== null) {
+                  Object.entries(errorValue).forEach(
+                    ([userField, userErrorValue]) => {
+                      const userErrorMsg = Array.isArray(userErrorValue)
+                        ? userErrorValue[0]
+                        : String(userErrorValue);
+                      fieldErrors[`user_data.${userField}`] = userErrorMsg;
+                      console.log(
+                        `Mapped nested user.${userField} error to user_data.${userField}: ${userErrorMsg}`
+                      );
+                    }
+                  );
+                }
+              } else {
+                fieldErrors[field] = errorMsg;
+                console.log(`Mapped ${field} error directly: ${errorMsg}`);
+              }
+            });
+
+            // Create a user-friendly error message
+            const errorMessages = Object.values(parsedError).flat();
+            errorMessage = errorMessages.join(", ");
+            console.log("Combined error message for toast:", errorMessage);
+          } else {
+            errorMessage = error;
+            console.log(
+              "Parsed error is not an object, using as string:",
+              error
+            );
+          }
+        } catch (parseError) {
+          // If it's not JSON, use the string as is
+          errorMessage = error;
+          console.log("Failed to parse error as JSON, using as string:", error);
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+        console.log("Error is Error instance, using message:", error.message);
+      }
+
+      console.log("Final parsed error message:", errorMessage);
+      console.log("Final parsed field errors:", fieldErrors);
 
       // Convert field errors to the expected format
       const formFieldErrors: FormErrors = {};
 
-      Object.entries(fieldErrors || {}).forEach(([field, errorMsg]) => {
+      Object.entries(fieldErrors).forEach(([field, errorMsg]) => {
         console.log(`Processing field: ${field} with error: ${errorMsg}`);
         if (field.startsWith("user_data.")) {
           const userField = field.split(".")[1];
@@ -545,8 +627,24 @@ export default function Parents() {
     } catch (error) {
       console.error("Parent update error:", error);
 
-      // Use the enhanced parent-specific error parser
-      const { message: errorMessage } = handleParentUpdateError(error);
+      // Parse the error similar to registration
+      let errorMessage = "Failed to update parent";
+
+      if (typeof error === "string") {
+        try {
+          const parsedError = JSON.parse(error);
+          if (typeof parsedError === "object" && parsedError !== null) {
+            const errorMessages = Object.values(parsedError).flat();
+            errorMessage = errorMessages.join(", ");
+          } else {
+            errorMessage = error;
+          }
+        } catch (parseError) {
+          errorMessage = error;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
       toast({
         title: "Update Failed",
@@ -571,8 +669,24 @@ export default function Parents() {
     } catch (error) {
       console.error("Parent delete error:", error);
 
-      // Use the enhanced parent-specific error parser
-      const { message: errorMessage } = handleParentDeleteError(error);
+      // Parse the error similar to registration
+      let errorMessage = "Failed to delete parent";
+
+      if (typeof error === "string") {
+        try {
+          const parsedError = JSON.parse(error);
+          if (typeof parsedError === "object" && parsedError !== null) {
+            const errorMessages = Object.values(parsedError).flat();
+            errorMessage = errorMessages.join(", ");
+          } else {
+            errorMessage = error;
+          }
+        } catch (parseError) {
+          errorMessage = error;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
       toast({
         title: "Delete Failed",

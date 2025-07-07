@@ -21,6 +21,7 @@ import {
   type RouteAssignment,
 } from "../redux/slices/routeAssignmentsSlice";
 import { fetchStudents, type Student } from "../redux/slices/studentsSlice";
+import { fetchDrivers, type Driver } from "../redux/slices/driversSlice";
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSelector } from "react-redux";
@@ -83,6 +84,7 @@ declare global {
 const formSchema = z.object({
   name: z.string().min(2, "Route name must be at least 2 characters"),
   school: z.number(),
+  driver: z.number().min(1, "Please select a driver"),
   start_lat: z.number(),
   start_lng: z.number(),
   end_lat: z.number(),
@@ -112,6 +114,7 @@ export default function RoutesPage() {
   const dispatch = useAppDispatch();
   const { routes, loading, error } = useAppSelector((state) => state.routes);
   const { students } = useAppSelector((state) => state.students);
+  const { drivers } = useAppSelector((state) => state.drivers);
   const data = JSON.parse(localStorage.getItem("profile") || "{}");
   const user = data;
   const { schools } = useAppSelector((state) => state.schools);
@@ -154,6 +157,16 @@ export default function RoutesPage() {
     students?.filter(
       (student) => student && student.school === parseInt(schoolId || "0")
     ) || [];
+
+  // Filter drivers for the current school
+  const filteredDrivers =
+    drivers?.filter(
+      (driver) => driver && driver.school === parseInt(schoolId || "0")
+    ) || [];
+
+  // Debug logging
+  console.log("All drivers:", drivers);
+  console.log("Filtered drivers for school", schoolId, ":", filteredDrivers);
 
   // Filter and search logic
   const filteredAndSearchedRoutes =
@@ -199,6 +212,7 @@ export default function RoutesPage() {
     form.reset({
       name: route.name || "",
       school: route.school || parseInt(schoolId || "1"),
+      driver: route.driver || 0,
       start_lat: route.start_lat || 0,
       start_lng: route.start_lng || 0,
       end_lat: route.end_lat || 0,
@@ -231,6 +245,14 @@ export default function RoutesPage() {
         title: "Success",
         description: "Route deleted successfully",
       });
+
+      // Refetch data to update the lists
+      if (schoolId) {
+        dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchDrivers());
+      }
+
       setIsDeleteDialogOpen(false);
       setSelectedRoute(null);
     } catch (err) {
@@ -247,6 +269,7 @@ export default function RoutesPage() {
     defaultValues: {
       name: "",
       school: parseInt(schoolId || "1"),
+      driver: 0,
       start_lat: 0,
       start_lng: 0,
       end_lat: 0,
@@ -276,6 +299,7 @@ export default function RoutesPage() {
     if (schoolId) {
       dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
       dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchDrivers());
     }
   }, [dispatch]);
 
@@ -528,6 +552,7 @@ export default function RoutesPage() {
       const routeData = {
         name: values.name,
         school: parseInt(schoolId || "1"),
+        driver: values.driver,
         start_lat: values.start_lat,
         start_lng: values.start_lng,
         end_lat: values.end_lat,
@@ -544,6 +569,14 @@ export default function RoutesPage() {
         title: "Success",
         description: "Route added successfully",
       });
+
+      // Refetch data to update the lists
+      const schoolId = localStorage.getItem("schoolId");
+      if (schoolId) {
+        dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchDrivers());
+      }
 
       // Close dialog and reset form
       setIsAddDialogOpen(false);
@@ -591,6 +624,8 @@ export default function RoutesPage() {
       const assignmentData = {
         student: values.student,
         route: values.route,
+        pickup_stop: values.pickup_stop,
+        dropoff_stop: values.dropoff_stop,
         is_active: values.is_active,
         schedule_days: values.schedule_days,
       } satisfies Omit<RouteAssignment, "id">;
@@ -873,6 +908,60 @@ export default function RoutesPage() {
                         )}
                       />
 
+                      <FormField
+                        control={form.control}
+                        name="driver"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Select Driver</FormLabel>
+                            <Select
+                              onValueChange={(value) =>
+                                field.onChange(parseInt(value))
+                              }
+                              value={field.value.toString()}
+                              disabled={filteredDrivers.length === 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue
+                                    placeholder={
+                                      filteredDrivers.length === 0
+                                        ? "No drivers available"
+                                        : "Choose a driver"
+                                    }
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {filteredDrivers.length === 0 ? (
+                                  <SelectItem value="" disabled>
+                                    No drivers available for this school
+                                  </SelectItem>
+                                ) : (
+                                  filteredDrivers.map((driver) => (
+                                    <SelectItem
+                                      key={driver.id}
+                                      value={driver.id?.toString() || ""}
+                                    >
+                                      {driver.user_details.first_name}{" "}
+                                      {driver.user_details.last_name} -{" "}
+                                      {driver.license_number}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            {filteredDrivers.length === 0 && (
+                              <p className="text-sm text-amber-600 mt-1">
+                                No drivers are available for this school. Please
+                                add drivers first.
+                              </p>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+
                       <div className="grid grid-cols-2 gap-4">
                         <FormItem>
                           <FormLabel>Start Location</FormLabel>
@@ -1104,6 +1193,9 @@ export default function RoutesPage() {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Driver
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Distance
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1148,6 +1240,16 @@ export default function RoutesPage() {
                       <tr key={route.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {route.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {
+                            filteredDrivers?.find((d) => d.id === route.driver)
+                              ?.user_details.first_name
+                          }{" "}
+                          {
+                            filteredDrivers?.find((d) => d.id === route.driver)
+                              ?.user_details.last_name
+                          }
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {route.total_distance} km
@@ -1268,6 +1370,21 @@ export default function RoutesPage() {
                   >
                     {selectedRoute.is_active ? "Active" : "Inactive"}
                   </Badge>
+                </div>
+                <div>
+                  <Label className="font-semibold">Driver</Label>
+                  <p>
+                    {
+                      filteredDrivers?.find(
+                        (d) => d.id === selectedRoute.driver
+                      )?.user_details.first_name
+                    }{" "}
+                    {
+                      filteredDrivers?.find(
+                        (d) => d.id === selectedRoute.driver
+                      )?.user_details.last_name
+                    }
+                  </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Total Distance</Label>

@@ -42,7 +42,24 @@ export const createStudent = createAsyncThunk<
 >("students/createStudent", async (studentData, { rejectWithValue }) => {
   try {
     const response = await api.post(API_ENDPOINTS.STUDENTS, studentData);
-    return response.data.data;
+    console.log("Create student API response:", response.data);
+    
+    // Handle different response structures
+    const createdStudent = response.data?.data || response.data;
+    
+    // Validate that we have a proper student object
+    if (!createdStudent || typeof createdStudent !== 'object') {
+      console.error("Invalid student data received:", createdStudent);
+      return rejectWithValue("Invalid student data received from server");
+    }
+    
+    // Ensure required fields are present
+    if (!createdStudent.first_name || !createdStudent.last_name) {
+      console.error("Student data missing required fields:", createdStudent);
+      return rejectWithValue("Student data missing required fields");
+    }
+    
+    return createdStudent;
   } catch (error) {
     if (error instanceof AxiosError) {
       // Return the original error data structure to preserve field-specific errors
@@ -170,16 +187,22 @@ const studentsSlice = createSlice({
         );
 
         state.loading = false;
-        state.students.push(action.payload);
-
-        console.log(
-          "createStudent.fulfilled - state.students after push:",
-          state.students
-        );
-        console.log(
-          "createStudent.fulfilled - state.students length:",
-          state.students.length
-        );
+        
+        // Validate payload before adding to state
+        if (action.payload && typeof action.payload === 'object' && action.payload.first_name) {
+          state.students.push(action.payload);
+          console.log(
+            "createStudent.fulfilled - state.students after push:",
+            state.students
+          );
+          console.log(
+            "createStudent.fulfilled - state.students length:",
+            state.students.length
+          );
+        } else {
+          console.error("Invalid student payload received:", action.payload);
+          state.error = "Invalid student data received";
+        }
       })
       .addCase(createStudent.rejected, (state, action) => {
         state.loading = false;

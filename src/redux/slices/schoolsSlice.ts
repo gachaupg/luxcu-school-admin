@@ -39,6 +39,8 @@ interface School {
   longitude_point: number | null;
   latitude_point: number | null;
   location_coordinates: string | null;
+  school_longitude: number | null;
+  school_latitude: number | null;
   operating_hours_start: string;
   operating_hours_end: string;
   is_active: boolean;

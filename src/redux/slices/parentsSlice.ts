@@ -101,36 +101,39 @@ export const registerParent = createAsyncThunk<
     console.error("Error type:", typeof error);
     console.error("Error instanceof Error:", error instanceof Error);
 
-    const apiError = error as {
-      response?: {
-        data?: {
-          message?: string;
-          [key: string]: any;
-        };
-        status?: number;
-      };
-    };
+    // Handle Axios errors specifically
+    if (error instanceof AxiosError) {
+      console.error("Axios error response:", error.response);
+      console.error("Axios error response data:", error.response?.data);
+      console.error("Axios error status:", error.response?.status);
 
-    console.error("API Error object:", apiError);
-    console.error("API Error response:", apiError.response);
-    console.error("API Error response data:", apiError.response?.data);
-    console.error("API Error status:", apiError.response?.status);
+      // If we have response data, return it as JSON string to preserve field-specific errors
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        console.error("API Error details:", errorData);
+        console.error("Error data type:", typeof errorData);
+        console.error("Error data keys:", Object.keys(errorData));
 
-    // Check for specific field validation errors
-    if (apiError.response?.data) {
-      const errorData = apiError.response.data;
-      console.error("API Error details:", errorData);
-      console.error("Error data type:", typeof errorData);
-      console.error("Error data keys:", Object.keys(errorData));
+        // Return the original error data structure to preserve field-specific errors
+        const errorString = JSON.stringify(errorData);
+        console.error("Returning error string:", errorString);
+        return rejectWithValue(errorString);
+      }
 
-      // Return the original error data structure to preserve field-specific errors
-      const errorString = JSON.stringify(errorData);
-      console.error("Returning error string:", errorString);
-      return rejectWithValue(errorString);
+      // If no response data but we have a status, return a generic error
+      if (error.response?.status) {
+        return rejectWithValue(`Server error (${error.response.status})`);
+      }
+
+      // Network error
+      return rejectWithValue("Network error - please check your connection");
     }
 
-    console.error("No response data, returning generic error");
-    return rejectWithValue("Failed to register parent");
+    // Handle other types of errors
+    console.error("Non-Axios error:", error);
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to register parent"
+    );
   }
 });
 
@@ -158,16 +161,30 @@ export const fetchParents = createAsyncThunk<
 
     return response.data;
   } catch (error: unknown) {
-    const apiError = error as {
-      response?: { data?: { message?: string }; status?: number };
-    };
-    console.error("Parents fetch error:", {
-      error,
-      response: apiError.response?.data,
-      status: apiError.response?.status,
-    });
+    console.error("Parents fetch error:", error);
+
+    if (error instanceof AxiosError) {
+      console.error("Axios error response:", error.response);
+      console.error("Axios error response data:", error.response?.data);
+      console.error("Axios error status:", error.response?.status);
+
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === "object" && errorData.message) {
+          return rejectWithValue(errorData.message);
+        }
+        return rejectWithValue(JSON.stringify(errorData));
+      }
+
+      if (error.response?.status) {
+        return rejectWithValue(`Server error (${error.response.status})`);
+      }
+
+      return rejectWithValue("Network error - please check your connection");
+    }
+
     return rejectWithValue(
-      apiError.response?.data?.message || "Failed to fetch parents"
+      error instanceof Error ? error.message : "Failed to fetch parents"
     );
   }
 });
@@ -185,12 +202,30 @@ export const fetchParentById = createAsyncThunk<
       return response.data.data || response.data;
     } catch (error) {
       console.error("Error fetching parent:", error);
+
       if (error instanceof AxiosError) {
-        return rejectWithValue(
-          error.response?.data?.message || "Failed to fetch parent"
-        );
+        console.error("Axios error response:", error.response);
+        console.error("Axios error response data:", error.response?.data);
+        console.error("Axios error status:", error.response?.status);
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+          if (typeof errorData === "object" && errorData.message) {
+            return rejectWithValue(errorData.message);
+          }
+          return rejectWithValue(JSON.stringify(errorData));
+        }
+
+        if (error.response?.status) {
+          return rejectWithValue(`Server error (${error.response.status})`);
+        }
+
+        return rejectWithValue("Network error - please check your connection");
       }
-      return rejectWithValue("Failed to fetch parent");
+
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch parent"
+      );
     }
   }
 );
@@ -206,12 +241,30 @@ export const updateParent = createAsyncThunk<
     return response.data.data || response.data;
   } catch (error) {
     console.error("Error updating parent:", error);
+
     if (error instanceof AxiosError) {
-      return rejectWithValue(
-        error.response?.data?.message || "Failed to update parent"
-      );
+      console.error("Axios error response:", error.response);
+      console.error("Axios error response data:", error.response?.data);
+      console.error("Axios error status:", error.response?.status);
+
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (typeof errorData === "object" && errorData.message) {
+          return rejectWithValue(errorData.message);
+        }
+        return rejectWithValue(JSON.stringify(errorData));
+      }
+
+      if (error.response?.status) {
+        return rejectWithValue(`Server error (${error.response.status})`);
+      }
+
+      return rejectWithValue("Network error - please check your connection");
     }
-    return rejectWithValue("Failed to update parent");
+
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to update parent"
+    );
   }
 });
 
@@ -224,12 +277,30 @@ export const deleteParent = createAsyncThunk<void, number>(
       console.log("Parent deleted successfully");
     } catch (error) {
       console.error("Error deleting parent:", error);
+
       if (error instanceof AxiosError) {
-        return rejectWithValue(
-          error.response?.data?.message || "Failed to delete parent"
-        );
+        console.error("Axios error response:", error.response);
+        console.error("Axios error response data:", error.response?.data);
+        console.error("Axios error status:", error.response?.status);
+
+        if (error.response?.data) {
+          const errorData = error.response.data;
+          if (typeof errorData === "object" && errorData.message) {
+            return rejectWithValue(errorData.message);
+          }
+          return rejectWithValue(JSON.stringify(errorData));
+        }
+
+        if (error.response?.status) {
+          return rejectWithValue(`Server error (${error.response.status})`);
+        }
+
+        return rejectWithValue("Network error - please check your connection");
       }
-      return rejectWithValue("Failed to delete parent");
+
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to delete parent"
+      );
     }
   }
 );

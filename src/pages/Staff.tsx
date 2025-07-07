@@ -17,10 +17,15 @@ import {
   ChevronRight,
   Download,
   Shield,
+  UserCheck,
 } from "lucide-react";
 import { fetchStaff, addStaff } from "../redux/slices/staffSlice";
 import { fetchSchools } from "../redux/slices/schoolsSlice";
-import { fetchRoles, createRole } from "../redux/slices/roleSlice";
+import {
+  fetchRoles,
+  createRole,
+  createDefaultRoles,
+} from "../redux/slices/roleSlice";
 import { showToast } from "../utils/toast";
 import { StaffModal } from "../components/StaffModal";
 import { Button } from "../components/ui/button";
@@ -60,21 +65,59 @@ export default function Staff() {
   const user = data;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"staff" | "roles">("staff");
+  const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
+  const [componentError, setComponentError] = useState<string | null>(null);
 
-  // Filter schools for the current admin
-  const filteredSchools =
+  // Debug logging
+  console.log("User profile:", user);
+  console.log("Schools from Redux:", schools);
+  console.log("User ID:", user?.id);
+
+  // Filter schools for the current admin - try multiple approaches
+  let filteredSchools =
     schools?.filter((school) => school.admin === user?.id) || [];
-  const schoolId = filteredSchools[0]?.id;
+
+  // If no schools found, try alternative approaches
+  if (filteredSchools.length === 0 && schools && schools.length > 0) {
+    console.log("No schools found with admin ID, trying alternatives...");
+
+    // Try matching by user ID directly
+    filteredSchools =
+      schools.filter((school) => school.admin_details?.id === user?.id) || [];
+
+    // If still no match, use the first available school (fallback)
+    if (filteredSchools.length === 0) {
+      console.log("Using first available school as fallback");
+      filteredSchools = [schools[0]];
+    }
+  }
+
+  // Use selected school ID if available, otherwise use the first filtered school
+  const schoolId = selectedSchoolId || filteredSchools[0]?.id;
+
+  console.log("Filtered schools:", filteredSchools);
+  console.log("Selected school ID:", schoolId);
 
   useEffect(() => {
+    console.log("useEffect triggered - schoolId:", schoolId);
     if (schoolId) {
       dispatch(fetchStaff({ schoolId }));
       dispatch(fetchRoles(schoolId));
     } else {
       // Fetch schools if we don't have a schoolId yet
+      console.log("No schoolId found, fetching schools...");
       dispatch(fetchSchools());
     }
   }, [dispatch, schoolId]);
+
+  // Set selected school ID when filtered schools are available
+  useEffect(() => {
+    if (filteredSchools.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(filteredSchools[0].id);
+      console.log("Auto-selecting school:", filteredSchools[0].id);
+    }
+  }, [filteredSchools, selectedSchoolId]);
 
   const handleAddStaff = async (staffData: {
     employee_id: string;
@@ -147,9 +190,21 @@ export default function Staff() {
     school: number;
     permissions: string[];
     is_system_role: boolean;
+    parent_role?: number;
   }) => {
+    console.log("Creating role with data:", roleData);
+    console.log("Current schoolId:", schoolId);
+    console.log("Available schools:", schools);
+
     if (!schoolId) {
-      showToast.error("Error", "No school found for the current admin");
+      const errorMsg = `No school found for the current admin. User ID: ${
+        user?.id
+      }, Available schools: ${JSON.stringify(schools)}`;
+      console.error(errorMsg);
+      showToast.error(
+        "Error",
+        "No school found for the current admin. Please check your account setup."
+      );
       return;
     }
 
@@ -178,10 +233,68 @@ export default function Staff() {
     }
   };
 
+  const handleCreateDefaultRoles = async () => {
+    console.log("Creating default roles for schoolId:", schoolId);
+    console.log("Available schools:", schools);
+
+    if (!schoolId) {
+      const errorMsg = `No school found for the current admin. User ID: ${
+        user?.id
+      }, Available schools: ${JSON.stringify(schools)}`;
+      console.error(errorMsg);
+      showToast.error(
+        "Error",
+        "No school found for the current admin. Please check your account setup."
+      );
+      return;
+    }
+
+    try {
+      const resultAction = await dispatch(createDefaultRoles(schoolId));
+      if (createDefaultRoles.fulfilled.match(resultAction)) {
+        showToast.success("Default roles created successfully");
+        // Refresh roles list after creating default roles
+        dispatch(fetchRoles(schoolId));
+      } else if (createDefaultRoles.rejected.match(resultAction)) {
+        const errorMessage =
+          typeof resultAction.payload === "string"
+            ? resultAction.payload
+            : "Failed to create default roles";
+        showToast.error("Error", errorMessage);
+      }
+    } catch (err) {
+      showToast.error("Error", "Failed to create default roles");
+      console.error("Error creating default roles:", err);
+    }
+  };
+
   const getRoleName = (roleId: number) => {
-    const role = roles.find((r) => r.id === roleId);
+    const role = roles?.find((r) => r.id === roleId);
     return role ? role.name : "Unknown Role";
   };
+
+  // Error boundary for the component
+  if (componentError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
+          <h2 className="text-xl font-bold text-red-600 mb-4">
+            Something went wrong
+          </h2>
+          <p className="text-gray-600 mb-4">{componentError}</p>
+          <button
+            onClick={() => {
+              setComponentError(null);
+              window.location.reload();
+            }}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex w-full">
@@ -190,23 +303,98 @@ export default function Staff() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Users className="text-green-500" size={32} />
-              <h2 className="text-2xl font-bold text-gray-800">All Staff</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Staff Management
+              </h2>
+              {process.env.NODE_ENV === "development" && schoolId && (
+                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  School ID: {schoolId}
+                </span>
+              )}
             </div>
+
+            {/* School Selector */}
+            {schools && schools.length > 1 && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Select School:
+                </label>
+                <select
+                  value={selectedSchoolId || schoolId || ""}
+                  onChange={(e) => {
+                    const newSchoolId = parseInt(e.target.value);
+                    setSelectedSchoolId(newSchoolId);
+                    console.log("School changed to:", newSchoolId);
+                  }}
+                  className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  {schools.map((school) => (
+                    <option key={school.id} value={school.id}>
+                      {school.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex gap-4">
-              <button
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
-                onClick={() => setIsRoleModalOpen(true)}
-              >
-                <Shield size={20} />
-                Create Role
-              </button>
-              <button
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Add New Staff
-              </button>
+              {activeTab === "staff" && (
+                <button
+                  className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Add New Staff
+                </button>
+              )}
+              {activeTab === "roles" && (
+                <>
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
+                    onClick={handleCreateDefaultRoles}
+                  >
+                    <Shield size={20} />
+                    Create Default Roles
+                  </button>
+                  <button
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
+                    onClick={() => setIsRoleModalOpen(true)}
+                  >
+                    <Shield size={20} />
+                    Create Custom Role
+                  </button>
+                </>
+              )}
             </div>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setActiveTab("staff")}
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "staff"
+                  ? "border-green-500 text-green-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Users size={20} />
+                Staff Members ({staff?.length || 0})
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("roles")}
+              className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "roles"
+                  ? "border-green-500 text-green-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Shield size={20} />
+                Roles ({roles?.length || 0})
+              </div>
+            </button>
           </div>
 
           {loading && <div className="text-center py-4">Loading...</div>}
@@ -214,112 +402,226 @@ export default function Staff() {
             <div className="text-red-500 text-center py-4">{error}</div>
           )}
 
-          <div className="bg-white rounded-lg shadow p-0 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    First Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Last Name
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Phone Number
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Email Address
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Role
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {staff.map((staffMember) => (
-                  <tr key={staffMember.employee_id}>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {staffMember.user.first_name}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {staffMember.user.last_name}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {staffMember.user.phone_number}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {staffMember.user.email}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {getRoleName(staffMember.role)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          staffMember.status === "active"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-red-100 text-red-500"
-                        }`}
-                      >
-                        {staffMember.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-center">
-                      <button className="p-2 rounded-full hover:bg-gray-100">
-                        <MoreVertical size={20} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Pagination */}
-            <div className="flex items-center justify-between px-4 py-2 border-t bg-gray-50 text-sm text-gray-600">
-              <span>
-                Showing 1-{staff.length} of {staff.length}
-              </span>
-              <div className="flex items-center gap-2">
-                <button className="p-1 rounded hover:bg-gray-200" disabled>
-                  <svg
-                    width="20"
-                    height="20"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <button className="p-1 rounded hover:bg-gray-200">
-                  <svg
-                    width="20"
-                    height="20"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+          {/* Tab Content */}
+          {activeTab === "staff" && (
+            <div className="bg-white rounded-lg shadow p-0 overflow-x-auto">
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Staff Members
+                </h3>
               </div>
+              {!staff || staff.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No staff members
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Get started by adding your first staff member.
+                  </p>
+                  <button
+                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow"
+                    onClick={() => setIsModalOpen(true)}
+                  >
+                    Add New Staff
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          First Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Last Name
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Phone Number
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Email Address
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Role
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {staff?.map((staffMember) => (
+                        <tr key={staffMember.employee_id}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {staffMember.user?.first_name || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {staffMember.user?.last_name || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {staffMember.user?.phone_number || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {staffMember.user?.email || "N/A"}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {getRoleName(staffMember.role)}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                staffMember.status === "active"
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-red-100 text-red-500"
+                              }`}
+                            >
+                              {staffMember.status || "Unknown"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            <button className="p-2 rounded-full hover:bg-gray-100">
+                              <MoreVertical size={20} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between px-4 py-2 border-t bg-gray-50 text-sm text-gray-600">
+                    <span>
+                      Showing 1-{staff?.length || 0} of {staff?.length || 0}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        className="p-1 rounded hover:bg-gray-200"
+                        disabled
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 19l-7-7 7-7"
+                          />
+                        </svg>
+                      </button>
+                      <button className="p-1 rounded hover:bg-gray-200">
+                        <svg
+                          width="20"
+                          height="20"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
+          )}
+
+          {activeTab === "roles" && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Available Roles
+                </h3>
+                <span className="text-sm text-gray-500">
+                  {roles?.length || 0} roles
+                </span>
+              </div>
+              {!roles || roles.length === 0 ? (
+                <div className="text-center py-12">
+                  <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No roles available
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Create default roles or add custom roles to get started.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+                      onClick={handleCreateDefaultRoles}
+                    >
+                      <Shield size={16} />
+                      Create Default Roles
+                    </button>
+                    <button
+                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+                      onClick={() => setIsRoleModalOpen(true)}
+                    >
+                      <Shield size={16} />
+                      Create Custom Role
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {roles?.map((role) => (
+                    <div
+                      key={role.id}
+                      className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium text-gray-800">
+                          {role.name || "Unnamed Role"}
+                        </h4>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            role.is_system_role
+                              ? "bg-purple-100 text-purple-600"
+                              : "bg-blue-100 text-blue-600"
+                          }`}
+                        >
+                          {role.is_system_role ? "System" : "Custom"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        {role.description || "No description available"}
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {role.permissions &&
+                          role.permissions.slice(0, 3).map((permission) => (
+                            <span
+                              key={permission}
+                              className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded"
+                            >
+                              {permission.replace("_", " ")}
+                            </span>
+                          ))}
+                        {role.permissions && role.permissions.length > 3 && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                            +{role.permissions.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
 
@@ -332,6 +634,7 @@ export default function Staff() {
       <RoleModal
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
+        schoolId={schoolId}
         onSubmit={handleCreateRole}
       />
     </div>

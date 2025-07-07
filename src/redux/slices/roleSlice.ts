@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { AxiosError } from "axios";
+import { getDefaultRoles } from "@/utils/roleDefaults";
 
 export interface Role {
   id: number;
@@ -10,6 +11,7 @@ export interface Role {
   school: number;
   permissions: string[];
   is_system_role: boolean;
+  parent_role?: number;
 }
 
 export interface CreateRoleData {
@@ -18,6 +20,7 @@ export interface CreateRoleData {
   school: number;
   permissions: string[];
   is_system_role: boolean;
+  parent_role?: number;
 }
 
 interface RoleState {
@@ -40,10 +43,10 @@ export const fetchRoles = createAsyncThunk<Role[], number>(
     try {
       console.log("Fetching roles for school:", schoolId);
       const response = await api.get(
-        `${API_ENDPOINTS.SCHOOLS_ROLES}/${schoolId}/`
+        `${API_ENDPOINTS.SCHOOLS_ROLES}?school=${schoolId}`
       );
       console.log("Roles response:", response.data);
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       console.error("Error fetching roles:", error);
       if (error instanceof AxiosError) {
@@ -64,7 +67,7 @@ export const fetchRoleById = createAsyncThunk<
     console.log(`Fetching role ${roleId} for school ${schoolId}`);
     const response = await api.get(`${API_ENDPOINTS.SCHOOLS_ROLES}/${roleId}/`);
     console.log("Role response:", response.data);
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error) {
     console.error("Error fetching role:", error);
     if (error instanceof AxiosError) {
@@ -86,7 +89,7 @@ export const createRole = createAsyncThunk<Role, CreateRoleData>(
         roleData
       );
       console.log("Create role response:", response.data);
-      return response.data.data;
+      return response.data.data || response.data;
     } catch (error) {
       console.error("Error creating role:", error);
       if (error instanceof AxiosError) {
@@ -110,7 +113,7 @@ export const updateRole = createAsyncThunk<
       data
     );
     console.log("Update role response:", response.data);
-    return response.data.data;
+    return response.data.data || response.data;
   } catch (error) {
     console.error("Error updating role:", error);
     if (error instanceof AxiosError) {
@@ -137,6 +140,41 @@ export const deleteRole = createAsyncThunk<void, number>(
         );
       }
       return rejectWithValue("Failed to delete role");
+    }
+  }
+);
+
+export const createDefaultRoles = createAsyncThunk<Role[], number>(
+  "roles/createDefaultRoles",
+  async (schoolId: number, { rejectWithValue }) => {
+    try {
+      console.log("Creating default roles for school:", schoolId);
+      const defaultRoles = getDefaultRoles(schoolId);
+      const createdRoles: Role[] = [];
+
+      for (const roleData of defaultRoles) {
+        try {
+          const response = await api.post(
+            `${API_ENDPOINTS.SCHOOLS_ROLES}/`,
+            roleData
+          );
+          createdRoles.push(response.data.data || response.data);
+        } catch (error) {
+          console.warn(`Failed to create role ${roleData.name}:`, error);
+          // Continue with other roles even if one fails
+        }
+      }
+
+      console.log("Default roles created:", createdRoles);
+      return createdRoles;
+    } catch (error) {
+      console.error("Error creating default roles:", error);
+      if (error instanceof AxiosError) {
+        return rejectWithValue(
+          error.response?.data?.message || "Failed to create default roles"
+        );
+      }
+      return rejectWithValue("Failed to create default roles");
     }
   }
 );
@@ -224,6 +262,19 @@ const roleSlice = createSlice({
         }
       })
       .addCase(deleteRole.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Create Default Roles
+      .addCase(createDefaultRoles.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createDefaultRoles.fulfilled, (state, action) => {
+        state.loading = false;
+        state.roles.push(...action.payload);
+      })
+      .addCase(createDefaultRoles.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
