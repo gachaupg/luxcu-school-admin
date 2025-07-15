@@ -123,6 +123,27 @@ export const fetchDrivers = createAsyncThunk<
   }
 });
 
+export const deleteDriver = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("drivers/deleteDriver", async (id, { rejectWithValue }) => {
+  try {
+    console.log(`Deleting driver ${id}`);
+    await api.delete(`${API_ENDPOINTS.DRIVERS}${id}/`);
+    console.log("Driver deleted successfully");
+    return id;
+  } catch (error) {
+    console.error("Error deleting driver:", error);
+    if (error instanceof AxiosError) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete driver"
+      );
+    }
+    return rejectWithValue("Failed to delete driver");
+  }
+});
+
 const driversSlice = createSlice({
   name: "drivers",
   initialState,
@@ -158,6 +179,21 @@ const driversSlice = createSlice({
       .addCase(fetchDrivers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to fetch drivers";
+      })
+      // Delete Driver
+      .addCase(deleteDriver.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteDriver.fulfilled, (state, action) => {
+        state.loading = false;
+        state.drivers = state.drivers.filter(
+          (driver) => driver.id !== action.payload
+        );
+      })
+      .addCase(deleteDriver.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to delete driver";
       });
   },
 });

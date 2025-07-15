@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { fetchVehicles, addVehicle } from "../redux/slices/vehiclesSlice";
+import {
+  fetchVehicles,
+  addVehicle,
+  deleteVehicle,
+  Vehicle,
+} from "../redux/slices/vehiclesSlice";
 import { fetchDrivers } from "../redux/slices/driversSlice";
 import {
   Car,
@@ -319,6 +324,16 @@ export default function Vehicles() {
   const { vehicles, loading, error } = useAppSelector(
     (state) => state.vehicles
   );
+
+  // Debug logging for vehicles state
+  useEffect(() => {
+    console.log("Vehicles state updated:", {
+      count: vehicles.length,
+      vehicles: vehicles,
+      loading: loading,
+      error: error,
+    });
+  }, [vehicles, loading, error]);
   const { user } = useSelector((state: RootState) => state.auth);
   const { schools } = useAppSelector((state) => state.schools);
   const { drivers, loading: driversLoading } = useAppSelector(
@@ -332,7 +347,7 @@ export default function Vehicles() {
   const [itemsPerPage] = useState(10);
 
   // Action modals state
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -346,13 +361,15 @@ export default function Vehicles() {
   console.log("schoolId", schoolId);
   // Filter drivers for the school
   const filteredDrivers =
-    drivers?.filter((driver) => driver.school === schoolId) || [];
+    drivers?.filter((driver) => driver?.school === schoolId) || [];
 
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log("Loading vehicles data for schoolId:", schoolId);
         if (schoolId) {
-          await dispatch(fetchVehicles({ schoolId }));
+          const result = await dispatch(fetchVehicles({ schoolId }));
+          console.log("Fetch vehicles result:", result);
         }
         await dispatch(fetchDrivers());
       } catch (err) {
@@ -393,22 +410,28 @@ export default function Vehicles() {
 
   // Filter and search logic
   const filteredAndSearchedVehicles = vehicles.filter((vehicle) => {
+    if (!vehicle) return false;
+
     const matchesSearch =
-      vehicle.registration_number
+      (vehicle.registration_number || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.vehicle_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (vehicle.manufacturer || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (vehicle.model || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (vehicle.vehicle_type || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       (
-        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
-          .first_name || ""
+        filteredDrivers.find((d) => d?.id === vehicle.driver)?.user_details
+          ?.first_name || ""
       )
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       (
-        filteredDrivers.find((d) => d.id === vehicle.driver)?.user_details
-          .last_name || ""
+        filteredDrivers.find((d) => d?.id === vehicle.driver)?.user_details
+          ?.last_name || ""
       )
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -438,40 +461,76 @@ export default function Vehicles() {
   }, [searchTerm, statusFilter]);
 
   // Action handlers
-  const handleView = (vehicle) => {
+  const handleView = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setIsViewModalOpen(true);
   };
 
-  const handleEdit = (vehicle) => {
+  const handleEdit = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setFormData({
-      registration_number: vehicle.registration_number,
-      vehicle_type: vehicle.vehicle_type,
-      capacity: vehicle.capacity,
+      registration_number: vehicle.registration_number || "",
+      vehicle_type: vehicle.vehicle_type || "bus",
+      capacity: vehicle.capacity || 40,
       school: schoolId,
-      driver: vehicle.driver,
-      manufacturer: vehicle.manufacturer,
-      model: vehicle.model,
-      year: vehicle.year,
-      fuel_type: vehicle.fuel_type,
-      is_active: vehicle.is_active,
-      mileage: vehicle.mileage,
-      has_gps: vehicle.has_gps,
-      has_camera: vehicle.has_camera,
-      has_emergency_button: vehicle.has_emergency_button,
+      driver: vehicle.driver || 0,
+      manufacturer: vehicle.manufacturer || "",
+      model: vehicle.model || "",
+      year: vehicle.year || new Date().getFullYear(),
+      fuel_type: vehicle.fuel_type || "diesel",
+      is_active: vehicle.is_active ?? true,
+      mileage: vehicle.mileage || 0,
+      has_gps: vehicle.has_gps ?? true,
+      has_camera: vehicle.has_camera ?? true,
+      has_emergency_button: vehicle.has_emergency_button ?? true,
     });
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (vehicle) => {
+  const handleDelete = (vehicle: Vehicle) => {
+    console.log("handleDelete called with vehicle:", vehicle);
     setSelectedVehicle(vehicle);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
     try {
-      // TODO: Implement delete vehicle API call
+      console.log("confirmDelete called");
+      console.log("selectedVehicle:", selectedVehicle);
+
+      if (!selectedVehicle) {
+        console.log("No vehicle selected");
+        toast({
+          title: "Error",
+          description: "No vehicle selected for deletion",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!selectedVehicle.id) {
+        console.log("Vehicle ID is undefined");
+        toast({
+          title: "Error",
+          description: "Vehicle ID is missing",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Attempting to delete vehicle with ID:", selectedVehicle.id);
+      console.log("Vehicle ID type:", typeof selectedVehicle.id);
+
+      // Ensure ID is a number
+      const vehicleId =
+        typeof selectedVehicle.id === "string"
+          ? parseInt(selectedVehicle.id)
+          : selectedVehicle.id;
+      console.log("Converted vehicle ID:", vehicleId);
+
+      await dispatch(deleteVehicle(vehicleId)).unwrap();
+
+      console.log("Vehicle deleted successfully");
       toast({
         title: "Success",
         description: "Vehicle deleted successfully",
@@ -479,9 +538,18 @@ export default function Vehicles() {
       setIsDeleteDialogOpen(false);
       setSelectedVehicle(null);
     } catch (err) {
+      console.error("Delete vehicle error:", err);
+      let errorMessage = "Failed to delete vehicle";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      }
+
       toast({
         title: "Error",
-        description: "Failed to delete vehicle",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -583,6 +651,47 @@ export default function Vehicles() {
       });
     }
   };
+
+  // Add loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-3 flex w-full">
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 bg-gray-100">
+            <div className="flex justify-center items-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading vehicles...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Add error boundary
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-3 flex w-full">
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 bg-gray-100">
+            <div className="flex justify-center items-center h-full">
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-red-600 mb-4">
+                  Error Loading Vehicles
+                </h2>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={() => window.location.reload()}>
+                  Refresh Page
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-3 flex w-full">
@@ -698,64 +807,68 @@ export default function Vehicles() {
                     </td>
                   </tr>
                 ) : (
-                  paginatedVehicles.map((vehicle) => (
-                    <tr key={vehicle.id}>
-                      <td className="px-4 py-3">
-                        {vehicle.registration_number}
-                      </td>
-                      <td className="px-4 py-3">
-                        {
-                          filteredDrivers.find((d) => d.id === vehicle.driver)
-                            ?.user_details.first_name
-                        }{" "}
-                        {
-                          filteredDrivers.find((d) => d.id === vehicle.driver)
-                            ?.user_details.last_name
-                        }
-                      </td>
-                      <td className="px-4 py-3 capitalize">
-                        {vehicle.vehicle_type}
-                      </td>
-                      <td className="px-4 py-3">{vehicle.capacity}</td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant={vehicle.is_active ? "default" : "secondary"}
-                        >
-                          {vehicle.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleView(vehicle)}
-                            >
-                              <ViewIcon className="h-4 w-4 mr-2" />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEdit(vehicle)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(vehicle)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))
+                  paginatedVehicles.map((vehicle) => {
+                    console.log("Rendering vehicle:", vehicle);
+                    if (!vehicle) return null;
+                    return (
+                      <tr key={vehicle.id}>
+                        <td className="px-4 py-3">
+                          {vehicle.registration_number || "N/A"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {filteredDrivers.find((d) => d?.id === vehicle.driver)
+                            ?.user_details?.first_name || ""}{" "}
+                          {filteredDrivers.find((d) => d?.id === vehicle.driver)
+                            ?.user_details?.last_name || ""}
+                        </td>
+                        <td className="px-4 py-3 capitalize">
+                          {vehicle.vehicle_type || "N/A"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {vehicle.capacity || "N/A"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={
+                              vehicle.is_active ? "default" : "secondary"
+                            }
+                          >
+                            {vehicle.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleView(vehicle)}
+                              >
+                                <ViewIcon className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEdit(vehicle)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(vehicle)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -820,35 +933,39 @@ export default function Vehicles() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Registration Number</Label>
-                  <p>{selectedVehicle.registration_number}</p>
+                  <p>{selectedVehicle.registration_number || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Vehicle Type</Label>
-                  <p className="capitalize">{selectedVehicle.vehicle_type}</p>
+                  <p className="capitalize">
+                    {selectedVehicle.vehicle_type || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Manufacturer</Label>
-                  <p>{selectedVehicle.manufacturer}</p>
+                  <p>{selectedVehicle.manufacturer || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Model</Label>
-                  <p>{selectedVehicle.model}</p>
+                  <p>{selectedVehicle.model || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Year</Label>
-                  <p>{selectedVehicle.year}</p>
+                  <p>{selectedVehicle.year || "N/A"}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Capacity</Label>
-                  <p>{selectedVehicle.capacity} passengers</p>
+                  <p>{selectedVehicle.capacity || "N/A"} passengers</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Fuel Type</Label>
-                  <p className="capitalize">{selectedVehicle.fuel_type}</p>
+                  <p className="capitalize">
+                    {selectedVehicle.fuel_type || "N/A"}
+                  </p>
                 </div>
                 <div>
                   <Label className="font-semibold">Mileage</Label>
-                  <p>{selectedVehicle.mileage} km</p>
+                  <p>{selectedVehicle.mileage || "N/A"} km</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Status</Label>
@@ -863,14 +980,12 @@ export default function Vehicles() {
                 <div>
                   <Label className="font-semibold">Driver</Label>
                   <p>
-                    {
-                      filteredDrivers.find(
-                        (d) => d.id === selectedVehicle.driver
-                      )?.user_details.first_name
-                    }{" "}
                     {filteredDrivers.find(
-                      (d) => d.id === selectedVehicle.driver
-                    )?.user_details.last_name || "Not assigned"}
+                      (d) => d?.id === selectedVehicle.driver
+                    )?.user_details?.first_name || ""}{" "}
+                    {filteredDrivers.find(
+                      (d) => d?.id === selectedVehicle.driver
+                    )?.user_details?.last_name || "Not assigned"}
                   </p>
                 </div>
               </div>

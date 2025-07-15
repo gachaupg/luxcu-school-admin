@@ -4,6 +4,8 @@ import {
   addDriver,
   fetchDrivers,
   CreateDriverData,
+  deleteDriver,
+  Driver,
 } from "../redux/slices/driversSlice";
 import { fetchSchools } from "../redux/slices/schoolsSlice";
 import { Button } from "@/components/ui/button";
@@ -146,18 +148,18 @@ const Drivers = () => {
   const [itemsPerPage] = useState(10);
 
   // Action modals state
-  const [selectedDriver, setSelectedDriver] = useState(null);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Action handlers
-  const handleView = (driver) => {
+  const handleView = (driver: Driver) => {
     setSelectedDriver(driver);
     setIsViewModalOpen(true);
   };
 
-  const handleEdit = (driver) => {
+  const handleEdit = (driver: Driver) => {
     setSelectedDriver(driver);
 
     // Handle current_location which can be either an object or string
@@ -198,14 +200,23 @@ const Drivers = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (driver) => {
+  const handleDelete = (driver: Driver) => {
     setSelectedDriver(driver);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
     try {
-      // TODO: Implement delete driver API call
+      if (!selectedDriver) {
+        toast({
+          title: "Error",
+          description: "No driver selected for deletion",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await dispatch(deleteDriver(selectedDriver.id)).unwrap();
       toast({
         title: "Success",
         description: "Driver deleted successfully",
@@ -213,9 +224,18 @@ const Drivers = () => {
       setIsDeleteDialogOpen(false);
       setSelectedDriver(null);
     } catch (err) {
+      console.error("Delete driver error:", err);
+      let errorMessage = "Failed to delete driver";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      }
+
       toast({
         title: "Error",
-        description: "Failed to delete driver",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -611,6 +631,7 @@ const Drivers = () => {
 
       try {
         await dispatch(addDriver(submitData)).unwrap();
+        window.location.reload(); 
         toast({
           title: "Success",
           description: "Driver added successfully",

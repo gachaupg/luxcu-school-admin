@@ -79,6 +79,27 @@ export const fetchRoutes = createAsyncThunk<
   }
 });
 
+export const deleteRoute = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("routes/deleteRoute", async (id, { rejectWithValue }) => {
+  try {
+    console.log(`Deleting route ${id}`);
+    await api.delete(`${API_ENDPOINTS.ROUTES}${id}/`);
+    console.log("Route deleted successfully");
+    return id;
+  } catch (error) {
+    console.error("Error deleting route:", error);
+    if (error instanceof AxiosError) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete route"
+      );
+    }
+    return rejectWithValue("Failed to delete route");
+  }
+});
+
 const routesSlice = createSlice({
   name: "routes",
   initialState,
@@ -114,6 +135,21 @@ const routesSlice = createSlice({
       .addCase(fetchRoutes.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to fetch routes";
+      })
+      // Delete Route
+      .addCase(deleteRoute.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteRoute.fulfilled, (state, action) => {
+        state.loading = false;
+        state.routes = state.routes.filter(
+          (route) => route.id !== action.payload
+        );
+      })
+      .addCase(deleteRoute.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to delete route";
       });
   },
 });

@@ -1,8 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
+import { AxiosError } from "axios";
+import { store } from "@/redux/store";
 
-interface Vehicle {
+export interface Vehicle {
   id?: number;
   registration_number: string;
   vehicle_type: string;
@@ -45,9 +47,40 @@ export const fetchVehicles = createAsyncThunk<
       url += `?school=${schoolId}`;
     }
 
+    console.log("Fetching vehicles from URL:", url);
     const response = await api.get(url);
-    return response.data;
+    console.log("Vehicles response:", response.data);
+
+    // Check if the response has the expected structure
+    if (Array.isArray(response.data)) {
+      console.log(
+        "Vehicles data is an array with",
+        response.data.length,
+        "items"
+      );
+      // Validate each vehicle has required fields
+      const validatedVehicles = response.data.filter((vehicle) => {
+        if (!vehicle || typeof vehicle !== "object") {
+          console.warn("Invalid vehicle data:", vehicle);
+          return false;
+        }
+        return true;
+      });
+      console.log("Validated vehicles:", validatedVehicles);
+      return validatedVehicles;
+    } else if (
+      response.data &&
+      response.data.data &&
+      Array.isArray(response.data.data)
+    ) {
+      console.log("Vehicles data is nested in data.data");
+      return response.data.data;
+    } else {
+      console.log("Unexpected vehicles response structure:", response.data);
+      return [];
+    }
   } catch (error: unknown) {
+    console.error("Error fetching vehicles:", error);
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
@@ -75,6 +108,44 @@ export const addVehicle = createAsyncThunk<
         apiError.response?.data || { message: "Failed to add vehicle" }
       )
     );
+  }
+});
+
+export const deleteVehicle = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("vehicles/deleteVehicle", async (id, { rejectWithValue }) => {
+  try {
+    console.log(`Deleting vehicle ${id}`);
+    console.log(`API URL: ${API_ENDPOINTS.VEHICLES}${id}/`);
+
+    // Get the current auth token for debugging
+    const state = store.getState();
+    const token = state.auth.token;
+    console.log("Auth token present:", !!token);
+
+    const response = await api.delete(`${API_ENDPOINTS.VEHICLES}${id}/`);
+    console.log("Delete response:", response);
+    console.log("Vehicle deleted successfully");
+    return id;
+  } catch (error) {
+    console.error("Error deleting vehicle:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      response:
+        error instanceof AxiosError ? error.response : "Not an Axios error",
+      status:
+        error instanceof AxiosError ? error.response?.status : "No status",
+      data: error instanceof AxiosError ? error.response?.data : "No data",
+    });
+
+    if (error instanceof AxiosError) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete vehicle"
+      );
+    }
+    return rejectWithValue("Failed to delete vehicle");
   }
 });
 
@@ -113,6 +184,21 @@ const vehiclesSlice = createSlice({
       .addCase(addVehicle.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to add vehicle";
+      })
+      // Delete Vehicle
+      .addCase(deleteVehicle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteVehicle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.vehicles = state.vehicles.filter(
+          (vehicle) => vehicle.id !== action.payload
+        );
+      })
+      .addCase(deleteVehicle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to delete vehicle";
       });
   },
 });

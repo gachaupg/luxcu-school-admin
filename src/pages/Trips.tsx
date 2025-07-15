@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
-import { fetchTrips } from "@/redux/slices/tripsSlice";
+import { fetchTrips, deleteTrip } from "@/redux/slices/tripsSlice";
 import { fetchRoutes } from "@/redux/slices/routesSlice";
 import { fetchDrivers } from "@/redux/slices/driversSlice";
 import { fetchVehicles } from "@/redux/slices/vehiclesSlice";
@@ -30,9 +30,28 @@ import {
   Car,
 } from "lucide-react";
 import { Trip } from "@/redux/slices/tripsSlice";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Trash2, Edit } from "lucide-react";
 
 export default function Trips() {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const { trips, loading, error } = useAppSelector((state) => state.trips);
   const { user } = useAppSelector((state) => state.auth);
   const { schools } = useAppSelector((state) => state.schools);
@@ -41,6 +60,7 @@ export default function Trips() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,6 +136,47 @@ export default function Trips() {
   const handleEditTrip = (trip: Trip) => {
     setSelectedTrip(trip);
     setIsEditModalOpen(true);
+  };
+
+  const handleDeleteTrip = (trip: Trip) => {
+    setSelectedTrip(trip);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTrip = async () => {
+    try {
+      if (!selectedTrip) {
+        toast({
+          title: "Error",
+          description: "No trip selected for deletion",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await dispatch(deleteTrip(selectedTrip.id!)).unwrap();
+      toast({
+        title: "Success",
+        description: "Trip deleted successfully",
+      });
+      setIsDeleteDialogOpen(false);
+      setSelectedTrip(null);
+    } catch (err) {
+      console.error("Delete trip error:", err);
+      let errorMessage = "Failed to delete trip";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -356,13 +417,28 @@ export default function Trips() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditTrip(trip)}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleEditTrip(trip)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteTrip(trip)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -419,6 +495,31 @@ export default function Trips() {
         trip={selectedTrip}
         mode="edit"
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the trip
+              {selectedTrip && ` for route "${selectedTrip.route_name || `Route ${selectedTrip.route}`}"`}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteTrip}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

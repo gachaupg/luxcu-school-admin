@@ -165,36 +165,14 @@ const AppContent = () => {
   );
 };
 
-function ErrorFallback({ error }: { error: Error }) {
-  return (
-    <div
-      role="alert"
-      className="flex items-center justify-center min-h-screen p-4"
-    >
-      <div className="max-w-md mx-auto text-center">
-        <h2 className="text-xl font-bold text-red-600 mb-4">
-          Something went wrong
-        </h2>
-        <p className="text-gray-600 mb-4">
-          An unexpected error occurred. Please try refreshing the page.
-        </p>
-        <pre className="text-sm text-red-500 bg-red-50 p-3 rounded overflow-auto">
-          {error.message}
-        </pre>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Refresh Page
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function App() {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <ErrorBoundary
+      FallbackComponent={() => {
+        window.location.reload();
+        return null;
+      }}
+    >
       <ReduxProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>

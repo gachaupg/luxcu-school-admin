@@ -185,6 +185,27 @@ export const updateTrip = createAsyncThunk<
   }
 });
 
+export const deleteTrip = createAsyncThunk<
+  number,
+  number,
+  { rejectValue: string }
+>("trips/deleteTrip", async (id, { rejectWithValue }) => {
+  try {
+    console.log(`Deleting trip ${id}`);
+    await api.delete(`${API_ENDPOINTS.TRIPS}${id}/`);
+    console.log("Trip deleted successfully");
+    return id;
+  } catch (error) {
+    console.error("Error deleting trip:", error);
+    if (error instanceof AxiosError) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete trip"
+      );
+    }
+    return rejectWithValue("Failed to delete trip");
+  }
+});
+
 const tripsSlice = createSlice({
   name: "trips",
   initialState,
@@ -238,6 +259,19 @@ const tripsSlice = createSlice({
       .addCase(updateTrip.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to update trip";
+      })
+      // Delete Trip
+      .addCase(deleteTrip.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteTrip.fulfilled, (state, action) => {
+        state.loading = false;
+        state.trips = state.trips.filter((trip) => trip.id !== action.payload);
+      })
+      .addCase(deleteTrip.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to delete trip";
       });
   },
 });

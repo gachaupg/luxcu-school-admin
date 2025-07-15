@@ -15,7 +15,12 @@ import {
   Users,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { addRoute, fetchRoutes, type Route } from "../redux/slices/routesSlice";
+import {
+  fetchRoutes,
+  addRoute,
+  deleteRoute,
+  Route,
+} from "../redux/slices/routesSlice";
 import {
   createRouteAssignment,
   type RouteAssignment,
@@ -139,7 +144,7 @@ export default function RoutesPage() {
   const [itemsPerPage] = useState(10);
 
   // Action modals state
-  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -200,13 +205,13 @@ export default function RoutesPage() {
   }, [searchTerm, statusFilter]);
 
   // Action handlers
-  const handleView = (route) => {
+  const handleView = (route: Route) => {
     if (!route) return;
     setSelectedRoute(route);
     setIsViewModalOpen(true);
   };
 
-  const handleEdit = (route) => {
+  const handleEdit = (route: Route) => {
     if (!route) return;
     setSelectedRoute(route);
     form.reset({
@@ -232,7 +237,7 @@ export default function RoutesPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (route) => {
+  const handleDelete = (route: Route) => {
     if (!route) return;
     setSelectedRoute(route);
     setIsDeleteDialogOpen(true);
@@ -240,7 +245,16 @@ export default function RoutesPage() {
 
   const confirmDelete = async () => {
     try {
-      // TODO: Implement delete route API call
+      if (!selectedRoute) {
+        toast({
+          title: "Error",
+          description: "No route selected for deletion",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await dispatch(deleteRoute(selectedRoute.id!)).unwrap();
       toast({
         title: "Success",
         description: "Route deleted successfully",
@@ -256,9 +270,18 @@ export default function RoutesPage() {
       setIsDeleteDialogOpen(false);
       setSelectedRoute(null);
     } catch (err) {
+      console.error("Delete route error:", err);
+      let errorMessage = "Failed to delete route";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      }
+
       toast({
         title: "Error",
-        description: "Failed to delete route",
+        description: errorMessage,
         variant: "destructive",
       });
     }
