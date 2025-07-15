@@ -32,6 +32,33 @@ export interface Driver {
   last_background_check: string;
 }
 
+// Interface for creating a driver (API expects user_data)
+export interface CreateDriverData {
+  user_data: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone_number: string;
+    password: string;
+    confirm_password: string;
+    user_type: string;
+    profile_image?: string | null;
+  };
+  license_number: string;
+  license_expiry: string;
+  license_class: string;
+  school: number;
+  is_available: boolean;
+  current_location: {
+    latitude: number;
+    longitude: number;
+  };
+  safety_rating: number;
+  on_time_rating: number;
+  last_health_check: string;
+  last_background_check: string;
+}
+
 interface DriversState {
   drivers: Driver[];
   loading: boolean;
@@ -46,7 +73,7 @@ const initialState: DriversState = {
 
 export const addDriver = createAsyncThunk<
   Driver,
-  Omit<Driver, "id">,
+  CreateDriverData,
   { rejectValue: string }
 >("drivers/addDriver", async (driverData, { rejectWithValue }) => {
   try {

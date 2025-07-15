@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { addDriver, fetchDrivers } from "../redux/slices/driversSlice";
+import {
+  addDriver,
+  fetchDrivers,
+  CreateDriverData,
+} from "../redux/slices/driversSlice";
 import { fetchSchools } from "../redux/slices/schoolsSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -406,8 +410,8 @@ const Drivers = () => {
       return;
     }
 
-    const submitData = {
-      user_details: {
+    const submitData: CreateDriverData = {
+      user_data: {
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
@@ -415,6 +419,7 @@ const Drivers = () => {
         password: formData.password,
         confirm_password: formData.confirmPassword,
         user_type: "driver",
+        profile_image: null,
       },
       license_number: formData.licenseNumber,
       license_expiry: formData.licenseExpiry,
@@ -507,36 +512,37 @@ const Drivers = () => {
     });
 
     const [localShowPassword, setLocalShowPassword] = useState(false);
-    const [localShowConfirmPassword, setLocalShowConfirmPassword] = useState(false);
+    const [localShowConfirmPassword, setLocalShowConfirmPassword] =
+      useState(false);
 
     const handleLocalInputChange = (e) => {
       const { name, value } = e.target;
-      setLocalFormData(prev => ({
+      setLocalFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     };
 
     const handleLocalSubmit = async (e) => {
       e.preventDefault();
-      
+
       // Validate required fields
       const requiredFields = [
-        { field: 'firstName', label: 'First Name' },
-        { field: 'lastName', label: 'Last Name' },
-        { field: 'email', label: 'Email' },
-        { field: 'phoneNumber', label: 'Phone Number' },
-        { field: 'password', label: 'Password' },
-        { field: 'confirmPassword', label: 'Confirm Password' },
-        { field: 'licenseNumber', label: 'License Number' },
-        { field: 'licenseClass', label: 'License Class' },
-        { field: 'licenseExpiry', label: 'License Expiry' },
-        { field: 'lastHealthCheck', label: 'Last Health Check' },
-        { field: 'lastBackgroundCheck', label: 'Last Background Check' },
+        { field: "firstName", label: "First Name" },
+        { field: "lastName", label: "Last Name" },
+        { field: "email", label: "Email" },
+        { field: "phoneNumber", label: "Phone Number" },
+        { field: "password", label: "Password" },
+        { field: "confirmPassword", label: "Confirm Password" },
+        { field: "licenseNumber", label: "License Number" },
+        { field: "licenseClass", label: "License Class" },
+        { field: "licenseExpiry", label: "License Expiry" },
+        { field: "lastHealthCheck", label: "Last Health Check" },
+        { field: "lastBackgroundCheck", label: "Last Background Check" },
       ];
 
       for (const { field, label } of requiredFields) {
-        if (!localFormData[field] || localFormData[field] === '') {
+        if (!localFormData[field] || localFormData[field] === "") {
           toast({
             title: "Error",
             description: `${label} is required`,
@@ -577,8 +583,8 @@ const Drivers = () => {
         return;
       }
 
-      const submitData = {
-        user_details: {
+      const submitData: CreateDriverData = {
+        user_data: {
           first_name: localFormData.firstName,
           last_name: localFormData.lastName,
           email: localFormData.email,
@@ -586,6 +592,7 @@ const Drivers = () => {
           password: localFormData.password,
           confirm_password: localFormData.confirmPassword,
           user_type: "driver",
+          profile_image: null,
         },
         license_number: localFormData.licenseNumber,
         license_expiry: localFormData.licenseExpiry,
@@ -608,7 +615,7 @@ const Drivers = () => {
           title: "Success",
           description: "Driver added successfully",
         });
-        
+
         // Reset local form
         setLocalFormData({
           firstName: "",
@@ -627,10 +634,10 @@ const Drivers = () => {
         });
         setLocalShowPassword(false);
         setLocalShowConfirmPassword(false);
-        
+
         // Close modal
         setIsDialogOpen(false);
-        
+
         // Refresh the drivers list
         dispatch(fetchDrivers());
       } catch (err) {
@@ -646,7 +653,9 @@ const Drivers = () => {
               } else if (errorData.phone_number) {
                 errorMessage = `Phone: ${errorData.phone_number.join(", ")}`;
               } else if (errorData.license_number) {
-                errorMessage = `License: ${errorData.license_number.join(", ")}`;
+                errorMessage = `License: ${errorData.license_number.join(
+                  ", "
+                )}`;
               } else if (errorData.message) {
                 errorMessage = errorData.message;
               } else {
@@ -705,7 +714,9 @@ const Drivers = () => {
       <form onSubmit={handleLocalSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+            <label htmlFor="firstName" className="text-sm font-medium">
+              First Name
+            </label>
             <input
               id="firstName"
               name="firstName"
@@ -718,7 +729,9 @@ const Drivers = () => {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+            <label htmlFor="lastName" className="text-sm font-medium">
+              Last Name
+            </label>
             <input
               id="lastName"
               name="lastName"
@@ -734,7 +747,9 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
+            <label htmlFor="email" className="text-sm font-medium">
+              Email
+            </label>
             <input
               id="email"
               name="email"
@@ -747,7 +762,9 @@ const Drivers = () => {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</label>
+            <label htmlFor="phoneNumber" className="text-sm font-medium">
+              Phone Number
+            </label>
             <input
               id="phoneNumber"
               name="phoneNumber"
@@ -763,7 +780,9 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
+            <label htmlFor="password" className="text-sm font-medium">
+              Password
+            </label>
             <div className="relative">
               <input
                 id="password"
@@ -790,7 +809,9 @@ const Drivers = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="text-sm font-medium">
+              Confirm Password
+            </label>
             <div className="relative">
               <input
                 id="confirmPassword"
@@ -805,7 +826,9 @@ const Drivers = () => {
               />
               <button
                 type="button"
-                onClick={() => setLocalShowConfirmPassword(!localShowConfirmPassword)}
+                onClick={() =>
+                  setLocalShowConfirmPassword(!localShowConfirmPassword)
+                }
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
               >
                 {localShowConfirmPassword ? (
@@ -820,7 +843,9 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="licenseNumber" className="text-sm font-medium">License Number</label>
+            <label htmlFor="licenseNumber" className="text-sm font-medium">
+              License Number
+            </label>
             <input
               id="licenseNumber"
               name="licenseNumber"
@@ -833,7 +858,9 @@ const Drivers = () => {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="licenseClass" className="text-sm font-medium">License Class</label>
+            <label htmlFor="licenseClass" className="text-sm font-medium">
+              License Class
+            </label>
             <input
               id="licenseClass"
               name="licenseClass"
@@ -849,7 +876,9 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="licenseExpiry" className="text-sm font-medium">License Expiry</label>
+            <label htmlFor="licenseExpiry" className="text-sm font-medium">
+              License Expiry
+            </label>
             <input
               id="licenseExpiry"
               name="licenseExpiry"
@@ -861,7 +890,9 @@ const Drivers = () => {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="lastHealthCheck" className="text-sm font-medium">Last Health Check</label>
+            <label htmlFor="lastHealthCheck" className="text-sm font-medium">
+              Last Health Check
+            </label>
             <input
               id="lastHealthCheck"
               name="lastHealthCheck"
@@ -876,7 +907,12 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="lastBackgroundCheck" className="text-sm font-medium">Last Background Check</label>
+            <label
+              htmlFor="lastBackgroundCheck"
+              className="text-sm font-medium"
+            >
+              Last Background Check
+            </label>
             <input
               id="lastBackgroundCheck"
               name="lastBackgroundCheck"
@@ -891,7 +927,9 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="latitude" className="text-sm font-medium">Latitude</label>
+            <label htmlFor="latitude" className="text-sm font-medium">
+              Latitude
+            </label>
             <input
               id="latitude"
               name="latitude"
@@ -905,7 +943,9 @@ const Drivers = () => {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="longitude" className="text-sm font-medium">Longitude</label>
+            <label htmlFor="longitude" className="text-sm font-medium">
+              Longitude
+            </label>
             <input
               id="longitude"
               name="longitude"

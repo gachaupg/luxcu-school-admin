@@ -291,7 +291,10 @@ export default function SettingsPage() {
       await api.put(`${API_ENDPOINTS.SCHOOLS}${currentSchool.id}/`, updateData);
 
       // Refresh schools data
-      dispatch(fetchSchools());
+      dispatch(fetchSchools()).catch((error) => {
+        console.error("Failed to fetch schools:", error);
+        // The API interceptor should handle token expiration automatically
+      });
 
       toast({
         title: "Success",

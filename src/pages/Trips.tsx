@@ -1,212 +1,424 @@
-import { SidebarProvider } from "../components/ui/sidebar";
-import { AppSidebar } from "../components/AppSidebar";
-import { HeaderBar } from "../components/HeaderBar";
-import { MoreVertical } from "lucide-react";
-
-const trips = [
-  {
-    id: "PCK001",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 0,
-    status: "Ongoing",
-  },
-  {
-    id: "PCK002",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 1,
-    status: "Completed",
-  },
-  {
-    id: "PCK003",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 3,
-    status: "Completed",
-  },
-  {
-    id: "DRP004",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Drop-off",
-    alerts: 0,
-    status: "Completed",
-  },
-  {
-    id: "DRP005",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Drop-off",
-    alerts: 2,
-    status: "Completed",
-  },
-  {
-    id: "DRP006",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Drop-off",
-    alerts: 0,
-    status: "Completed",
-  },
-  {
-    id: "PCK007",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 0,
-    status: "Abandoned",
-  },
-  {
-    id: "PCK008",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 0,
-    status: "Completed",
-  },
-  {
-    id: "DRP009",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 0,
-    status: "Completed",
-  },
-  {
-    id: "DRP010",
-    route: "Thika Road",
-    total: 34,
-    picked: 33,
-    type: "Pickup",
-    alerts: 0,
-    status: "Completed",
-  },
-];
-
-const stats = [
-  { label: "Total Trips", value: 302 },
-  { label: "Pickups", value: 152 },
-  { label: "Drop-offs", value: 150 },
-];
-
-function StatusBadge({ status }) {
-  const color =
-    status === "Ongoing"
-      ? "bg-yellow-400 text-white"
-      : status === "Completed"
-      ? "bg-teal-500 text-white"
-      : "bg-red-400 text-white";
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${color}`}>
-      {status}
-    </span>
-  );
-}
+import React, { useState, useEffect } from "react";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
+import { fetchTrips } from "@/redux/slices/tripsSlice";
+import { fetchRoutes } from "@/redux/slices/routesSlice";
+import { fetchDrivers } from "@/redux/slices/driversSlice";
+import { fetchVehicles } from "@/redux/slices/vehiclesSlice";
+import { TripModal } from "@/components/TripModal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  MoreVertical,
+  Plus,
+  Search,
+  Filter,
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Car,
+} from "lucide-react";
+import { Trip } from "@/redux/slices/tripsSlice";
 
 export default function Trips() {
-  return (
-      <div className="min-h-screen bg-gray-100 flex w-full">
-        {/* Sidebar */}
-       
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 px-8 py-6 bg-gray-100">
-            {/* All Trips Title and Stats Row */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
-              <h3 className="text-lg font-semibold">All Trips</h3>
-              <div className="flex gap-8">
-                {stats.map((stat) => (
-                  <div key={stat.label} className="flex flex-col items-center">
-                    <span className="text-2xl font-bold text-green-500">
-                      {stat.value}
-                    </span>
-                    <span className="text-gray-500 text-sm">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
+  const dispatch = useAppDispatch();
+  const { trips, loading, error } = useAppSelector((state) => state.trips);
+  const { user } = useAppSelector((state) => state.auth);
+  const { schools } = useAppSelector((state) => state.schools);
+
+  // Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Filter and search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [tripTypeFilter, setTripTypeFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Get school ID for the current admin
+  const schoolId = schools.find((school) => school.admin === user?.id)?.id;
+
+  // Use all trips since backend should filter by school
+  const filteredTrips = trips;
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Trips data:", trips);
+    console.log("Filtered trips:", filteredTrips);
+    console.log("School ID:", schoolId);
+  }, [trips, filteredTrips, schoolId]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        if (schoolId) {
+          await dispatch(fetchTrips({ schoolId })).unwrap();
+        }
+        await dispatch(fetchRoutes());
+        await dispatch(fetchDrivers());
+        await dispatch(fetchVehicles());
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      }
+    };
+    loadData();
+  }, [dispatch, schoolId]);
+
+  // Filter and search logic
+  const filteredAndSearchedTrips = filteredTrips.filter((trip) => {
+    const matchesSearch =
+      trip.route_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.driver_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trip.vehicle_registration
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      trip.trip_type.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || trip.status === statusFilter;
+
+    const matchesTripType =
+      tripTypeFilter === "all" || trip.trip_type === tripTypeFilter;
+
+    return matchesSearch && matchesStatus && matchesTripType;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAndSearchedTrips.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTrips = filteredAndSearchedTrips.slice(startIndex, endIndex);
+
+  // Reset to first page when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, tripTypeFilter]);
+
+  const handleCreateTrip = () => {
+    setSelectedTrip(null);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleEditTrip = (trip: Trip) => {
+    setSelectedTrip(trip);
+    setIsEditModalOpen(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "scheduled":
+        return "bg-blue-100 text-blue-800";
+      case "preparing":
+        return "bg-yellow-100 text-yellow-800";
+      case "ongoing":
+        return "bg-green-100 text-green-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      case "delayed":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getTripTypeColor = (tripType: string) => {
+    switch (tripType.toLowerCase()) {
+      case "morning":
+        return "bg-orange-100 text-orange-800";
+      case "afternoon":
+        return "bg-purple-100 text-purple-800";
+      case "evening":
+        return "bg-indigo-100 text-indigo-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const formatDateTime = (dateTimeString: string) => {
+    try {
+      const date = new Date(dateTimeString);
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return dateTimeString;
+    }
+  };
+
+  // Calculate stats
+  const stats = [
+    {
+      label: "Total Trips",
+      value: filteredTrips.length,
+      icon: Calendar,
+    },
+    {
+      label: "Scheduled",
+      value: filteredTrips.filter((t) => t.status === "scheduled").length,
+      icon: Clock,
+    },
+    {
+      label: "Ongoing",
+      value: filteredTrips.filter((t) => t.status === "ongoing").length,
+      icon: MapPin,
+    },
+    {
+      label: "Completed",
+      value: filteredTrips.filter((t) => t.status === "completed").length,
+      icon: User,
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="h-full w-full bg-gray-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+              <span>Loading trips...</span>
             </div>
-            {/* All Trips Table */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-100 rounded-t-lg">
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Trip ID
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Route
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Total Students
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Picked/ Dropped
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Trip Type
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Alerts
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Status
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trips.map((trip) => (
-                      <tr key={trip.id} className="border-b last:border-b-0">
-                        <td className="px-4 py-3">{trip.id}</td>
-                        <td className="px-4 py-3">{trip.route}</td>
-                        <td className="px-4 py-3">{trip.total}</td>
-                        <td className="px-4 py-3">{trip.picked}</td>
-                        <td className="px-4 py-3">{trip.type}</td>
-                        <td className="px-4 py-3">{trip.alerts}</td>
-                        <td className="px-4 py-3">
-                          <StatusBadge status={trip.status} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <button>
-                            <MoreVertical size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination */}
-              <div className="flex justify-between items-center mt-4 text-gray-600 text-sm">
-                <span>Showing 1-10 of 1,253</span>
-                <div className="flex gap-2">
-                  <button className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100">
-                    &lt;
-                  </button>
-                  <button className="px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-100">
-                    &gt;
-                  </button>
-                </div>
-              </div>
-            </div>
-          </main>
+          </div>
         </div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full w-full bg-gray-100 p-8">
+        <div className="max-w-7xl mx-auto">
+          <Alert variant="destructive">
+            <AlertDescription>Failed to load trips: {error}</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full w-full bg-gray-100 p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Trips</h1>
+            <p className="text-gray-600">Manage and monitor school bus trips</p>
+          </div>
+          <Button
+            onClick={handleCreateTrip}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Create Trip
+          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <Card key={stat.label}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      {stat.label}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stat.value}
+                    </p>
+                  </div>
+                  <stat.icon className="h-8 w-8 text-green-500" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filters and Search */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search trips..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="preparing">Preparing</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="delayed">Delayed</option>
+                </select>
+                <select
+                  value={tripTypeFilter}
+                  onChange={(e) => setTripTypeFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                >
+                  <option value="all">All Types</option>
+                  <option value="morning">Morning</option>
+                  <option value="afternoon">Afternoon</option>
+                  <option value="evening">Evening</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Trips Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>All Trips</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Route</TableHead>
+                    <TableHead>Driver</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Trip Type</TableHead>
+                    <TableHead>Start Time</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedTrips.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Car className="h-8 w-8 text-gray-400" />
+                          <p className="text-gray-500">No trips found</p>
+                          <p className="text-sm text-gray-400">
+                            Create your first trip to get started
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedTrips.map((trip) => (
+                      <TableRow key={trip.id}>
+                        <TableCell className="font-medium">
+                          {trip.route_name || `Route ${trip.route}`}
+                        </TableCell>
+                        <TableCell>
+                          {trip.driver_name || `Driver ${trip.driver}`}
+                        </TableCell>
+                        <TableCell>
+                          {trip.vehicle_registration ||
+                            `Vehicle ${trip.vehicle}`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getTripTypeColor(trip.trip_type)}>
+                            {trip.trip_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatDateTime(trip.scheduled_start_time)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(trip.status)}>
+                            {trip.status.replace("_", " ")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditTrip(trip)}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-gray-600">
+                  Showing {startIndex + 1}-
+                  {Math.min(endIndex, filteredAndSearchedTrips.length)} of{" "}
+                  {filteredAndSearchedTrips.length} trips
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Create Trip Modal */}
+      <TripModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        mode="create"
+      />
+
+      {/* Edit Trip Modal */}
+      <TripModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        trip={selectedTrip}
+        mode="edit"
+      />
+    </div>
   );
 }

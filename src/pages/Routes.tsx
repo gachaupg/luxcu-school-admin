@@ -99,8 +99,8 @@ const formSchema = z.object({
 const assignmentFormSchema = z.object({
   student: z.number().min(1, "Please select a student"),
   route: z.number().min(1, "Please select a route"),
-  pickup_stop: z.number().min(1, "Pickup stop is required"),
-  dropoff_stop: z.number().min(1, "Dropoff stop is required"),
+  pickup_stop: z.number().nullable().optional(),
+  dropoff_stop: z.number().nullable().optional(),
   is_active: z.boolean(),
   schedule_days: z
     .array(z.string())
@@ -287,8 +287,8 @@ export default function RoutesPage() {
     defaultValues: {
       student: 0,
       route: 0,
-      pickup_stop: 1,
-      dropoff_stop: 1,
+      pickup_stop: null,
+      dropoff_stop: null,
       is_active: true,
       schedule_days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
     },
@@ -539,6 +539,8 @@ export default function RoutesPage() {
   }, [startPlace]);
 
   const handleAddRoute = async (values: FormValues) => {
+    const schoolId = localStorage.getItem("schoolId");
+
     if (!schoolId) {
       toast({
         title: "Error",
@@ -571,7 +573,6 @@ export default function RoutesPage() {
       });
 
       // Refetch data to update the lists
-      const schoolId = localStorage.getItem("schoolId");
       if (schoolId) {
         dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
         dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
@@ -624,8 +625,8 @@ export default function RoutesPage() {
       const assignmentData = {
         student: values.student,
         route: values.route,
-        pickup_stop: values.pickup_stop,
-        dropoff_stop: values.dropoff_stop,
+        pickup_stop: null, // Explicitly set to null
+        dropoff_stop: null, // Explicitly set to null
         is_active: values.is_active,
         schedule_days: values.schedule_days,
       } satisfies Omit<RouteAssignment, "id">;

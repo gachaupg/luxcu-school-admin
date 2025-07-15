@@ -141,7 +141,10 @@ export default function Students() {
 
   useEffect(() => {
     // Always fetch schools first
-    dispatch(fetchSchools());
+    dispatch(fetchSchools()).catch((error) => {
+      console.error("Failed to fetch schools:", error);
+      // The API interceptor should handle token expiration automatically
+    });
   }, [dispatch]);
 
   useEffect(() => {

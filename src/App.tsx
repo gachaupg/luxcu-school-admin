@@ -7,8 +7,12 @@ import {
 import { ReduxProvider } from "./redux/provider";
 import Login from "./pages/Login";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
-import { checkTokenExpiration, initializeAuth } from "./redux/slices/authSlice";
-import { fetchSchools } from "./redux/slices/schoolsSlice";
+import {
+  checkTokenExpiration,
+  initializeAuth,
+  logout,
+} from "./redux/slices/authSlice";
+import { fetchSchools, clearSchoolsError } from "./redux/slices/schoolsSlice";
 import Index from "./pages/Index";
 import Overview from "./pages/Overview";
 import Trips from "./pages/Trips";
@@ -104,7 +108,10 @@ const AppRoutes = () => {
         "Fetching schools with token:",
         token.substring(0, 20) + "..."
       );
-      dispatch(fetchSchools());
+      dispatch(fetchSchools()).catch((error) => {
+        console.error("Failed to fetch schools:", error);
+        // The API interceptor should handle token expiration automatically
+      });
     }
   }, [token, isInitialized, dispatch]);
 
@@ -114,6 +121,13 @@ const AppRoutes = () => {
       console.log("Schools data:", schools);
     }
   }, [schools]);
+
+  // Clear schools error when token becomes null (logout)
+  React.useEffect(() => {
+    if (!token && error) {
+      dispatch(clearSchoolsError());
+    }
+  }, [token, error, dispatch]);
 
   return (
     <Routes>

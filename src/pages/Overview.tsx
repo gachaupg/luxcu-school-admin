@@ -62,7 +62,7 @@ const Overview = () => {
     );
   }
 
-  // Show error if schools failed to load
+    // Show error if schools failed to load
   if (schoolsError) {
     return (
       <div className="h-full w-full bg-gray-100 p-8">

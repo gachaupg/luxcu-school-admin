@@ -29,8 +29,8 @@ export const RecentTripsTable = () => {
     }
   }, [dispatch, schoolId]);
 
-  // Get recent trips (last 5)
-  const recentTrips = trips.slice(0, 5);
+  // Get recent trips (last 5) - ensure trips is an array
+  const recentTrips = Array.isArray(trips) ? trips.slice(0, 5) : [];
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {

@@ -48,25 +48,65 @@ const Login = () => {
   }, [user, navigate]);
 
   const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
     const digits = value.replace(/\D/g, "");
+
+    // If empty, return empty string
+    if (!digits) return "";
+
+    // If it starts with 0, replace with +254
     if (digits.startsWith("0")) {
       return "+254" + digits.slice(1);
     }
+
+    // If it starts with 254, add + prefix
     if (digits.startsWith("254")) {
       return "+" + digits;
     }
+
+    // If it's already 9 digits (Kenyan number without country code), add +254
+    if (digits.length === 9) {
+      return "+254" + digits;
+    }
+
+    // If it's already in international format with +, return as is
+    if (value.startsWith("+")) {
+      return value;
+    }
+
+    // Default: add +254 prefix
     return "+254" + digits;
   };
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const formattedNumber = formatPhoneNumber(value);
-    setPhoneNumber(formattedNumber);
+
+    // Allow user to type freely, but format when they finish typing
+    // This provides better UX by not forcing format while typing
+    if (value.length >= 10) {
+      const formattedNumber = formatPhoneNumber(value);
+      setPhoneNumber(formattedNumber);
+    } else {
+      setPhoneNumber(value);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(login({ phone_number: phoneNumber, password }));
+    
+    // Ensure phone number is properly formatted before sending
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    
+    if (!formattedPhone) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a valid phone number",
+      });
+      return;
+    }
+    
+    dispatch(login({ phone_number: formattedPhone, password }));
   };
 
   return (
@@ -98,7 +138,9 @@ const Login = () => {
                 required
                 className="w-full"
               />
-              <p className="text-sm text-gray-500">Format: +254757198515</p>
+              <p className="text-sm text-gray-500">
+                Enter local format (0757198515) - will be converted to +254757198515
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

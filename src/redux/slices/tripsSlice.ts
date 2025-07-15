@@ -8,13 +8,22 @@ export interface Trip {
   route: number;
   driver: number;
   vehicle: number;
-  school: number;
-  status: "scheduled" | "in_progress" | "completed" | "cancelled";
-  start_time: string;
+  school?: number;
+  trip_type: "morning" | "afternoon" | "evening";
+  status:
+    | "scheduled"
+    | "preparing"
+    | "ongoing"
+    | "completed"
+    | "cancelled"
+    | "delayed";
+  scheduled_start_time: string;
+  scheduled_end_time: string;
+  start_time?: string;
   end_time?: string;
-  students_count: number;
-  created_at: string;
-  updated_at: string;
+  students_count?: number;
+  created_at?: string;
+  updated_at?: string;
   // Additional fields for display
   route_name?: string;
   driver_name?: string;
@@ -47,7 +56,48 @@ export const fetchTrips = createAsyncThunk<
     }
 
     const response = await api.get(url);
-    return response.data?.data || response.data || [];
+    console.log("Raw trips response:", response.data);
+
+    // Handle paginated response structure
+    let tripsData;
+    if (response.data && response.data.results) {
+      // Paginated response: { count, next, previous, results: [...] }
+      tripsData = response.data.results;
+    } else if (response.data && Array.isArray(response.data)) {
+      // Direct array response
+      tripsData = response.data;
+    } else if (
+      response.data &&
+      response.data.data &&
+      Array.isArray(response.data.data)
+    ) {
+      // Nested data response
+      tripsData = response.data.data;
+    } else {
+      tripsData = [];
+    }
+
+    // Transform the backend response to match our frontend structure
+    const transformedTrips = Array.isArray(tripsData)
+      ? tripsData.map((trip) => ({
+          ...trip,
+          route_name:
+            trip.route_name ||
+            trip.route_details?.name ||
+            `Route ${trip.route}`,
+          vehicle_registration:
+            trip.vehicle_number ||
+            trip.vehicle_details?.license_plate ||
+            `Vehicle ${trip.vehicle}`,
+          driver_name:
+            trip.driver_name ||
+            trip.driver_details?.full_name ||
+            `Driver ${trip.driver}`,
+        }))
+      : [];
+
+    console.log("Transformed trips data:", transformedTrips);
+    return transformedTrips;
   } catch (error) {
     if (error instanceof AxiosError) {
       return rejectWithValue(
@@ -60,13 +110,43 @@ export const fetchTrips = createAsyncThunk<
 
 export const createTrip = createAsyncThunk<
   Trip,
-  Omit<Trip, "id" | "created_at" | "updated_at">,
+  {
+    route: number;
+    driver: number;
+    vehicle: number;
+    trip_type: "morning" | "afternoon" | "evening";
+    status:
+      | "scheduled"
+      | "preparing"
+      | "ongoing"
+      | "completed"
+      | "cancelled"
+      | "delayed";
+    scheduled_start_time: string;
+    scheduled_end_time: string;
+    school?: number;
+  },
   { rejectValue: string }
 >("trips/createTrip", async (tripData, { rejectWithValue }) => {
   try {
+    console.log("Creating trip with data:", tripData);
     const response = await api.post(API_ENDPOINTS.TRIPS, tripData);
-    return response.data?.data || response.data;
+    console.log("Trip creation response:", response.data);
+
+    // Transform the response to match our frontend structure
+    const trip = response.data?.data || response.data;
+    const transformedTrip = {
+      ...trip,
+      route_name: trip.route_details?.name || `Route ${trip.route}`,
+      vehicle_registration:
+        trip.vehicle_details?.license_plate || `Vehicle ${trip.vehicle}`,
+      driver_name: trip.driver_details?.full_name || `Driver ${trip.driver}`,
+    };
+
+    console.log("Transformed trip:", transformedTrip);
+    return transformedTrip;
   } catch (error) {
+    console.error("Trip creation error:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to create trip"
@@ -83,7 +163,18 @@ export const updateTrip = createAsyncThunk<
 >("trips/updateTrip", async ({ id, tripData }, { rejectWithValue }) => {
   try {
     const response = await api.patch(`${API_ENDPOINTS.TRIPS}${id}/`, tripData);
-    return response.data?.data || response.data;
+
+    // Transform the response to match our frontend structure
+    const trip = response.data?.data || response.data;
+    const transformedTrip = {
+      ...trip,
+      route_name: trip.route_details?.name || `Route ${trip.route}`,
+      vehicle_registration:
+        trip.vehicle_details?.license_plate || `Vehicle ${trip.vehicle}`,
+      driver_name: trip.driver_details?.full_name || `Driver ${trip.driver}`,
+    };
+
+    return transformedTrip;
   } catch (error) {
     if (error instanceof AxiosError) {
       return rejectWithValue(
@@ -111,7 +202,7 @@ const tripsSlice = createSlice({
       })
       .addCase(fetchTrips.fulfilled, (state, action) => {
         state.loading = false;
-        state.trips = action.payload;
+        state.trips = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchTrips.rejected, (state, action) => {
         state.loading = false;

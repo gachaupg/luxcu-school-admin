@@ -3,6 +3,7 @@ import { API_BASE_URL } from "@/utils/api";
 import { handleApiError } from "@/utils/errorHandler";
 import { store } from "@/redux/store";
 import { logout } from "@/redux/slices/authSlice";
+import { clearSchoolsError } from "@/redux/slices/schoolsSlice";
 
 interface ApiClientConfig {
   timeout?: number;
@@ -92,6 +93,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       console.log("Token expired, logging out user");
       store.dispatch(logout());
+      // Clear any error states that might have been set
+      store.dispatch(clearSchoolsError());
       // Redirect to login page
       window.location.href = "/login";
       return Promise.reject(error);
