@@ -182,9 +182,9 @@ const Login = () => {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <p className="text-sm text-center text-gray-500">
+          {/* <p className="text-sm text-center text-gray-500">
             Only super admin access is allowed
-          </p>
+          </p> */}
         </CardFooter>
       </Card>
     </div>
