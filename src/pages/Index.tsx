@@ -10,7 +10,7 @@ const Index = () => {
   const { openMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
   return (
-    <div className="h-screen w-screen bg-gray-100">
+    <div className="h-screen w-screen bg-background">
       {/* Mobile Sidebar Overlay */}
       {openMobile && (
         <div
@@ -26,7 +26,7 @@ const Index = () => {
             openMobile ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
-          <div className="h-full bg-white border-r">
+          <div className="h-full bg-card border-r">
             <AppSidebar />
           </div>
         </div>
@@ -34,7 +34,7 @@ const Index = () => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col w-full overflow-hidden">
           <AppNavbar onMenuClick={toggleSidebar} />
-          <main className="flex-1 overflow-y-auto bg-gray-100">
+          <main className="flex-1 overflow-y-auto bg-background">
             <div className="h-full w-full">
               <div className="h-full w-full">
                 <Outlet />

@@ -10,8 +10,8 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
+import Trips from "./reports_trip";
 
 const mockTrips = [
   {
@@ -167,6 +167,7 @@ export default function Reports() {
             </div>
             {/* Trip Results Table */}
             <div className="bg-white rounded-xl shadow p-0 mb-8 border border-gray-200">
+            <Trips/>
               <div className="px-6 pt-6 pb-2 text-base font-medium text-gray-700">
                 "3" results found
               </div>

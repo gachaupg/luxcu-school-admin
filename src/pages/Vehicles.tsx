@@ -18,6 +18,7 @@ import {
   Edit,
   Trash2,
   Eye as ViewIcon,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,8 +60,9 @@ import { RootState } from "@/redux/store";
 import { SidebarProvider } from "../components/ui/sidebar";
 import { AppSidebar } from "../components/AppSidebar";
 import { HeaderBar } from "../components/HeaderBar";
-import { Plus, Download } from "lucide-react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseVehicleError } from "@/utils/errorHandler";
+import { ExportDropdown } from "@/components/ExportDropdown";
 
 // Form component moved outside to prevent recreation on every render
 interface VehicleFormData {
@@ -694,45 +696,51 @@ export default function Vehicles() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-3 flex w-full">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 bg-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <Car className="text-green-500" size={32} />
-              <h2 className="text-2xl font-bold text-gray-800">All Vehicles</h2>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={!schoolId}
-                  title={
-                    !schoolId
-                      ? "No school found. Please contact your administrator."
-                      : ""
-                  }
-                >
-                  Add New Vehicle
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Add New Vehicle</DialogTitle>
-                </DialogHeader>
-                <AddVehicleForm
-                  formData={formData}
-                  setFormData={setFormData}
-                  onSubmit={handleSubmit}
-                  loading={loading}
-                  filteredDrivers={filteredDrivers}
-                  driversLoading={driversLoading}
-                />
-              </DialogContent>
-            </Dialog>
+        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
+          {/* Page Title Only */}
+          <div className="mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Car className="w-8 h-8 text-green-500" /> Vehicles
+            </h1>
           </div>
+          <Card className="bg-white shadow-lg border-0 rounded-xl">
+            <CardHeader className="pb-3 border-b border-gray-100 flex flex-row w-full items-center justify-between">
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Car className="w-6 h-6 text-green-500" />
+                Vehicles List
+              </CardTitle>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                    disabled={!schoolId}
+                    title={
+                      !schoolId
+                        ? "No school found. Please contact your administrator."
+                        : ""
+                    }
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Vehicle</DialogTitle>
+                  </DialogHeader>
+                  <AddVehicleForm
+                    formData={formData}
+                    setFormData={setFormData}
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                    filteredDrivers={filteredDrivers}
+                    driversLoading={driversLoading}
+                  />
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
 
-          <div className="bg-white rounded-lg shadow">
             {/* Search and Filter Controls */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -757,12 +765,63 @@ export default function Vehicles() {
                       <SelectItem value="inactive">Inactive</SelectItem>
                     </SelectContent>
                   </Select>
+                  <ExportDropdown
+                    data={{
+                      headers: [
+                        "Registration Number",
+                        "Driver",
+                        "Vehicle Type",
+                        "Capacity",
+                        "Manufacturer",
+                        "Model",
+                        "Year",
+                        "Fuel Type",
+                        "Status",
+                        "Mileage",
+                        "GPS",
+                        "Camera",
+                        "Emergency Button",
+                      ],
+                      data: filteredAndSearchedVehicles.map((vehicle) => ({
+                        registration_number: vehicle.registration_number || "",
+                        driver: filteredDrivers.find(
+                          (d) => d?.id === vehicle.driver
+                        )
+                          ? `${
+                              filteredDrivers.find(
+                                (d) => d?.id === vehicle.driver
+                              )?.user_details?.first_name || ""
+                            } ${
+                              filteredDrivers.find(
+                                (d) => d?.id === vehicle.driver
+                              )?.user_details?.last_name || ""
+                            }`
+                          : "Not Assigned",
+                        vehicle_type: vehicle.vehicle_type || "",
+                        capacity: vehicle.capacity?.toString() || "",
+                        manufacturer: vehicle.manufacturer || "",
+                        model: vehicle.model || "",
+                        year: vehicle.year?.toString() || "",
+                        fuel_type: vehicle.fuel_type || "",
+                        status: vehicle.is_active ? "Active" : "Inactive",
+                        mileage: vehicle.mileage?.toString() || "",
+                        gps: vehicle.has_gps ? "Yes" : "No",
+                        camera: vehicle.has_camera ? "Yes" : "No",
+                        emergency_button: vehicle.has_emergency_button
+                          ? "Yes"
+                          : "No",
+                      })),
+                      fileName: "vehicles_export",
+                      title: "Vehicles Directory",
+                    }}
+                    className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                  />
                 </div>
               </div>
             </div>
 
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
+              <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Registration No.
@@ -811,7 +870,7 @@ export default function Vehicles() {
                     console.log("Rendering vehicle:", vehicle);
                     if (!vehicle) return null;
                     return (
-                      <tr key={vehicle.id}>
+                      <tr key={vehicle.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           {vehicle.registration_number || "N/A"}
                         </td>
@@ -873,52 +932,50 @@ export default function Vehicles() {
               </tbody>
             </table>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between p-6 border-t border-gray-200">
-                <div className="text-sm text-gray-600">
-                  Showing {startIndex + 1}-
-                  {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
-                  {filteredAndSearchedVehicles.length} vehicles
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+            {/* Pagination Controls - always show at the bottom */}
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
+                {filteredAndSearchedVehicles.length} vehicles
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
         </main>
       </div>
 

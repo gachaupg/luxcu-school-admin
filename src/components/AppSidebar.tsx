@@ -1,4 +1,12 @@
-import { Users, Map, Settings, FileText, Car, Home } from "lucide-react";
+import {
+  Users,
+  Map,
+  Settings,
+  FileText,
+  Car,
+  Home,
+  CreditCard,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 const menu = [
@@ -11,6 +19,7 @@ const menu = [
   { label: "Trips", icon: Car, href: "/trips" },
   { label: "Staff", icon: Users, href: "/staff" },
   { label: "Reports", icon: FileText, href: "/reports" },
+  { label: "Subscription", icon: CreditCard, href: "/subscription" },
 ];
 
 export function AppSidebar() {
@@ -27,7 +36,7 @@ export function AppSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 flex items-center gap-2">
-        <div className="rounded-full bg-green-100 p-2">
+        <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
           <svg width="28" height="28" fill="none">
             <circle cx="14" cy="14" r="13" stroke="#22c55e" strokeWidth="2" />
             <path
@@ -40,7 +49,7 @@ export function AppSidebar() {
           </svg>
         </div>
         <span className="font-extrabold text-lg">
-          <span className="text-black">Lux</span>
+          <span className="text-black dark:text-white">Lux</span>
           <span className="text-green-500">Cab</span>
         </span>
       </div>
@@ -57,12 +66,14 @@ export function AppSidebar() {
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                   active
                     ? "bg-green-500/90 text-white"
-                    : "text-gray-800 hover:bg-gray-100"
+                    : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 <item.icon
                   size={20}
-                  className={active ? "text-white" : "text-gray-700"}
+                  className={
+                    active ? "text-white" : "text-gray-700 dark:text-gray-300"
+                  }
                 />
                 <span className="font-medium">{item.label}</span>
               </Link>
@@ -75,13 +86,13 @@ export function AppSidebar() {
       <div className="p-4">
         <Link
           to="/settings"
-          className={`flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition text-gray-700 w-full ${
+          className={`flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 w-full ${
             isActive("/settings") ? "bg-green-500/90 text-white" : ""
           }`}
         >
           <Settings
             size={20}
-            className={isActive("/settings") ? "text-white" : "text-gray-700"}
+            className={isActive("/settings") ? "text-white" : "text-gray-700 dark:text-gray-300"}
           />
           <span className="font-medium">Settings</span>
         </Link>

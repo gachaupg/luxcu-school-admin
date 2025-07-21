@@ -54,6 +54,11 @@ const Login = () => {
     // If empty, return empty string
     if (!digits) return "";
 
+    // If it starts with 0757, replace with +2527
+    if (digits.startsWith("0757")) {
+      return "+2527" + digits.slice(4);
+    }
+
     // If it starts with 0, replace with +254
     if (digits.startsWith("0")) {
       return "+254" + digits.slice(1);
@@ -61,6 +66,11 @@ const Login = () => {
 
     // If it starts with 254, add + prefix
     if (digits.startsWith("254")) {
+      return "+" + digits;
+    }
+
+    // If it starts with 2527, add + prefix
+    if (digits.startsWith("2527")) {
       return "+" + digits;
     }
 
@@ -80,23 +90,16 @@ const Login = () => {
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-
-    // Allow user to type freely, but format when they finish typing
-    // This provides better UX by not forcing format while typing
-    if (value.length >= 10) {
-      const formattedNumber = formatPhoneNumber(value);
-      setPhoneNumber(formattedNumber);
-    } else {
-      setPhoneNumber(value);
-    }
+    // Allow user to type freely without automatic formatting
+    setPhoneNumber(value);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Ensure phone number is properly formatted before sending
     const formattedPhone = formatPhoneNumber(phoneNumber);
-    
+
     if (!formattedPhone) {
       toast({
         variant: "destructive",
@@ -105,7 +108,7 @@ const Login = () => {
       });
       return;
     }
-    
+
     dispatch(login({ phone_number: formattedPhone, password }));
   };
 
@@ -132,14 +135,15 @@ const Login = () => {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="Enter your phone number (e.g., 0757198515)"
+                placeholder="Enter your phone number (e.g., 0757198515 or 0757xxxxxx)"
                 value={phoneNumber}
                 onChange={handlePhoneNumberChange}
                 required
                 className="w-full"
               />
               <p className="text-sm text-gray-500">
-                Enter local format (0757198515) - will be converted to +254757198515
+                Enter local format (e.g., 0757198515 or 0757xxxxxx) - will be
+                converted automatically when you login
               </p>
             </div>
             <div className="space-y-2">

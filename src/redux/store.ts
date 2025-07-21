@@ -15,6 +15,7 @@ import profileReducer from "./slices/profileSlice";
 import overviewReducer from "./slices/overviewSlice";
 import tripsReducer from "./slices/tripsSlice";
 import gradesReducer from "./slices/gradesSlice";
+import preferencesReducer from "./slices/preferencesSlice";
 
 // Configure persistence for auth slice
 const authPersistConfig = {
@@ -40,6 +41,7 @@ const rootReducer = {
   overview: overviewReducer,
   trips: tripsReducer,
   grades: gradesReducer,
+  preferences: preferencesReducer,
 };
 
 // Create store with explicit configuration

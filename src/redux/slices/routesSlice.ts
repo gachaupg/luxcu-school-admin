@@ -100,6 +100,24 @@ export const deleteRoute = createAsyncThunk<
   }
 });
 
+export const updateRoute = createAsyncThunk<
+  Route,
+  { id: number; routeData: Omit<Route, "id"> },
+  { rejectValue: string }
+>("routes/updateRoute", async ({ id, routeData }, { rejectWithValue }) => {
+  try {
+    const response = await api.put(`${API_ENDPOINTS.ROUTES}${id}/`, routeData);
+    return response.data.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    return rejectWithValue(
+      JSON.stringify(
+        axiosError.response?.data || { message: "Failed to update route" }
+      )
+    );
+  }
+});
+
 const routesSlice = createSlice({
   name: "routes",
   initialState,
@@ -150,6 +168,24 @@ const routesSlice = createSlice({
       .addCase(deleteRoute.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to delete route";
+      })
+      // Update Route
+      .addCase(updateRoute.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateRoute.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.routes.findIndex(
+          (route) => route.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.routes[index] = action.payload;
+        }
+      })
+      .addCase(updateRoute.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to update route";
       });
   },
 });

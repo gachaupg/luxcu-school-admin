@@ -59,6 +59,32 @@ export interface CreateDriverData {
   last_background_check: string;
 }
 
+// Interface for updating a driver
+export interface UpdateDriverData {
+  user_data?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone_number?: string;
+    password?: string;
+    user_type?: string;
+    profile_image?: string | null;
+  };
+  license_number?: string;
+  license_expiry?: string;
+  license_class?: string;
+  school?: number;
+  is_available?: boolean;
+  current_location?: {
+    latitude: number;
+    longitude: number;
+  };
+  safety_rating?: number;
+  on_time_rating?: number;
+  last_health_check?: string;
+  last_background_check?: string;
+}
+
 interface DriversState {
   drivers: Driver[];
   loading: boolean;
@@ -144,6 +170,28 @@ export const deleteDriver = createAsyncThunk<
   }
 });
 
+export const updateDriver = createAsyncThunk<
+  Driver,
+  { id: number; data: UpdateDriverData },
+  { rejectValue: string }
+>("drivers/updateDriver", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    console.log(`Updating driver ${id} with data:`, data);
+    const response = await api.put(`${API_ENDPOINTS.DRIVERS}${id}/`, data);
+    console.log("Update driver response:", response.data);
+    return response.data.data || response.data;
+  } catch (error) {
+    console.error("Error updating driver:", error);
+    const axiosError = error as AxiosError<{ message: string }>;
+    // Return the original error data structure to preserve field-specific errors
+    return rejectWithValue(
+      JSON.stringify(
+        axiosError.response?.data || { message: "Failed to update driver" }
+      )
+    );
+  }
+});
+
 const driversSlice = createSlice({
   name: "drivers",
   initialState,
@@ -194,6 +242,24 @@ const driversSlice = createSlice({
       .addCase(deleteDriver.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to delete driver";
+      })
+      // Update Driver
+      .addCase(updateDriver.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateDriver.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.drivers.findIndex(
+          (driver) => driver.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.drivers[index] = action.payload;
+        }
+      })
+      .addCase(updateDriver.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Failed to update driver";
       });
   },
 });

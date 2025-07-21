@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { Button } from "./ui/button";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,19 +28,23 @@ const AppNavbar = ({ onMenuClick }: AppNavbarProps) => {
   };
 
   return (
-    <nav className="bg-white border-b px-4 md:px-8 py-3">
+    <nav className="bg-background border-b px-4 md:px-8 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="p-2 rounded-md hover:bg-gray-100 md:hidden"
+            className="p-2 rounded-md hover:bg-accent md:hidden"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl font-semibold text-gray-800">School Admin</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            School Admin
+          </h1>
         </div>
 
         <div className="flex items-center gap-4">
+          <ThemeToggle />
+
           <Button
             variant="ghost"
             size="icon"
@@ -64,7 +69,7 @@ const AppNavbar = ({ onMenuClick }: AppNavbarProps) => {
                   <p className="text-sm font-medium">
                     {user?.first_name || "User"}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {user?.user_type || "Admin"}
                   </p>
                 </div>

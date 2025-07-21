@@ -15,5 +15,6 @@ export const API_ENDPOINTS = {
   STUDENTS: `${API_BASE_URL}/students/`,
   TRIPS: `${API_BASE_URL}/trips/`,
   GRADES: `${API_BASE_URL}/grades/`,
+  PREFERENCES: `${API_BASE_URL}/preferences/`,
   // Add other endpoints as needed
 };

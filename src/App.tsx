@@ -5,6 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { ReduxProvider } from "./redux/provider";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./pages/Login";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
 import {
@@ -25,6 +26,8 @@ import Vehicles from "./pages/Vehicles";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import Subscription from "./pages/Subscription";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -149,6 +152,8 @@ const AppRoutes = () => {
         <Route path="drivers" element={<Drivers />} />
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="subscription" element={<Subscription />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
       </Route>
@@ -169,18 +174,20 @@ function App() {
   return (
     <ErrorBoundary
       FallbackComponent={() => {
-        window.location.reload();
+        // window.location.reload();
         return null;
       }}
     >
       <ReduxProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <AppContent />
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </QueryClientProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+              <AppContent />
+              <Toaster />
+              <Sonner />
+            </TooltipProvider>
+          </QueryClientProvider>
+        </ThemeProvider>
       </ReduxProvider>
     </ErrorBoundary>
   );

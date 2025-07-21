@@ -128,9 +128,22 @@ export const updateStudent = createAsyncThunk<
   { rejectValue: string }
 >("students/updateStudent", async ({ id, data }, { rejectWithValue }) => {
   try {
+    console.log("Updating student with ID:", id, "Data:", data);
     const response = await api.put(`${API_ENDPOINTS.STUDENTS}${id}/`, data);
-    return response.data.data;
+    console.log("Update student API response:", response.data);
+    
+    // Handle different response structures
+    const updatedStudent = response.data?.data || response.data;
+    
+    // Validate that we have a proper student object
+    if (!updatedStudent || typeof updatedStudent !== 'object') {
+      console.error("Invalid student data received:", updatedStudent);
+      return rejectWithValue("Invalid student data received from server");
+    }
+    
+    return updatedStudent;
   } catch (error) {
+    console.error("Error updating student:", error);
     if (error instanceof AxiosError) {
       // Return the original error data structure to preserve field-specific errors
       return rejectWithValue(
@@ -250,12 +263,22 @@ const studentsSlice = createSlice({
         state.error = null;
       })
       .addCase(updateStudent.fulfilled, (state, action) => {
+        console.log("updateStudent.fulfilled - payload:", action.payload);
+        console.log("updateStudent.fulfilled - previous state.students:", state.students);
+        
         state.loading = false;
         const index = state.students.findIndex(
           (s) => s.id === action.payload.id
         );
+        console.log("updateStudent.fulfilled - found index:", index);
+        
         if (index !== -1) {
           state.students[index] = action.payload;
+          console.log("updateStudent.fulfilled - updated student at index:", index);
+          console.log("updateStudent.fulfilled - state.students after update:", state.students);
+        } else {
+          console.warn("updateStudent.fulfilled - student not found in state, adding to end");
+          state.students.push(action.payload);
         }
       })
       .addCase(updateStudent.rejected, (state, action) => {

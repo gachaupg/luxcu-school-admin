@@ -174,23 +174,10 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
   ) => {
     const { name, value } = e.target || e;
 
-    // Auto-set end time when start time changes
-    if (name === "scheduled_start_time" && value) {
-      const startTime = new Date(value);
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // Add 1 hour
-      const endTimeString = endTime.toISOString().slice(0, 16); // Format for datetime-local input
-
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        scheduled_end_time: endTimeString,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   return (
@@ -241,7 +228,10 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {filteredDrivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id.toString()}>
+                    <SelectItem
+                      key={driver.id}
+                      value={driver.user_details?.id.toString()}
+                    >
                       {driver.user_details?.first_name}{" "}
                       {driver.user_details?.last_name}
                       {driver.user_details?.phone_number
@@ -307,7 +297,7 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
                 required
               />
               <p className="text-xs text-gray-500">
-                End time will be automatically set to 1 hour later
+                Select the trip start time
               </p>
             </div>
             <div className="space-y-2">

@@ -64,6 +64,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { ParentViewModal } from "@/components/ParentViewModal";
 import { ParentEditModal } from "@/components/ParentEditModal";
+import { ExportDropdown } from "@/components/ExportDropdown";
 import { RootState } from "@/redux/store";
 
 interface AuthorizedPerson {
@@ -835,13 +836,17 @@ export default function Parents() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-4 py-4">
+        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
+          {/* Page Title Only */}
+          <div className="mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Users className="w-8 h-8 text-green-500" /> Parents
+            </h1>
+          </div>
+
           {/* Header Section */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {/* <p>Parents</p> */}
-              </div>
+          <div className="mb-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
@@ -1331,8 +1336,8 @@ export default function Parents() {
               </Dialog>
             </div>
 
-            {/* Search and Filter Section */}
-            <Card className="bg-white shadow-sm border-0 mb-4">
+            {/* Search and Filter Toolbar */}
+            <Card className="bg-white shadow-md border-0 mb-4 rounded-xl">
               <CardContent className="p-4">
                 <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
                   <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
@@ -1342,14 +1347,14 @@ export default function Parents() {
                         placeholder="Search parents by name, email, or phone..."
                         value={searchTerm}
                         onChange={(e) => handleSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500"
+                        className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
                       />
                     </div>
                     <Select
                       value={statusFilter}
                       onValueChange={handleStatusFilter}
                     >
-                      <SelectTrigger className="w-full sm:w-40 border-gray-200">
+                      <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1362,17 +1367,65 @@ export default function Parents() {
                     <Button
                       variant="outline"
                       onClick={clearFilters}
-                      className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                      className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
                     >
                       Clear Filters
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="border-gray-200 hover:bg-gray-50 px-3 py-2"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Export
-                    </Button>
+                    <ExportDropdown
+                      data={{
+                        headers: [
+                          "Name",
+                          "Email",
+                          "Phone Number",
+                          "Address",
+                          "Emergency Contact",
+                          "Secondary Phone",
+                          "Preferred Contact Method",
+                          "Authorized Pickup Persons",
+                        ],
+                        data: filteredParents.map((parent) => {
+                          const authorizedPersons =
+                            parent.authorized_pickup_persons?.persons
+                              ?.map(
+                                (person) =>
+                                  `${person.name} (${person.relation})`
+                              )
+                              .join("; ") || "None";
+
+                          return {
+                            name: `${
+                              parent.user_data?.first_name ||
+                              parent.user_full_name?.split(" ")[0] ||
+                              ""
+                            } ${
+                              parent.user_data?.last_name ||
+                              parent.user_full_name
+                                ?.split(" ")
+                                .slice(1)
+                                .join(" ") ||
+                              ""
+                            }`,
+                            email:
+                              parent.user_data?.email ||
+                              parent.user_email ||
+                              "",
+                            phone_number:
+                              parent.user_data?.phone_number ||
+                              parent.phone_number ||
+                              "",
+                            address: parent.address || "",
+                            emergency_contact: parent.emergency_contact || "",
+                            secondary_phone: parent.secondary_phone || "",
+                            preferred_contact_method:
+                              parent.preferred_contact_method || "",
+                            authorized_pickup_persons: authorizedPersons,
+                          };
+                        }),
+                        fileName: "parents_export",
+                        title: "Parents Directory",
+                      }}
+                      className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -1380,18 +1433,22 @@ export default function Parents() {
           </div>
 
           {/* Parents Table */}
-          <Card className="bg-white shadow-sm border-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-gray-900">
+          <Card className="bg-white shadow-lg border-0 rounded-xl">
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-6 h-6 text-green-500" />
                 Parents List
               </CardTitle>
+              <p className="text-gray-500 text-sm mt-1">
+                All registered parents are listed below.
+              </p>
             </CardHeader>
             <CardContent className="p-0">
               {currentParents?.length > 0 ? (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b border-gray-200">
+                    <table className="w-full min-w-[700px]">
+                      <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th className="w-10 px-4 py-3 text-left">
                             <input
@@ -1421,11 +1478,13 @@ export default function Parents() {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {currentParents.map((parent) => (
+                      <tbody className="divide-y divide-gray-100">
+                        {currentParents.map((parent, idx) => (
                           <tr
                             key={parent.id}
-                            className="hover:bg-gray-50 transition-colors duration-200"
+                            className={`transition-colors duration-200 ${
+                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                            } hover:bg-green-50`}
                           >
                             <td className="w-10 px-4 py-3">
                               <input
@@ -1435,7 +1494,13 @@ export default function Parents() {
                                 className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                               />
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 flex items-center gap-2">
+                              {/* Avatar or initials */}
+                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                                {parent.user_data?.first_name?.[0] ||
+                                  parent.user_full_name?.[0] ||
+                                  "?"}
+                              </div>
                               <div>
                                 <div className="font-medium text-gray-900 text-sm">
                                   {parent.user_data?.first_name ||
@@ -1456,16 +1521,14 @@ export default function Parents() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div>
-                                <div className="text-sm text-gray-900">
-                                  {parent.user_data?.phone_number ||
-                                    parent.phone_number ||
-                                    "-"}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {parent.emergency_contact ||
-                                    "No emergency contact"}
-                                </div>
+                              <div className="text-sm text-gray-900">
+                                {parent.user_data?.phone_number ||
+                                  parent.phone_number ||
+                                  "-"}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {parent.emergency_contact ||
+                                  "No emergency contact"}
                               </div>
                             </td>
                             <td className="px-4 py-3">
@@ -1474,47 +1537,38 @@ export default function Parents() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-0 text-xs">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
                                 Active
-                              </Badge>
+                              </span>
                             </td>
                             <td className="px-4 py-3">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-7 w-7 p-0 hover:bg-gray-100"
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-48"
+                              <div className="flex gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openViewModal(parent)}
+                                  title="View"
                                 >
-                                  <DropdownMenuItem
-                                    className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => openViewModal(parent)}
-                                  >
-                                    <User className="h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="flex items-center gap-2 cursor-pointer"
-                                    onClick={() => openEditModal(parent)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    Edit Parent
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="flex items-center gap-2 text-red-600 cursor-pointer"
-                                    onClick={() => openDeleteDialog(parent)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete Parent
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openEditModal(parent)}
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  onClick={() => openDeleteDialog(parent)}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1523,7 +1577,7 @@ export default function Parents() {
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span>
                         Showing {startIndex + 1} to{" "}
@@ -1537,7 +1591,7 @@ export default function Parents() {
                         size="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="border-gray-200 hover:bg-gray-50 h-8 px-3"
+                        className="border-gray-200 hover:bg-gray-50 h-8 px-3 rounded-full"
                       >
                         <ChevronLeft className="h-4 w-4" />
                         Previous
@@ -1570,8 +1624,8 @@ export default function Parents() {
                                 onClick={() => handlePageChange(pageNum)}
                                 className={
                                   currentPage === pageNum
-                                    ? "bg-green-500 hover:bg-green-600 text-white h-8 w-8 p-0"
-                                    : "border-gray-200 hover:bg-gray-50 h-8 w-8 p-0"
+                                    ? "bg-green-500 hover:bg-green-600 text-white h-8 w-8 p-0 rounded-full"
+                                    : "border-gray-200 hover:bg-gray-50 h-8 w-8 p-0 rounded-full"
                                 }
                               >
                                 {pageNum}
@@ -1586,7 +1640,7 @@ export default function Parents() {
                         size="sm"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="border-gray-200 hover:bg-gray-50 h-8 px-3"
+                        className="border-gray-200 hover:bg-gray-50 h-8 px-3 rounded-full"
                       >
                         Next
                         <ChevronRight className="h-4 w-4" />
@@ -1613,7 +1667,7 @@ export default function Parents() {
                     <Button
                       onClick={clearFilters}
                       variant="outline"
-                      className="border-gray-200 hover:bg-gray-50"
+                      className="border-gray-200 hover:bg-gray-50 rounded-full"
                     >
                       Clear Filters
                     </Button>

@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { fetchSchools } from "@/redux/slices/schoolsSlice";
+import {
+  fetchUserPreferences,
+  updateUserPreferences,
+  setPreference,
+  UserPreferences,
+} from "@/redux/slices/preferencesSlice";
+import { useTheme } from "@/contexts/ThemeContext";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { Button } from "@/components/ui/button";
@@ -88,6 +95,19 @@ export default function SettingsPage() {
   const dispatch = useAppDispatch();
   const { schools, loading } = useAppSelector((state) => state.schools);
   const { user } = useAppSelector((state) => state.auth);
+  const {
+    preferences = {
+      showAnalytics: true,
+      showRecentActivity: true,
+      showNotificationsPanel: true,
+      allowDataExport: true,
+      autoBackup: true,
+      theme: "light",
+      language: "en",
+    },
+    loading: preferencesLoading,
+  } = useAppSelector((state) => state.preferences);
+  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
   // Get current school for the logged-in admin
@@ -95,6 +115,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     dispatch(fetchSchools());
+    dispatch(fetchUserPreferences());
   }, [dispatch]);
 
   // Load Google Maps script
@@ -326,26 +347,52 @@ export default function SettingsPage() {
     }));
   };
 
+  const handlePreferenceChange = async (
+    key: keyof UserPreferences,
+    value: UserPreferences[keyof UserPreferences]
+  ) => {
+    try {
+      // Update local state immediately for better UX
+      dispatch(setPreference({ key, value }));
+
+      // Update on server
+      await dispatch(updateUserPreferences({ [key]: value })).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Preference updated successfully",
+      });
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update preference";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex w-full">
+    <div className="min-h-screen bg-background flex w-full">
       {/* Sidebar */}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-8 py-6 bg-gray-100 overflow-y-auto">
+        <main className="flex-1 px-8 py-6 bg-background overflow-y-auto">
           <div className="mb-4 flex items-center gap-3">
             <Settings className="text-green-500" size={32} />
-            <h2 className="text-2xl font-bold text-gray-800">Settings</h2>
+            <h2 className="text-2xl font-bold text-foreground">Settings</h2>
           </div>
           {/* Tabs */}
-          <div className="flex gap-8 border-b mb-6 overflow-x-auto bg-gray-100 sticky top-0 z-10 py-2">
+          <div className="flex gap-8 border-b mb-6 overflow-x-auto bg-background sticky top-0 z-10 py-2">
             {TABS.map((tab, i) => (
               <button
                 key={tab}
                 className={`pb-2 text-lg font-medium transition-colors whitespace-nowrap ${
                   i === activeTab
                     ? "border-b-2 border-green-400 text-green-400"
-                    : "text-gray-400 hover:text-green-400"
+                    : "text-muted-foreground hover:text-green-400"
                 }`}
                 onClick={() => setActiveTab(i)}
               >
@@ -1093,105 +1140,39 @@ export default function SettingsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Theme & Appearance
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="theme">Theme</Label>
-                        <select
-                          id="theme"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none"
-                          defaultValue="light"
-                        >
-                          <option value="light">Light Theme</option>
-                          <option value="dark">Dark Theme</option>
-                          <option value="auto">Auto (System)</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="language">Language</Label>
-                        <select
-                          id="language"
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none"
-                          defaultValue="en"
-                        >
-                          <option value="en">English</option>
-                          <option value="sw">Swahili</option>
-                          <option value="fr">French</option>
-                        </select>
-                      </div>
+                  {preferencesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span className="ml-2">Loading preferences...</span>
                     </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Dashboard Preferences
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="show_analytics">Show Analytics</Label>
-                          <p className="text-sm text-gray-500">
-                            Display analytics and statistics on dashboard
-                          </p>
+                  ) : (
+                    <>
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Theme & Appearance
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="theme">Theme</Label>
+                            <select
+                              id="theme"
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                              value={theme}
+                              onChange={(e) =>
+                                setTheme(
+                                  e.target.value as "light" | "dark" | "auto"
+                                )
+                              }
+                            >
+                              <option value="light">Light Theme</option>
+                              <option value="dark">Dark Theme</option>
+                              <option value="auto">Auto (System)</option>
+                            </select>
+                          </div>
                         </div>
-                        <Switch id="show_analytics" defaultChecked />
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="show_recent_activity">
-                            Show Recent Activity
-                          </Label>
-                          <p className="text-sm text-gray-500">
-                            Display recent trips and activities
-                          </p>
-                        </div>
-                        <Switch id="show_recent_activity" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="show_notifications">
-                            Show Notifications Panel
-                          </Label>
-                          <p className="text-sm text-gray-500">
-                            Display notifications panel on dashboard
-                          </p>
-                        </div>
-                        <Switch id="show_notifications" defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      Data Preferences
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="data_export">Allow Data Export</Label>
-                          <p className="text-sm text-gray-500">
-                            Allow exporting school data and reports
-                          </p>
-                        </div>
-                        <Switch id="data_export" defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label htmlFor="auto_backup">Auto Backup</Label>
-                          <p className="text-sm text-gray-500">
-                            Automatically backup school data
-                          </p>
-                        </div>
-                        <Switch id="auto_backup" defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white">
-                      Save Preferences
-                    </Button>
-                  </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

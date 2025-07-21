@@ -281,20 +281,7 @@ export default function Trips() {
   return (
     <div className="h-full w-full bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-2">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Trips</h1>
-            <p className="text-gray-600">Manage and monitor school bus trips</p>
-          </div>
-          <Button
-            onClick={handleCreateTrip}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Create Trip
-          </Button>
-        </div>
+      
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

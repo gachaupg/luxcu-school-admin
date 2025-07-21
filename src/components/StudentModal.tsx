@@ -33,6 +33,14 @@ export function StudentModal({
   editMode = false,
   student = null,
 }: StudentModalProps) {
+  console.log(
+    "StudentModal render - isOpen:",
+    isOpen,
+    "editMode:",
+    editMode,
+    "student:",
+    student
+  );
   const { parents } = useSelector((state: RootState) => state.parents);
   const schoolId1 = localStorage.getItem("schoolId");
   const [parentsId, setParentsId] = useState(0);
@@ -61,26 +69,37 @@ export function StudentModal({
 
   // Initialize form data when editing
   useEffect(() => {
+    console.log(
+      "Form data initialization effect - editMode:",
+      editMode,
+      "student:",
+      student
+    );
     if (editMode && student) {
-      setFormData({
-        first_name: student.first_name,
-        middle_name: student.middle_name,
-        last_name: student.last_name,
-        date_of_birth: student.date_of_birth,
-        school: student.school,
-        parent: student.parent,
-        admission_number: student.admission_number,
-        grade: student.grade,
-        gender: student.gender,
-        section: student.section,
-        medical_conditions: student.medical_conditions,
-        emergency_contacts: student.emergency_contacts,
-        transport_enabled: student.transport_enabled,
-      });
-      setParentsId(student.parent);
+      console.log("Initializing form with student data:", student);
+      const newFormData = {
+        first_name: student.first_name || "",
+        middle_name: student.middle_name || "",
+        last_name: student.last_name || "",
+        date_of_birth: student.date_of_birth || "",
+        school: student.school || Number(schoolId1) || 0,
+        parent: student.parent || 0,
+        admission_number: student.admission_number || "",
+        grade: student.grade || 0,
+        gender: student.gender || "",
+        section: student.section || "",
+        medical_conditions: student.medical_conditions || "",
+        emergency_contacts: student.emergency_contacts || [
+          { name: "", phone: "" },
+        ],
+        transport_enabled: student.transport_enabled ?? true,
+      };
+      console.log("Setting form data to:", newFormData);
+      setFormData(newFormData);
+      setParentsId(student.parent || 0);
     } else {
       // Reset form for create mode
-      setFormData({
+      const resetFormData = {
         first_name: "",
         middle_name: "",
         last_name: "",
@@ -94,7 +113,9 @@ export function StudentModal({
         medical_conditions: "",
         emergency_contacts: [{ name: "", phone: "" }],
         transport_enabled: true,
-      });
+      };
+      console.log("Resetting form data to:", resetFormData);
+      setFormData(resetFormData);
       setParentsId(0);
     }
   }, [editMode, student, schoolId1]);
@@ -106,9 +127,16 @@ export function StudentModal({
     }
   }, [parentsId]);
 
+  // Debug form data changes
+  useEffect(() => {
+    console.log("Form data changed:", formData);
+  }, [formData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Submitting form data:", formData);
+    console.log("Edit mode:", editMode);
+    console.log("Student ID:", student?.id);
     console.log("Grade type:", typeof formData.grade, "Value:", formData.grade);
     console.log(
       "Parent type:",
@@ -117,11 +145,33 @@ export function StudentModal({
       formData.parent
     );
 
+    // Basic validation
+    if (!formData.first_name || !formData.last_name) {
+      alert("First name and last name are required");
+      return;
+    }
+
+    if (!formData.admission_number) {
+      alert("Admission number is required");
+      return;
+    }
+
+    if (!formData.grade || formData.grade === 0) {
+      alert("Please select a grade");
+      return;
+    }
+
+    if (!formData.parent || formData.parent === 0) {
+      alert("Please select a parent");
+      return;
+    }
+
     if (editMode && student?.id) {
+      console.log("Submitting update for student ID:", student.id);
       onSubmit({ id: student.id, data: formData });
     } else {
+      console.log("Submitting create request");
       onSubmit(formData);
-      // Removed window.location.reload() - Redux will handle state updates
     }
   };
 
@@ -241,7 +291,7 @@ export function StudentModal({
             <div className="space-y-2">
               <Label htmlFor="parent">Parent</Label>
               <Select
-                value={formData.parent.toString()}
+                value={formData.parent ? formData.parent.toString() : ""}
                 onValueChange={(value) => {
                   const parentId = Number(value);
                   setParentsId(parentId);
@@ -267,7 +317,7 @@ export function StudentModal({
             <div className="space-y-2">
               <Label htmlFor="grade">Grade</Label>
               <Select
-                value={formData.grade.toString()}
+                value={formData.grade ? formData.grade.toString() : ""}
                 onValueChange={(value) => handleSelectChange("grade", value)}
               >
                 <SelectTrigger>
@@ -288,7 +338,7 @@ export function StudentModal({
             <div className="space-y-2">
               <Label htmlFor="section">Section</Label>
               <Select
-                value={formData.section}
+                value={formData.section || ""}
                 onValueChange={(value) => handleSelectChange("section", value)}
               >
                 <SelectTrigger>
@@ -306,7 +356,7 @@ export function StudentModal({
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
               <Select
-                value={formData.gender}
+                value={formData.gender || ""}
                 onValueChange={(value) => handleSelectChange("gender", value)}
               >
                 <SelectTrigger>
@@ -330,6 +380,28 @@ export function StudentModal({
               onChange={handleChange}
               placeholder="Enter any medical conditions or 'None'"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="transport_enabled">Transport Status</Label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="transport_enabled"
+                name="transport_enabled"
+                checked={formData.transport_enabled}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    transport_enabled: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              />
+              <Label htmlFor="transport_enabled" className="text-sm">
+                Enable transport for this student
+              </Label>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -375,7 +447,9 @@ export function StudentModal({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Create Student</Button>
+            <Button type="submit">
+              {editMode ? "Update Student" : "Create Student"}
+            </Button>
           </div>
         </form>
       </DialogContent>

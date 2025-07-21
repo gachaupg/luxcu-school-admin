@@ -1,8 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { SidebarProvider } from "../components/ui/sidebar";
-import { AppSidebar } from "../components/AppSidebar";
-import { HeaderBar } from "../components/HeaderBar";
 import {
   Users,
   Plus,
@@ -10,7 +7,6 @@ import {
   Edit,
   Trash2,
   Search,
-  Filter,
   MoreHorizontal,
   GraduationCap,
   ChevronLeft,
@@ -67,7 +63,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
-import { parseStudentError } from "@/utils/errorHandler";
+import { ExportDropdown } from "../components/ExportDropdown";
 
 export default function Students() {
   const dispatch = useAppDispatch();
@@ -114,7 +110,7 @@ export default function Students() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [currentGradePage, setCurrentGradePage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Get school ID from localStorage or find it from schools - use useMemo to prevent unnecessary recalculations
   const schoolId = useMemo(() => {
@@ -172,6 +168,12 @@ export default function Students() {
       setSelectedStudent(null);
     }
   }, [isDeleteDialogOpen, selectedStudent]);
+
+  // Debug edit modal state changes
+  useEffect(() => {
+    console.log("Edit modal state changed - isEditModalOpen:", isEditModalOpen);
+    console.log("Selected student:", selectedStudent);
+  }, [isEditModalOpen, selectedStudent]);
 
   // Filter students based on search term and status
   const filteredStudents = (students || []).filter((student) => {
@@ -283,7 +285,9 @@ export default function Students() {
     data: Partial<Student>;
   }) => {
     try {
+      console.log("handleUpdateStudent called with ID:", id, "Data:", data);
       await dispatch(updateStudent({ id, data })).unwrap();
+      console.log("Student update successful");
       showToast.success("Student updated successfully");
       setIsEditModalOpen(false);
       setSelectedStudent(null);
@@ -363,10 +367,12 @@ export default function Students() {
   };
 
   const openEditModal = (student: Student) => {
+    console.log("openEditModal called with student:", student);
     if (!student || !student.id) {
       showToast.error("Invalid student data");
       return;
     }
+    console.log("Setting selected student and opening edit modal");
     setSelectedStudent(student);
     setIsEditModalOpen(true);
   };
@@ -552,44 +558,29 @@ export default function Students() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex w-full">
-      {/* Main Content Area */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-6 py-4 bg-gray-50">
+        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
+          {/* Page Title Only */}
+          <div className="mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Users className="w-8 h-8 text-green-500" /> Students
+            </h1>
+          </div>
           {/* Main Content Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {activeTab === "students"
-                      ? `Showing ${paginatedStudents.length} of ${
-                          students?.length || 0
-                        } students`
-                      : `Showing ${paginatedGrades.length} of ${
-                          grades?.length || 0
-                        } grades`}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {activeTab === "students" ? (
-                    <Button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Student
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => setIsCreateGradeModalOpen(true)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Grade
-                    </Button>
-                  )}
-                </div>
+          <Card className="bg-white shadow-lg border-0 rounded-xl">
+            <CardHeader className="pb-3 border-b border-gray-100">
+              <div className="flex items-center justify-between w-full">
+                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Users className="w-6 h-6 text-green-500" />
+                  Students List
+                </CardTitle>
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200 ml-auto"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Student
+                </Button>
               </div>
             </CardHeader>
 
@@ -629,7 +620,7 @@ export default function Students() {
                         className="pl-10"
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
@@ -639,6 +630,54 @@ export default function Students() {
                         <option value="active">Active Transport</option>
                         <option value="inactive">Inactive Transport</option>
                       </select>
+                      <label
+                        htmlFor="students-per-page"
+                        className="text-sm text-gray-700 ml-2"
+                      >
+                        Per page:
+                      </label>
+                      <select
+                        id="students-per-page"
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1); // Reset to first page on change
+                        }}
+                        className="px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        style={{ minWidth: 60 }}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                      <ExportDropdown
+                        data={{
+                          headers: [
+                            "Name",
+                            "Admission Number",
+                            "Grade",
+                            "Section",
+                            "Gender",
+                            "Transport Status",
+                          ],
+                          data: filteredStudents.map((student) => ({
+                            name: `${student.first_name || ""} ${
+                              student.middle_name || ""
+                            } ${student.last_name || ""}`,
+                            admission_number: student.admission_number || "",
+                            grade: student.grade || "",
+                            section: student.section || "",
+                            gender: student.gender || "",
+                            transport_status: student.transport_enabled
+                              ? "Active"
+                              : "Inactive",
+                          })),
+                          fileName: "students_export",
+                          title: "Students Directory",
+                        }}
+                        className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                      />
                     </div>
                   </div>
 
@@ -712,187 +751,230 @@ export default function Students() {
 
                   {/* Students Table */}
                   {!loading && !error && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                              Student
-                            </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                              Admission #
-                            </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                              Grade & Section
-                            </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                              Gender
-                            </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                              Status
-                            </th>
-                            <th className="text-right py-2 px-3 font-semibold text-gray-700">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {paginatedStudents.map((student) => (
-                            <tr
-                              key={student.id}
-                              className="hover:bg-gray-50 transition-colors"
-                            >
-                              <td className="py-2 px-3">
-                                <div className="flex items-center">
-                                  <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <Users className="h-4 w-4 text-green-600" />
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="sticky top-0 bg-white">
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                                Student
+                              </th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                                Admission #
+                              </th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                                Grade & Section
+                              </th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                                Gender
+                              </th>
+                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                                Status
+                              </th>
+                              <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {paginatedStudents.map((student) => (
+                              <tr
+                                key={student.id}
+                                className="hover:bg-gray-50 transition-colors"
+                              >
+                                <td className="py-2 px-3">
+                                  <div className="flex items-center">
+                                    <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                                      <Users className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <div className="ml-2">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {student.first_name || ""}{" "}
+                                        {student.middle_name || ""}{" "}
+                                        {student.last_name || ""}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        ID: {student.id || "N/A"}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="ml-2">
+                                </td>
+                                <td className="py-2 px-3">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {student.admission_number || "N/A"}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                      {student.first_name || ""}{" "}
-                                      {student.middle_name || ""}{" "}
-                                      {student.last_name || ""}
+                                      Grade {student.grade || "N/A"}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      ID: {student.id || "N/A"}
+                                      Section {student.section || "N/A"}
                                     </p>
                                   </div>
-                                </div>
-                              </td>
-                              <td className="py-2 px-3">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {student.admission_number || "N/A"}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">
-                                    Grade {student.grade || "N/A"}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Section {student.section || "N/A"}
-                                  </p>
-                                </div>
-                              </td>
-                              <td className="py-2 px-3">
-                                <span className="text-sm text-gray-900 capitalize">
-                                  {student.gender || "N/A"}
-                                </span>
-                              </td>
-                              <td className="py-2 px-3">
-                                {getStatusBadge(student.transport_enabled)}
-                              </td>
-                              <td className="py-2 px-3 text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => openViewModal(student)}
-                                    >
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => openEditModal(student)}
-                                    >
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Edit Student
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => openDeleteDialog(student)}
-                                      className="text-red-600 focus:text-red-600"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete Student
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      {paginatedStudents.length === 0 && (
-                        <div className="text-center py-12">
-                          <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Users className="h-8 w-8 text-gray-400" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {searchTerm || statusFilter !== "all"
-                              ? "No Students Found"
-                              : "No Students Yet"}
-                          </h3>
-                          <p className="text-gray-600 mb-4 max-w-md mx-auto">
-                            {searchTerm || statusFilter !== "all"
-                              ? "No students match your current search or filter criteria. Try adjusting your search terms or filters."
-                              : "Get started by adding your first student to the system."}
-                          </p>
-                          {!searchTerm && statusFilter === "all" && (
-                            <Button
-                              onClick={() => setIsCreateModalOpen(true)}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Your First Student
-                            </Button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Pagination Controls for Students */}
-                      {totalPages > 1 && (
-                        <div className="flex items-center justify-between p-6 border-t border-gray-200">
-                          <div className="text-sm text-gray-600">
-                            Showing {startIndex + 1}-
-                            {Math.min(endIndex, filteredStudents.length)} of{" "}
-                            {filteredStudents.length} students
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(currentPage - 1)}
-                              disabled={currentPage === 1}
-                            >
-                              <ChevronLeft className="h-4 w-4" />
-                              Previous
-                            </Button>
-                            <div className="flex items-center gap-1">
-                              {Array.from(
-                                { length: totalPages },
-                                (_, i) => i + 1
-                              ).map((page) => (
-                                <Button
-                                  key={page}
-                                  variant={
-                                    currentPage === page ? "default" : "outline"
-                                  }
-                                  size="sm"
-                                  onClick={() => setCurrentPage(page)}
-                                  className="w-8 h-8 p-0"
-                                >
-                                  {page}
-                                </Button>
-                              ))}
+                                </td>
+                                <td className="py-2 px-3">
+                                  <span className="text-sm text-gray-900 capitalize">
+                                    {student.gender || "N/A"}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  {getStatusBadge(student.transport_enabled)}
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem
+                                        onClick={() => openViewModal(student)}
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View Details
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => openEditModal(student)}
+                                      >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit Student
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          openDeleteDialog(student)
+                                        }
+                                        className="text-red-600 focus:text-red-600"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Student
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {paginatedStudents.length === 0 && (
+                          <div className="text-center py-12">
+                            <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                              <Users className="h-8 w-8 text-gray-400" />
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setCurrentPage(currentPage + 1)}
-                              disabled={currentPage === totalPages}
-                            >
-                              Next
-                              <ChevronRight className="h-4 w-4" />
-                            </Button>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                              {searchTerm || statusFilter !== "all"
+                                ? "No Students Found"
+                                : "No Students Yet"}
+                            </h3>
+                            <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                              {searchTerm || statusFilter !== "all"
+                                ? "No students match your current search or filter criteria. Try adjusting your search terms or filters."
+                                : "Get started by adding your first student to the system."}
+                            </p>
+                            {!searchTerm && statusFilter === "all" && (
+                              <Button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Your First Student
+                              </Button>
+                            )}
                           </div>
+                        )}
+                      </div>
+                      {/* Pagination Controls - always show at the bottom */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-6 border-t border-gray-200 mt-0">
+                        <div className="text-sm text-gray-600 mb-2 sm:mb-0">
+                          Showing {startIndex + 1}-
+                          {Math.min(endIndex, filteredStudents.length)} of{" "}
+                          {filteredStudents.length} students
                         </div>
-                      )}
-                    </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={currentPage === 1}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            {/* Improved pagination logic with ellipsis */}
+                            {(() => {
+                              const pages = [];
+                              if (totalPages <= 5) {
+                                for (let i = 1; i <= totalPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                if (currentPage <= 3) {
+                                  pages.push(1, 2, 3, 4, "...", totalPages);
+                                } else if (currentPage >= totalPages - 2) {
+                                  pages.push(
+                                    1,
+                                    "...",
+                                    totalPages - 3,
+                                    totalPages - 2,
+                                    totalPages - 1,
+                                    totalPages
+                                  );
+                                } else {
+                                  pages.push(
+                                    1,
+                                    "...",
+                                    currentPage - 1,
+                                    currentPage,
+                                    currentPage + 1,
+                                    "...",
+                                    totalPages
+                                  );
+                                }
+                              }
+                              return pages.map((page, idx) =>
+                                page === "..." ? (
+                                  <span
+                                    key={"ellipsis-" + idx}
+                                    className="px-2"
+                                  >
+                                    ...
+                                  </span>
+                                ) : (
+                                  <Button
+                                    key={page}
+                                    variant={
+                                      currentPage === page
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() => setCurrentPage(Number(page))}
+                                    className="w-8 h-8 p-0"
+                                  >
+                                    {page}
+                                  </Button>
+                                )
+                              );
+                            })()}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                          <span className="ml-4 text-xs text-gray-500 hidden sm:inline">
+                            Page {currentPage} of {totalPages}
+                          </span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </TabsContent>
 
@@ -983,7 +1065,7 @@ export default function Students() {
                   {!gradesLoading && !gradesError && (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead>
+                        <thead className="sticky top-0 bg-white">
                           <tr className="border-b border-gray-200">
                             <th className="text-left py-2 px-3 font-semibold text-gray-700">
                               Grade
@@ -1161,6 +1243,7 @@ export default function Students() {
 
       {/* Modals */}
       <StudentModal
+        key="create"
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateStudent}
@@ -1169,8 +1252,10 @@ export default function Students() {
       />
 
       <StudentModal
+        key={selectedStudent?.id || "create"} // Force re-render when student changes
         isOpen={isEditModalOpen}
         onClose={() => {
+          console.log("Closing edit modal");
           setIsEditModalOpen(false);
           setSelectedStudent(null);
         }}
