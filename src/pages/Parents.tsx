@@ -214,6 +214,41 @@ export default function Parents() {
     error,
   } = useAppSelector((state: RootState) => state.parents);
 
+  // Force fetch on every mount - this is the key fix
+  useEffect(() => {
+    const schoolId = localStorage.getItem("schoolId");
+    console.log("🔄 FORCE FETCHING PARENTS - Component mounted");
+    console.log("SchoolId:", schoolId);
+
+    if (schoolId) {
+      console.log("🚀 Dispatching fetchParents with schoolId:", schoolId);
+      dispatch(fetchParents({ schoolId: parseInt(schoolId) }))
+        .then((result) => {
+          console.log("✅ Fetch successful:", result);
+        })
+        .catch((error) => {
+          console.error("❌ Fetch failed:", error);
+        });
+    } else {
+      console.log("⚠️ No schoolId found in localStorage");
+    }
+  }, []); // Empty dependency array - only run on mount
+
+  // Simple retry mechanism - if no parents after 2 seconds, try again
+  useEffect(() => {
+    if (parents.length === 0 && !loading) {
+      const timeoutId = setTimeout(() => {
+        const schoolId = localStorage.getItem("schoolId");
+        if (schoolId) {
+          console.log("🔄 Retrying fetch after timeout...");
+          dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
+        }
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [parents.length, loading, dispatch]);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -1090,14 +1125,6 @@ export default function Parents() {
     else setSelected(parents.map((p) => p.id));
   };
 
-  // Fetch parents on component mount
-  useEffect(() => {
-    const schoolId = localStorage.getItem("schoolId");
-    if (schoolId) {
-      dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
-    }
-  }, [dispatch]);
-
   const schoolId = localStorage.getItem("schoolId");
   const filteredParents = parents.filter((parent) => {
     const matchesSearch =
@@ -1156,6 +1183,24 @@ export default function Parents() {
     setSearchTerm("");
     setStatusFilter("all");
     setCurrentPage(1);
+  };
+
+  // Manual refresh function for debugging
+  const handleManualRefresh = () => {
+    const schoolId = localStorage.getItem("schoolId");
+    console.log("🔄 Manual refresh triggered, schoolId:", schoolId);
+    if (schoolId) {
+      console.log("🚀 Dispatching manual fetch...");
+      dispatch(fetchParents({ schoolId: parseInt(schoolId) }))
+        .then((result) => {
+          console.log("✅ Manual fetch successful:", result);
+        })
+        .catch((error) => {
+          console.error("❌ Manual fetch failed:", error);
+        });
+    } else {
+      console.log("⚠️ No schoolId found for manual refresh");
+    }
   };
 
   // Show loading state
@@ -1746,6 +1791,13 @@ export default function Parents() {
                         className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
                       >
                         Clear Filters
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleManualRefresh}
+                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                      >
+                        Refresh Parents
                       </Button>
                       <ExportDropdown
                         data={{

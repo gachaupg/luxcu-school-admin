@@ -26,6 +26,8 @@ import {
 import { fetchParents } from "../redux/slices/parentsSlice";
 import { fetchStudents } from "../redux/slices/studentsSlice";
 import { fetchTrips } from "../redux/slices/tripsSlice";
+import { fetchDrivers } from "../redux/slices/driversSlice";
+import { fetchStaff } from "../redux/slices/staffSlice";
 import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
@@ -77,43 +79,51 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExportDropdown } from "@/components/ExportDropdown";
 
 const formSchema = z.object({
-  description: z.string().min(5, "Description must be at least 5 characters"),
-  payload: z.object({
-    parent: z.number().optional(),
-    student: z.number().optional(),
-    trip: z.number().optional(),
-    type: z.enum(["emergency", "info", "warning", "success"]),
-    message: z.string().min(10, "Message must be at least 10 characters"),
-    expires_at: z.string().optional(),
-  }),
+  message: z.string().min(10, "Message must be at least 10 characters"),
+  notification_type: z.enum([
+    "ACTION_REQUIRED",
+    "SYSTEM",
+    "INFO",
+    "WARNING",
+    "EMERGENCY",
+  ]),
+  // Target selection - support parents and drivers
+  target_type: z.enum(["parents", "drivers", "all"]),
+  selected_targets: z.array(z.number()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const NOTIFICATION_TYPES = [
   {
-    value: "emergency",
+    value: "ACTION_REQUIRED",
+    label: "Action Required",
+    icon: AlertTriangle,
+    color: "bg-orange-100 text-orange-800",
+  },
+  {
+    value: "SYSTEM",
+    label: "System",
+    icon: Info,
+    color: "bg-blue-100 text-blue-800",
+  },
+  {
+    value: "EMERGENCY",
     label: "Emergency",
     icon: AlertTriangle,
     color: "bg-red-100 text-red-800",
   },
   {
-    value: "warning",
+    value: "WARNING",
     label: "Warning",
     icon: AlertTriangle,
     color: "bg-yellow-100 text-yellow-800",
   },
   {
-    value: "info",
+    value: "INFO",
     label: "Information",
     icon: Info,
     color: "bg-blue-100 text-blue-800",
-  },
-  {
-    value: "success",
-    label: "Success",
-    icon: CheckCircle,
-    color: "bg-green-100 text-green-800",
   },
 ];
 
@@ -125,6 +135,8 @@ export default function NotificationsPage() {
   const { parents } = useAppSelector((state) => state.parents);
   const { students } = useAppSelector((state) => state.students);
   const { trips } = useAppSelector((state) => state.trips);
+  const { drivers } = useAppSelector((state) => state.drivers);
+  const { staff } = useAppSelector((state) => state.staff);
   const { toast } = useToast();
   const data = JSON.parse(localStorage.getItem("profile") || "{}");
   const user = data;
@@ -148,17 +160,22 @@ export default function NotificationsPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      description: "",
-      payload: {
-        parent: undefined,
-        student: undefined,
-        trip: undefined,
-        type: "info",
-        message: "",
-        expires_at: "",
-      },
+      message: "",
+      notification_type: "INFO",
+      target_type: "all",
+      selected_targets: [],
     },
   });
+
+  // Clear selected targets when target type changes
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === "target_type") {
+        form.setValue("selected_targets", []);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Filter parents, students, and trips for the current school
   const filteredParents =
@@ -177,23 +194,23 @@ export default function NotificationsPage() {
 
   const filteredAndSearchedNotifications =
     notifications?.filter((notification: any) => {
-      // Since we're using trips data temporarily, adapt the filtering
+      // Filter based on actual notification properties
       const matchesSearch =
-        notification.description
+        notification.message
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        notification.route_name
+        notification.notification_type
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        notification.driver_name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        notification.vehicle_registration
+        notification.school_name
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase());
 
-      // For trips data, treat all as "info" type temporarily
-      const matchesType = typeFilter === "all" || typeFilter === "info";
+      // Filter by notification type
+      const matchesType =
+        typeFilter === "all" ||
+        notification.notification_type?.toLowerCase() ===
+          typeFilter.toLowerCase();
 
       return matchesSearch && matchesType;
     }) || [];
@@ -204,10 +221,16 @@ export default function NotificationsPage() {
   );
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedNotifications = filteredAndSearchedNotifications.slice(
-    startIndex,
-    endIndex
-  );
+  const paginatedNotifications =
+    filteredAndSearchedNotifications?.slice(startIndex, endIndex) || [];
+
+  // Debug logging
+  console.log("🔍 Notifications debugging:");
+  console.log("Raw notifications:", notifications);
+  console.log("Search term:", searchTerm);
+  console.log("Type filter:", typeFilter);
+  console.log("Filtered notifications:", filteredAndSearchedNotifications);
+  console.log("Paginated notifications:", paginatedNotifications);
 
   // Reset to first page when search or filter changes
   useEffect(() => {
@@ -220,65 +243,101 @@ export default function NotificationsPage() {
       dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
       dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
       dispatch(fetchTrips({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchDrivers());
+      dispatch(fetchStaff({ schoolId: parseInt(schoolId) }));
     }
   }, [dispatch, schoolId]);
 
+  // Early return if data is not ready
+  if (!notifications) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="flex-1 flex flex-col min-h-screen">
+          <main className="flex-1 px-2 sm:px-1 py-0 w-full max-w-[98vw] mx-auto">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   const handleCreateNotification = async (values: FormValues) => {
     try {
-      console.log("🔍 Creating notification with parent ID:", parentId);
-      console.log("👤 User data:", user);
-      console.log("📋 Selected parent from form:", values.payload.parent);
-      console.log(
-        "📋 Available parents:",
-        filteredParents.map((p) => ({
-          id: p.id,
-          user: p.user,
-          name: p.user_full_name,
-        }))
-      );
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        toast({
+          title: "Error",
+          description: "School ID not found",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const notificationData = {
-        description: values.description,
-        payload: {
-          ...values.payload,
-          parent: values.payload.parent || parentId, // Use parentId as fallback
-          student: values.payload.student || undefined,
-          trip: values.payload.trip || undefined,
-          type: values.payload.type, // Ensure type is always provided
-          message: values.payload.message,
-          expires_at: values.payload.expires_at || undefined,
-        },
+      console.log("🔍 Debug - Form values:", values);
+
+      // Structure the payload based on target type
+      const notificationData: any = {
         school: parseInt(schoolId || "0"),
+        message: values.message,
+        notification_type: values.notification_type,
+        is_read: false,
+        parents: [],
+        drivers: [],
       };
 
-      console.log("📤 Notification payload:", notificationData);
-      console.log(
-        "🎯 Final parent ID being sent:",
-        notificationData.payload.parent
-      );
+      if (values.target_type === "all") {
+        // For "all users", don't specify any specific parents
+        console.log("📤 Sending to all users - no specific parent");
+      } else if (values.target_type === "parents") {
+        // For parents, use the selected parent IDs
+        if (values.selected_targets && values.selected_targets.length > 0) {
+          notificationData.parents = values.selected_targets;
+          console.log(
+            "📤 Sending to specific parents:",
+            values.selected_targets
+          );
+        } else {
+          console.log("📤 No specific parents selected");
+        }
+      } else if (values.target_type === "drivers") {
+        // For drivers, use the selected driver IDs
+        if (values.selected_targets && values.selected_targets.length > 0) {
+          notificationData.drivers = values.selected_targets;
+          console.log(
+            "📤 Sending to specific drivers:",
+            values.selected_targets
+          );
+        } else {
+          console.log("📤 No specific drivers selected");
+        }
+      } else {
+        // For non-parent categories, we might need a different API endpoint
+        // For now, let's send without parent field
+        console.log("📤 Sending to non-parent category:", values.target_type);
+      }
 
-      await dispatch(createNotification(notificationData)).unwrap();
+      console.log("📤 Final notification payload:", notificationData);
+
+      const result = await dispatch(
+        createNotification(notificationData)
+      ).unwrap();
+      console.log("✅ Notification created successfully:", result);
+
       toast({
         title: "Success",
         description: "Notification created successfully",
       });
 
-      // Close modal and reset form
-      setIsCreateModalOpen(false);
+      // Reset form
       form.reset();
-    } catch (err) {
-      console.error("Create notification error:", err);
-      let errorMessage = "Failed to create notification";
-
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === "string") {
-        errorMessage = err;
-      }
-
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error("❌ Error creating notification:", error);
       toast({
         title: "Error",
-        description: errorMessage,
+        description: "Failed to create notification",
         variant: "destructive",
       });
     }
@@ -377,24 +436,7 @@ export default function NotificationsPage() {
                       >
                         <FormField
                           control={form.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter notification description"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="payload.type"
+                          name="notification_type"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Notification Type</FormLabel>
@@ -426,9 +468,189 @@ export default function NotificationsPage() {
                           )}
                         />
 
+                        <div className="space-y-4">
+                          <div>
+                            <FormLabel>Target Category</FormLabel>
+                            <div className="text-sm text-gray-500 mb-2">
+                              Select the category of users to target with this
+                              notification. You can only target one category at
+                              a time.
+                            </div>
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="target_type"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Who to send to?</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select target category" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="all">
+                                      All Users
+                                    </SelectItem>
+                                    <SelectItem value="parents">
+                                      Parents
+                                    </SelectItem>
+                                    <SelectItem value="drivers">
+                                      Drivers
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {form.watch("target_type") !== "all" && (
+                            <FormField
+                              control={form.control}
+                              name="selected_targets"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {form.watch("target_type") === "parents"
+                                      ? "Select Parents"
+                                      : form.watch("target_type") === "drivers"
+                                      ? "Select Drivers"
+                                      : "Select Targets"}
+                                  </FormLabel>
+                                  <div className="space-y-2">
+                                    <Select
+                                      onValueChange={(value) => {
+                                        const selectedIds = field.value || [];
+                                        const newId = parseInt(value);
+                                        const newSelectedIds =
+                                          selectedIds.includes(newId)
+                                            ? selectedIds.filter(
+                                                (id) => id !== newId
+                                              )
+                                            : [...selectedIds, newId];
+                                        field.onChange(newSelectedIds);
+                                      }}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select targets" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {form.watch("target_type") === "parents"
+                                          ? filteredParents.map((parent) => (
+                                              <SelectItem
+                                                key={parent.id}
+                                                value={parent.id.toString()}
+                                              >
+                                                {parent.user_full_name ||
+                                                  `${parent.user_data?.first_name} ${parent.user_data?.last_name}`}
+                                              </SelectItem>
+                                            ))
+                                          : null}
+                                        {form.watch("target_type") === "drivers"
+                                          ? drivers
+                                              ?.filter(
+                                                (d) =>
+                                                  d.school ===
+                                                  parseInt(schoolId || "0")
+                                              )
+                                              ?.map((driver) => (
+                                                <SelectItem
+                                                  key={driver.id}
+                                                  value={driver.id.toString()}
+                                                >
+                                                  {
+                                                    driver.user_details
+                                                      .first_name
+                                                  }{" "}
+                                                  {
+                                                    driver.user_details
+                                                      .last_name
+                                                  }
+                                                </SelectItem>
+                                              ))
+                                          : null}
+                                      </SelectContent>
+                                    </Select>
+
+                                    {/* Display selected targets */}
+                                    {field.value && field.value.length > 0 && (
+                                      <div className="mt-2">
+                                        <div className="text-sm text-gray-600 mb-1">
+                                          Selected Targets:
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                          {field.value.map((targetId) => {
+                                            let targetName = `ID: ${targetId}`;
+
+                                            if (
+                                              form.watch("target_type") ===
+                                              "parents"
+                                            ) {
+                                              const parent =
+                                                filteredParents.find(
+                                                  (p) => p.id === targetId
+                                                );
+                                              targetName =
+                                                parent?.user_full_name ||
+                                                `${parent?.user_data?.first_name} ${parent?.user_data?.last_name}` ||
+                                                `Parent ${targetId}`;
+                                            } else if (
+                                              form.watch("target_type") ===
+                                              "drivers"
+                                            ) {
+                                              const driver = drivers?.find(
+                                                (d) => d.id === targetId
+                                              );
+                                              targetName = driver
+                                                ? `${driver.user_details.first_name} ${driver.user_details.last_name}`
+                                                : `Driver ${targetId}`;
+                                            }
+
+                                            return (
+                                              <Badge
+                                                key={targetId}
+                                                variant="secondary"
+                                                className="text-xs"
+                                              >
+                                                {targetName}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    field.onChange(
+                                                      field.value.filter(
+                                                        (id) => id !== targetId
+                                                      )
+                                                    );
+                                                  }}
+                                                  className="ml-1 text-red-500 hover:text-red-700"
+                                                >
+                                                  ×
+                                                </button>
+                                              </Badge>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
+                        </div>
+
                         <FormField
                           control={form.control}
-                          name="payload.message"
+                          name="message"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Message</FormLabel>
@@ -438,150 +660,6 @@ export default function NotificationsPage() {
                                   rows={4}
                                   {...field}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="payload.parent"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Parent (Optional)</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(
-                                      value ? parseInt(value) : undefined
-                                    )
-                                  }
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select parent" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {filteredParents.length === 0 ? (
-                                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                                        No parents available
-                                      </div>
-                                    ) : (
-                                      filteredParents.map((parent) => (
-                                        <SelectItem
-                                          key={parent.id}
-                                          value={
-                                            parent.user?.toString() ||
-                                            parent.id?.toString() ||
-                                            "0"
-                                          }
-                                        >
-                                          {parent.user_full_name}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="payload.student"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Student (Optional)</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(
-                                      value ? parseInt(value) : undefined
-                                    )
-                                  }
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select student" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {filteredStudents.length === 0 ? (
-                                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                                        No students available
-                                      </div>
-                                    ) : (
-                                      filteredStudents.map((student) => (
-                                        <SelectItem
-                                          key={student.id}
-                                          value={student.id?.toString() || "0"}
-                                        >
-                                          {student.first_name}{" "}
-                                          {student.last_name}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="payload.trip"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Trip (Optional)</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(
-                                      value ? parseInt(value) : undefined
-                                    )
-                                  }
-                                  value={field.value?.toString() || ""}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select trip" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {filteredTrips.length === 0 ? (
-                                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                                        No trips available
-                                      </div>
-                                    ) : (
-                                      filteredTrips.map((trip) => (
-                                        <SelectItem
-                                          key={trip.id}
-                                          value={trip.id?.toString() || "0"}
-                                        >
-                                          Trip {trip.id}
-                                        </SelectItem>
-                                      ))
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={form.control}
-                          name="payload.expires_at"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Expires At (Optional)</FormLabel>
-                              <FormControl>
-                                <Input type="datetime-local" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -685,7 +763,7 @@ export default function NotificationsPage() {
                       Type
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                      Message
+                      Details
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                       Created
@@ -729,7 +807,7 @@ export default function NotificationsPage() {
                         </div>
                       </td>
                     </tr>
-                  ) : notifications?.length === 0 ? (
+                  ) : filteredAndSearchedNotifications.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center space-y-3">
@@ -750,8 +828,10 @@ export default function NotificationsPage() {
                   ) : (
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     paginatedNotifications.map((notification: any, index) => {
-                      // Since we're using trips data, treat all as "info" type
-                      const typeInfo = getNotificationTypeInfo("info");
+                      // Use actual notification type
+                      const typeInfo = getNotificationTypeInfo(
+                        notification.notification_type || "info"
+                      );
                       const TypeIcon = typeInfo.icon;
 
                       return (
@@ -766,9 +846,7 @@ export default function NotificationsPage() {
                               <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
-                                  {notification.description ||
-                                    notification.route_name ||
-                                    "Trip"}
+                                  {notification.message || "Notification"}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   ID: {notification.id}
@@ -779,25 +857,53 @@ export default function NotificationsPage() {
                           <td className="px-6 py-4">
                             <Badge className={typeInfo.color}>
                               <TypeIcon className="w-3 h-3 mr-1" />
-                              Trip
+                              {notification.notification_type || "INFO"}
                             </Badge>
                           </td>
                           <td className="px-6 py-4">
                             <div className="max-w-xs truncate">
                               <div className="text-sm text-gray-900">
-                                Route: {notification.route_name || "Unknown"} -
-                                Driver: {notification.driver_name || "Unknown"}{" "}
-                                - Vehicle:{" "}
-                                {notification.vehicle_number || "Unknown"}
+                                School: {notification.school_name || "Unknown"}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
                                 <span className="mr-2">
-                                  Status: {notification.status || "Unknown"}
-                                </span>
-                                <span className="mr-2">
-                                  Type: {notification.trip_type || "Unknown"}
+                                  Type:{" "}
+                                  {notification.notification_type || "Unknown"}
                                 </span>
                               </div>
+                              {/* Show targeted parents/drivers */}
+                              {notification.parents &&
+                                notification.parents.length > 0 && (
+                                  <div className="text-xs text-blue-600 mt-1">
+                                    Parents:{" "}
+                                    {notification.parents
+                                      .map((parentId) => {
+                                        const parent = filteredParents.find(
+                                          (p) => p.id === parentId
+                                        );
+                                        return parent
+                                          ? parent.user_full_name
+                                          : `Parent ${parentId}`;
+                                      })
+                                      .join(", ")}
+                                  </div>
+                                )}
+                              {notification.drivers &&
+                                notification.drivers.length > 0 && (
+                                  <div className="text-xs text-green-600 mt-1">
+                                    Drivers:{" "}
+                                    {notification.drivers
+                                      .map((driverId) => {
+                                        const driver = drivers?.find(
+                                          (d) => d.id === driverId
+                                        );
+                                        return driver
+                                          ? `${driver.user_details.first_name} ${driver.user_details.last_name}`
+                                          : `Driver ${driverId}`;
+                                      })
+                                      .join(", ")}
+                                  </div>
+                                )}
                             </div>
                           </td>
                           <td className="px-6 py-4">
@@ -805,18 +911,13 @@ export default function NotificationsPage() {
                               <Clock className="w-4 h-4 text-gray-400 mr-2" />
                               <div>
                                 <div className="text-sm text-gray-900">
-                                  {notification.scheduled_start_time
-                                    ? formatDate(
-                                        notification.scheduled_start_time
-                                      )
+                                  {notification.created_at
+                                    ? formatDate(notification.created_at)
                                     : "N/A"}
                                 </div>
-                                {notification.scheduled_end_time && (
-                                  <div className="text-xs text-gray-500">
-                                    Ends:{" "}
-                                    {formatDate(
-                                      notification.scheduled_end_time
-                                    )}
+                                {notification.is_read && (
+                                  <div className="text-xs text-green-500">
+                                    ✓ Read
                                   </div>
                                 )}
                               </div>
@@ -859,40 +960,6 @@ export default function NotificationsPage() {
                   {Math.min(endIndex, filteredAndSearchedNotifications.length)}{" "}
                   of {filteredAndSearchedNotifications.length} notifications
                   {searchTerm && ` matching "${searchTerm}"`}
-                  {typeFilter !== "all" && ` (${typeFilter})`}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setCurrentPage(page)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
                 </div>
               </div>
             )}
@@ -902,93 +969,134 @@ export default function NotificationsPage() {
 
       {/* View Notification Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Notification Details</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-green-500" />
+              Notification Details
+            </DialogTitle>
           </DialogHeader>
+          
           {selectedNotification && (
             <div className="space-y-4">
+              {/* Notification Type Badge */}
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const typeInfo = getNotificationTypeInfo(selectedNotification.notification_type || "info");
+                  const TypeIcon = typeInfo.icon;
+                  return (
+                    <Badge className={typeInfo.color}>
+                      <TypeIcon className="w-3 h-3 mr-1" />
+                      {selectedNotification.notification_type || "INFO"}
+                    </Badge>
+                  );
+                })()}
+                <span className="text-sm text-gray-500">
+                  ID: {selectedNotification.id}
+                </span>
+              </div>
+
+              {/* Message */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Message</h3>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-gray-900">{selectedNotification.message}</p>
+                </div>
+              </div>
+
+              {/* School Information */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">School</h3>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-gray-900">{selectedNotification.school_name || "Unknown School"}</p>
+                </div>
+              </div>
+
+              {/* Targeted Recipients */}
+              {(selectedNotification.parents?.length > 0 || selectedNotification.drivers?.length > 0) && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Targeted Recipients</h3>
+                  <div className="space-y-2">
+                    {selectedNotification.parents && selectedNotification.parents.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-medium text-blue-600 mb-1">Parents:</h4>
+                        <div className="pl-3">
+                          {selectedNotification.parents.map((parentId) => {
+                            const parent = filteredParents.find((p) => p.id === parentId);
+                            return (
+                              <div key={parentId} className="text-sm text-gray-700">
+                                • {parent ? parent.user_full_name : `Parent ${parentId}`}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedNotification.drivers && selectedNotification.drivers.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-medium text-green-600 mb-1">Drivers:</h4>
+                        <div className="pl-3">
+                          {selectedNotification.drivers.map((driverId) => {
+                            const driver = drivers?.find((d) => d.id === driverId);
+                            return (
+                              <div key={driverId} className="text-sm text-gray-700">
+                                • {driver ? `${driver.user_details.first_name} ${driver.user_details.last_name}` : `Driver ${driverId}`}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Status Information */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="font-semibold">Description</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.description}
-                  </p>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Created</h3>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-gray-900">
+                      {selectedNotification.created_at ? formatDate(selectedNotification.created_at) : "N/A"}
+                    </p>
+                  </div>
                 </div>
+                
                 <div>
-                  <Label className="font-semibold">Type</Label>
-                  <div className="mt-1">
-                    {(() => {
-                      const typeInfo = getNotificationTypeInfo(
-                        selectedNotification.payload.type
-                      );
-                      const TypeIcon = typeInfo.icon;
-                      return (
-                        <Badge className={typeInfo.color}>
-                          <TypeIcon className="w-3 h-3 mr-1" />
-                          {typeInfo.label}
-                        </Badge>
-                      );
-                    })()}
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">Status</h3>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {selectedNotification.is_read ? (
+                        <>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <span className="text-green-600">Read</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-4 h-4 text-orange-500" />
+                          <span className="text-orange-600">Unread</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Additional Details */}
               <div>
-                <Label className="font-semibold">Message</Label>
-                <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
-                  {selectedNotification.payload.message}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Parent</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.payload.parent
-                      ? getParentName(selectedNotification.payload.parent)
-                      : "All Parents"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Student</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.payload.student
-                      ? getStudentName(selectedNotification.payload.student)
-                      : "All Students"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Trip</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.payload.trip
-                      ? getTripName(selectedNotification.payload.trip)
-                      : "All Trips"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Expires At</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.payload.expires_at
-                      ? formatDate(selectedNotification.payload.expires_at)
-                      : "No expiration"}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="font-semibold">Created At</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.created_at
-                      ? formatDate(selectedNotification.created_at)
-                      : "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <Label className="font-semibold">Updated At</Label>
-                  <p className="text-sm text-gray-700">
-                    {selectedNotification.updated_at
-                      ? formatDate(selectedNotification.updated_at)
-                      : "N/A"}
-                  </p>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Additional Details</h3>
+                <div className="p-3 bg-gray-50 rounded-lg space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">School ID:</span>
+                    <span className="text-sm text-gray-900">{selectedNotification.school || "N/A"}</span>
+                  </div>
+                  {selectedNotification.read_at && (
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Read At:</span>
+                      <span className="text-sm text-gray-900">{formatDate(selectedNotification.read_at)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

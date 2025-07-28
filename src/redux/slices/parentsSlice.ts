@@ -158,6 +158,10 @@ export const fetchParents = createAsyncThunk<
       url += `?school=${schoolId}`;
     }
 
+    // Add cache-busting parameter
+    const timestamp = Date.now();
+    url += url.includes("?") ? `&_t=${timestamp}` : `?_t=${timestamp}`;
+
     console.log("Fetching parents from:", url);
     const response = await api.get(url);
     console.log("Parents API response:", response.data);

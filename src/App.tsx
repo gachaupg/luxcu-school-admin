@@ -7,6 +7,7 @@ import {
 import { ReduxProvider } from "./redux/provider";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./pages/Login";
+import Landing from "./pages/Landing";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
 import {
   checkTokenExpiration,
@@ -32,7 +33,6 @@ import NotFound from "./pages/NotFound";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { ErrorBoundary } from "react-error-boundary";
 import React, { useEffect } from "react";
 import { RootState } from "./redux/store";
@@ -54,7 +54,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <>{children}</>;
@@ -135,13 +135,10 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/home" element={<Landing />} />
       <Route
         path="/"
-        element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        }
+        element={token ? <Index /> : <Navigate to="/home" replace />}
       >
         <Route index element={<Overview />} />
         <Route path="trips" element={<Trips />} />
@@ -184,7 +181,6 @@ function App() {
             <TooltipProvider>
               <AppContent />
               <Toaster />
-              <Sonner />
             </TooltipProvider>
           </QueryClientProvider>
         </ThemeProvider>

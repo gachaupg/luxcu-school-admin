@@ -7,8 +7,8 @@ export interface RouteAssignment {
   id?: number;
   student: number;
   route: number;
-  pickup_stop: number;
-  dropoff_stop: number;
+  pickup_stop: number | null;
+  dropoff_stop: number | null;
   is_active: boolean;
   schedule_days: string[];
 }

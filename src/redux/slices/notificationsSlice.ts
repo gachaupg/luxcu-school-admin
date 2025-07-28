@@ -8,7 +8,13 @@ export interface NotificationPayload {
   parent?: number;
   student?: number;
   trip?: number;
-  type: "emergency" | "info" | "warning" | "success";
+  type:
+    | "emergency"
+    | "info"
+    | "warning"
+    | "success"
+    | "ACTION_REQUIRED"
+    | "SYSTEM";
   message: string;
   expires_at?: string;
 }
@@ -22,6 +28,17 @@ export interface Notification {
   is_read?: boolean;
   is_sent?: boolean;
   school?: number;
+  // New fields for enhanced notification targeting
+  notification_type?:
+    | "ACTION_REQUIRED"
+    | "SYSTEM"
+    | "INFO"
+    | "WARNING"
+    | "EMERGENCY";
+  parents?: number[]; // Array of parent IDs to target
+  drivers?: number[]; // Array of driver IDs to target
+  admins?: number[]; // Array of admin IDs to target
+  message: string; // Direct message field
 }
 
 interface NotificationsState {
@@ -78,9 +95,18 @@ export const createNotification = createAsyncThunk<
 
       // Ensure school ID is included
       const schoolId = localStorage.getItem("schoolId");
+
+      // Prepare notification data based on the new structure
       const notificationDataWithSchool = {
         ...notificationData,
         school: notificationData.school || parseInt(schoolId || "0"),
+        // Ensure we have the required fields
+        message: notificationData.message || "",
+        notification_type: notificationData.notification_type || "INFO",
+        // Handle target arrays for school-admin-notifications API
+        parents: notificationData.parents || [],
+        drivers: notificationData.drivers || [],
+        is_read: false,
       };
 
       console.log("Notification data with school:", notificationDataWithSchool);

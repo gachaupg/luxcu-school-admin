@@ -22,6 +22,7 @@ import {
   addRoute,
   deleteRoute,
   updateRoute,
+  fetchRouteStops,
   Route,
 } from "../redux/slices/routesSlice";
 import {
@@ -86,6 +87,8 @@ import { Switch } from "@/components/ui/switch";
 import { parseRouteError } from "@/utils/errorHandler";
 import { ExportDropdown } from "@/components/ExportDropdown";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { RouteStopModal } from "@/components/RouteStopModal";
+import { RouteStopsViewModal } from "@/components/RouteStopsViewModal";
 
 declare global {
   interface Window {
@@ -123,10 +126,7 @@ const assignmentFormSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
 
-// Extended Route interface to include path property
-interface ExtendedRoute extends Route {
-  path?: string;
-}
+// Route interface now includes path property
 
 export default function RoutesPage() {
   const dispatch = useAppDispatch();
@@ -170,6 +170,20 @@ export default function RoutesPage() {
   const endInputRef = useRef<HTMLInputElement>(null);
   const stopSearchInputRef = useRef<HTMLInputElement>(null);
 
+  // Add new state for route stops in assignment
+  const [selectedRouteStops, setSelectedRouteStops] = useState<
+    Array<{
+      id: number;
+      name: string;
+      lat: number;
+      lng: number;
+      sequence: number;
+      is_pickup?: boolean;
+      is_dropoff?: boolean;
+    }>
+  >([]);
+  const [isLoadingStops, setIsLoadingStops] = useState(false);
+
   // Table state management
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -177,14 +191,22 @@ export default function RoutesPage() {
   const [itemsPerPage] = useState(10);
 
   // Action modals state
-  const [selectedRoute, setSelectedRoute] = useState<ExtendedRoute | null>(
-    null
-  );
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
+  const [isRouteStopModalOpen, setIsRouteStopModalOpen] = useState(false);
+  const [selectedRouteForStop, setSelectedRouteForStop] =
+    useState<Route | null>(null);
+  const [isRouteStopsViewModalOpen, setIsRouteStopsViewModalOpen] =
+    useState(false);
+  const [selectedRouteForView, setSelectedRouteForView] =
+    useState<Route | null>(null);
+  const [routeStopsCount, setRouteStopsCount] = useState<
+    Record<number, number>
+  >({});
 
   // Student search state
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
@@ -192,9 +214,6 @@ export default function RoutesPage() {
   const [routeSearchTerm, setRouteSearchTerm] = useState("");
   // Driver search state
   const [driverSearchTerm, setDriverSearchTerm] = useState("");
-
-  // Track if data has been loaded to handle hot reload
-  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Filter schools for the current admin
   const filteredSchools =
@@ -271,6 +290,121 @@ export default function RoutesPage() {
     if (!gradeId) return "N/A";
     const grade = grades.find((g) => g.id === Number(gradeId));
     return grade ? grade.name : `Grade ${gradeId}`;
+  };
+
+  // Function to decode route path coordinates to location names
+  const decodeRouteStops = async (route: Route) => {
+    if (!route.path) {
+      console.log("No path data found for route:", route.name);
+      return [];
+    }
+
+    try {
+      setIsLoadingStops(true);
+      console.log("Route path object:", route.path);
+      const coordinates = route.path.coordinates || [];
+      console.log("Found coordinates:", coordinates);
+
+      if (coordinates.length === 0) {
+        console.log("No coordinates found in path");
+        return [];
+      }
+
+      const geocoder = new google.maps.Geocoder();
+      const stops = [];
+
+      for (let i = 0; i < coordinates.length; i++) {
+        const [lng, lat] = coordinates[i];
+        console.log(`Geocoding coordinate ${i + 1}:`, { lat, lng });
+
+        try {
+          const result = await new Promise<google.maps.GeocoderResult[]>(
+            (resolve, reject) => {
+              geocoder.geocode(
+                { location: { lat, lng } },
+                (results, status) => {
+                  if (status === "OK" && results) {
+                    console.log(
+                      `Geocoding successful for coordinate ${i + 1}:`,
+                      results[0]?.formatted_address
+                    );
+                    resolve(results);
+                  } else {
+                    console.error(
+                      `Geocoding failed for coordinate ${i + 1}:`,
+                      status
+                    );
+                    reject(
+                      new Error(`Geocoding failed for coordinate ${i + 1}`)
+                    );
+                  }
+                }
+              );
+            }
+          );
+
+          const locationName = result[0]?.formatted_address || `Stop ${i + 1}`;
+          console.log(`Adding stop ${i + 1}:`, locationName);
+          stops.push({
+            id: i + 1,
+            name: locationName,
+            lat,
+            lng,
+            sequence: i + 1,
+          });
+        } catch (error) {
+          console.error(`Error geocoding coordinate ${i + 1}:`, error);
+          stops.push({
+            id: i + 1,
+            name: `Stop ${i + 1}`,
+            lat,
+            lng,
+            sequence: i + 1,
+          });
+        }
+      }
+
+      return stops;
+    } catch (error) {
+      console.error("Error decoding route stops:", error);
+      return [];
+    } finally {
+      setIsLoadingStops(false);
+    }
+  };
+
+  // Function to handle route selection in assignment form
+  const handleRouteSelection = async (routeId: number) => {
+    const selectedRoute = routes?.find((route) => route.id === routeId);
+    if (selectedRoute) {
+      console.log("Selected route:", selectedRoute);
+      try {
+        // Fetch route stops from API instead of decoding from path
+        const response = await dispatch(fetchRouteStops(routeId)).unwrap();
+        console.log("Fetched route stops from API:", response);
+        setSelectedRouteStops(
+          response.map((stop, index) => ({
+            id: stop.id || index + 1,
+            name: stop.name || `Stop ${index + 1}`,
+            lat: stop.lat || 0,
+            lng: stop.lng || 0,
+            sequence: stop.sequence_number || index + 1,
+            is_pickup: stop.is_pickup,
+            is_dropoff: stop.is_dropoff,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching route stops:", error);
+        setSelectedRouteStops([]);
+        toast({
+          title: "Error",
+          description: "Failed to fetch route stops",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setSelectedRouteStops([]);
+    }
   };
 
   const getDriverName = (driverId: number) => {
@@ -351,7 +485,7 @@ export default function RoutesPage() {
       ],
       traffic_factor: route.traffic_factor || 1.3,
       path:
-        (route as ExtendedRoute).path ||
+        route.path ||
         JSON.stringify({
           type: "LineString",
           coordinates: [
@@ -368,6 +502,34 @@ export default function RoutesPage() {
     if (!route) return;
     setSelectedRoute(route);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleAddRouteStop = (route: Route) => {
+    if (!route) return;
+    setSelectedRouteForStop(route);
+    setIsRouteStopModalOpen(true);
+  };
+
+  const handleViewRouteStops = (route: Route) => {
+    if (!route) return;
+    setSelectedRouteForView(route);
+    setIsRouteStopsViewModalOpen(true);
+  };
+
+  const fetchRouteStopsCount = async (routeId: number) => {
+    try {
+      const response = await dispatch(fetchRouteStops(routeId)).unwrap();
+      setRouteStopsCount((prev) => ({
+        ...prev,
+        [routeId]: response.length,
+      }));
+    } catch (error) {
+      console.error(`Error fetching stops count for route ${routeId}:`, error);
+      setRouteStopsCount((prev) => ({
+        ...prev,
+        [routeId]: 0,
+      }));
+    }
   };
 
   const handleAddStop = (name: string, lat: number, lng: number) => {
@@ -492,21 +654,43 @@ export default function RoutesPage() {
   useEffect(() => {
     const schoolId = localStorage.getItem("schoolId");
     console.log("Routes useEffect - schoolId:", schoolId);
+
     if (schoolId) {
       console.log("Dispatching fetchRoutes with schoolId:", parseInt(schoolId));
-      // Always fetch data, even if it already exists
-      dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+      // Only fetch routes if they don't already exist
+      if (!routes || routes.length === 0) {
+        dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+      }
       dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
       dispatch(fetchDrivers());
       dispatch(fetchRouteAssignments({ schoolId: parseInt(schoolId) }));
       dispatch(fetchGrades({ schoolId: parseInt(schoolId) }));
-      setDataLoaded(true);
     } else {
       console.log("No schoolId found in localStorage");
     }
+
+    // Test toast to verify notifications are working
+    toast({
+      title: "Routes Page Loaded",
+      description: "Notifications are working correctly!",
+    });
+
+    // Cleanup function
+    return () => {
+      // Clear any pending operations if needed
+    };
   }, []); // Remove dispatch dependency to ensure it runs on every mount
 
-
+  // Fetch route stops count when routes are loaded
+  useEffect(() => {
+    if (routes && routes.length > 0) {
+      routes.forEach((route) => {
+        if (route.id && !routeStopsCount[route.id]) {
+          fetchRouteStopsCount(route.id);
+        }
+      });
+    }
+  }, [routes]);
 
   useEffect(() => {
     // Load Google Maps script
@@ -998,8 +1182,8 @@ export default function RoutesPage() {
       const assignmentData = {
         student: values.student,
         route: values.route,
-        pickup_stop: null, // Explicitly set to null
-        dropoff_stop: null, // Explicitly set to null
+        pickup_stop: values.pickup_stop,
+        dropoff_stop: values.dropoff_stop,
         is_active: values.is_active,
         schedule_days: values.schedule_days,
       } satisfies Omit<RouteAssignment, "id">;
@@ -1013,6 +1197,7 @@ export default function RoutesPage() {
       // Close dialog and reset form
       setIsAssignRouteModalOpen(false);
       assignmentForm.reset();
+      setSelectedRouteStops([]);
     } catch (err) {
       console.error("Route assignment error:", err);
 
@@ -1087,6 +1272,7 @@ export default function RoutesPage() {
                       assignmentForm.reset();
                       setStudentSearchTerm("");
                       setRouteSearchTerm("");
+                      setSelectedRouteStops([]);
                     }
                   }}
                 >
@@ -1189,10 +1375,16 @@ export default function RoutesPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Select Route</FormLabel>
+                              <p className="text-xs text-gray-500 mb-2">
+                                Choose a route to see available stops for pickup
+                                and dropoff
+                              </p>
                               <Select
-                                onValueChange={(value) =>
-                                  field.onChange(parseInt(value))
-                                }
+                                onValueChange={(value) => {
+                                  const routeId = parseInt(value);
+                                  field.onChange(routeId);
+                                  handleRouteSelection(routeId);
+                                }}
                                 value={field.value.toString()}
                               >
                                 <FormControl>
@@ -1246,6 +1438,160 @@ export default function RoutesPage() {
                             </FormItem>
                           )}
                         />
+
+                        {/* Route Stops Selection */}
+                        {isLoadingStops && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-base font-semibold">
+                                Route Stops
+                              </Label>
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                                Loading stops...
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedRouteStops.length > 0 && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-base font-semibold">
+                                Route Stops ({selectedRouteStops.length} stops
+                                found)
+                              </Label>
+                            </div>
+
+                            <div className="space-y-4">
+                              <FormField
+                                control={assignmentForm.control}
+                                name="pickup_stop"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Route Stop</FormLabel>
+                                    <Select
+                                      onValueChange={(value) => {
+                                        const stopId = parseInt(value);
+                                        field.onChange(stopId);
+                                        // Also update dropoff_stop with the same value
+                                        assignmentForm.setValue(
+                                          "dropoff_stop",
+                                          stopId
+                                        );
+                                      }}
+                                      value={field.value?.toString() || ""}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select route stop" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {selectedRouteStops.map((stop) => (
+                                          <SelectItem
+                                            key={stop.id}
+                                            value={stop.id.toString()}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">
+                                                {stop.name}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                Stop {stop.sequence}
+                                              </span>
+                                            </div>
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      This stop will be used for both pickup and
+                                      dropoff
+                                    </p>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            {/* Stops Preview */}
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">
+                                Route Stops Preview
+                              </Label>
+                              <div className="max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                                {selectedRouteStops.map((stop) => (
+                                  <div
+                                    key={stop.id}
+                                    className="flex items-center space-x-3 py-2 border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                      <span className="text-xs font-medium text-blue-600">
+                                        {stop.sequence}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {stop.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        Coordinates: {stop.lat.toFixed(6)},{" "}
+                                        {stop.lng.toFixed(6)}
+                                      </p>
+                                      <div className="flex gap-1 mt-1">
+                                        {stop.is_pickup && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs bg-green-50 text-green-700 border-green-200"
+                                          >
+                                            Pickup
+                                          </Badge>
+                                        )}
+                                        {stop.is_dropoff && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                                          >
+                                            Dropoff
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      Stop {stop.sequence}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">
+                                Select pickup and dropoff stops from the options
+                                above to assign to the student.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {!isLoadingStops &&
+                          selectedRouteStops.length === 0 &&
+                          assignmentForm.watch("route") && (
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-base font-semibold">
+                                  Route Stops
+                                </Label>
+                              </div>
+                              <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
+                                  <span className="text-sm text-amber-700">
+                                    No stops found for this route. The route may
+                                    not have path coordinates defined.
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                         <FormField
                           control={assignmentForm.control}
@@ -1645,143 +1991,6 @@ export default function RoutesPage() {
                           )}
                         />
 
-                        {/* Route Stops Section */}
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-base font-semibold">
-                              Route Stops
-                            </Label>
-                            <p className="text-sm text-gray-600 mt-1">
-                              Add intermediate stops for this route
-                            </p>
-                          </div>
-
-                          {/* Stop Search Input */}
-                          <div className="space-y-2">
-                            <Label>Add Stop</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                ref={stopSearchInputRef}
-                                placeholder="Search for a location to add as a stop..."
-                                value={stopSearchTerm}
-                                onChange={(e) =>
-                                  setStopSearchTerm(e.target.value)
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }
-                                }}
-                                className="flex-1"
-                                autoComplete="off"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                  console.log(
-                                    "Add button clicked, stopSearchTerm:",
-                                    stopSearchTerm
-                                  );
-                                  if (stopSearchTerm.trim()) {
-                                    // Get coordinates from the search input
-                                    const geocoder = new google.maps.Geocoder();
-                                    console.log(
-                                      "Geocoding address:",
-                                      stopSearchTerm
-                                    );
-                                    geocoder.geocode(
-                                      { address: stopSearchTerm },
-                                      (results, status) => {
-                                        console.log("Geocoding results:", {
-                                          results,
-                                          status,
-                                        });
-                                        if (status === "OK" && results?.[0]) {
-                                          const lat =
-                                            results[0].geometry.location?.lat() ||
-                                            0;
-                                          const lng =
-                                            results[0].geometry.location?.lng() ||
-                                            0;
-                                          console.log("Found coordinates:", {
-                                            lat,
-                                            lng,
-                                          });
-                                          handleAddStop(
-                                            stopSearchTerm,
-                                            lat,
-                                            lng
-                                          );
-                                        } else {
-                                          console.log(
-                                            "Geocoding failed:",
-                                            status
-                                          );
-                                          toast({
-                                            title: "Error",
-                                            description:
-                                              "Could not find coordinates for this location",
-                                            variant: "destructive",
-                                          });
-                                        }
-                                      }
-                                    );
-                                  } else {
-                                    console.log(
-                                      "stopSearchTerm is empty or whitespace"
-                                    );
-                                  }
-                                }}
-                                disabled={!stopSearchTerm.trim()}
-                              >
-                                Add
-                              </Button>
-                            </div>
-                          </div>
-
-                          {/* Stops List */}
-                          {routeStops.length > 0 && (
-                            <div className="space-y-2">
-                              <Label>Added Stops ({routeStops.length})</Label>
-                              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                                {routeStops.map((stop, index) => (
-                                  <div
-                                    key={index}
-                                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                                  >
-                                    <div className="flex items-center space-x-3">
-                                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-xs font-medium text-blue-600">
-                                          {stop.sequence}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <p className="font-medium text-sm">
-                                          {stop.name}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          {stop.lat.toFixed(6)},{" "}
-                                          {stop.lng.toFixed(6)}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveStop(index)}
-                                      className="text-red-500 hover:text-red-700"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
                         <div className="flex justify-end">
                           <Button
                             type="submit"
@@ -1880,6 +2089,9 @@ export default function RoutesPage() {
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                       Schedule
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Route Stops
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
                       Status
@@ -2039,6 +2251,19 @@ export default function RoutesPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewRouteStops(route)}
+                              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            >
+                              <MapPin className="w-4 h-4" />
+                              <span className="text-sm font-medium">
+                                View Stops
+                              </span>
+                            </Button>
+                          </td>
+                          <td className="px-6 py-4">
                             <Badge
                               variant={
                                 route.is_active ? "default" : "secondary"
@@ -2087,6 +2312,13 @@ export default function RoutesPage() {
                                 >
                                   <Edit className="h-4 w-4 mr-2 text-green-600" />
                                   <span>Edit Route</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleAddRouteStop(route)}
+                                  className="cursor-pointer"
+                                >
+                                  <MapPin className="h-4 w-4 mr-2 text-purple-600" />
+                                  <span>Add Route Stop</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleDelete(route)}
@@ -2685,6 +2917,37 @@ export default function RoutesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Route Stop Modal */}
+      {selectedRouteForStop && (
+        <RouteStopModal
+          isOpen={isRouteStopModalOpen}
+          onClose={() => {
+            setIsRouteStopModalOpen(false);
+            setSelectedRouteForStop(null);
+            // Refresh the stops count for this route
+            if (selectedRouteForStop.id) {
+              fetchRouteStopsCount(selectedRouteForStop.id);
+            }
+          }}
+          routeId={selectedRouteForStop.id!}
+          routeName={selectedRouteForStop.name}
+          currentSequenceNumber={1} // You can calculate this based on existing stops
+        />
+      )}
+
+      {/* Route Stops View Modal */}
+      {selectedRouteForView && (
+        <RouteStopsViewModal
+          isOpen={isRouteStopsViewModalOpen}
+          onClose={() => {
+            setIsRouteStopsViewModalOpen(false);
+            setSelectedRouteForView(null);
+          }}
+          routeId={selectedRouteForView.id!}
+          routeName={selectedRouteForView.name}
+        />
+      )}
     </div>
   );
 }

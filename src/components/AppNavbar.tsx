@@ -21,6 +21,9 @@ const AppNavbar = ({ onMenuClick }: AppNavbarProps) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+  const { notifications } = useSelector(
+    (state: RootState) => state.notifications
+  );
 
   const handleLogout = () => {
     dispatch(logout());
@@ -52,9 +55,11 @@ const AppNavbar = ({ onMenuClick }: AppNavbarProps) => {
             onClick={() => navigate("/notifications")}
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
-              3
-            </span>
+            {notifications && notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center">
+                {notifications.length}
+              </span>
+            )}
           </Button>
 
           <DropdownMenu>

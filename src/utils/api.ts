@@ -17,8 +17,9 @@ export const API_ENDPOINTS = {
   TRIPS: `${API_BASE_URL}/trips/`,
   GRADES: `${API_BASE_URL}/grades/`,
   PREFERENCES: `${API_BASE_URL}/preferences/`,
-  NOTIFICATIONS: `${API_BASE_URL}/parent-notifications/`, // Temporary: use trips endpoint until notifications API is ready
-  NOTIFICATIONS_CREATE: `${API_BASE_URL}/parent-notifications/create/`, // Temporary: use trips endpoint until notifications API is ready
+  NOTIFICATIONS: `${API_BASE_URL}/school-admin-notifications/`,
+  NOTIFICATIONS_CREATE: `${API_BASE_URL}/school-admin-notifications/`,
   CSV_UPLOAD: `${API_BASE_URL}/csv-upload/`,
+  REPORTS: `${API_BASE_URL}/reports/`,
   // Add other endpoints as needed
 };

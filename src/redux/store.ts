@@ -17,6 +17,7 @@ import tripsReducer from "./slices/tripsSlice";
 import gradesReducer from "./slices/gradesSlice";
 import preferencesReducer from "./slices/preferencesSlice";
 import notificationsReducer from "./slices/notificationsSlice";
+import reportsReducer from "./slices/reportsSlice";
 
 // Configure persistence for auth slice
 const authPersistConfig = {
@@ -25,7 +26,18 @@ const authPersistConfig = {
   whitelist: ["user", "token", "userId"], // Only persist these fields
 };
 
+// Configure persistence for routes slice
+const routesPersistConfig = {
+  key: "routes",
+  storage,
+  whitelist: ["routes"], // Only persist the routes array
+};
+
 const persistedAuthReducer = persistReducer(authPersistConfig, authReducer);
+const persistedRoutesReducer = persistReducer(
+  routesPersistConfig,
+  routesReducer
+);
 
 const rootReducer = {
   auth: persistedAuthReducer,
@@ -33,7 +45,7 @@ const rootReducer = {
   parents: parentsReducer,
   drivers: driversReducer,
   vehicles: vehiclesReducer,
-  routes: routesReducer,
+  routes: persistedRoutesReducer,
   routeAssignments: routeAssignmentsReducer,
   staff: staffReducer,
   roles: roleReducer,
@@ -44,6 +56,7 @@ const rootReducer = {
   grades: gradesReducer,
   preferences: preferencesReducer,
   notifications: notificationsReducer,
+  reports: reportsReducer,
 };
 
 // Create store with explicit configuration

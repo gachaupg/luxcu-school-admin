@@ -2,6 +2,9 @@ import React, { useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { fetchOverviewData } from "@/redux/slices/overviewSlice";
 import { fetchUserPreferences } from "@/redux/slices/preferencesSlice";
+import { fetchNotifications } from "@/redux/slices/notificationsSlice";
+import { fetchParents } from "@/redux/slices/parentsSlice";
+import { fetchDrivers } from "@/redux/slices/driversSlice";
 import { StatOverviewCards } from "@/components/StatOverviewCards";
 import { RecentTripsTable } from "@/components/RecentTripsTable";
 import { TripsOverview } from "@/components/TripsOverview";
@@ -10,7 +13,15 @@ import { ThemeDemo } from "@/components/ThemeDemo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, AlertCircle, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  RefreshCw,
+  AlertCircle,
+  Loader2,
+  Bell,
+  Clock,
+  CheckCircle,
+} from "lucide-react";
 
 const Overview = () => {
   const dispatch = useAppDispatch();
@@ -35,6 +46,11 @@ const Overview = () => {
     },
   } = useAppSelector((state) => state.preferences);
 
+  // Get notifications, parents, and drivers data
+  const { notifications } = useAppSelector((state) => state.notifications);
+  const { parents } = useAppSelector((state) => state.parents);
+  const { drivers } = useAppSelector((state) => state.drivers);
+
   // Get school ID from localStorage or find it from schools
   const getSchoolId = () => {
     const storedSchoolId = localStorage.getItem("schoolId");
@@ -52,6 +68,9 @@ const Overview = () => {
   useEffect(() => {
     if (schoolId) {
       dispatch(fetchOverviewData({ schoolId }));
+      dispatch(fetchNotifications({ schoolId }));
+      dispatch(fetchParents({ schoolId }));
+      dispatch(fetchDrivers());
     }
     dispatch(fetchUserPreferences());
   }, [dispatch, schoolId]);
@@ -59,7 +78,55 @@ const Overview = () => {
   const handleRefresh = () => {
     if (schoolId) {
       dispatch(fetchOverviewData({ schoolId }));
+      dispatch(fetchNotifications({ schoolId }));
+      dispatch(fetchParents({ schoolId }));
+      dispatch(fetchDrivers());
     }
+  };
+
+  // Helper functions for notifications
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMinutes = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60) return `${diffInMinutes} min ago`;
+    if (diffInMinutes < 1440)
+      return `${Math.floor(diffInMinutes / 60)} hour${
+        Math.floor(diffInMinutes / 60) > 1 ? "s" : ""
+      } ago`;
+    return `${Math.floor(diffInMinutes / 1440)} day${
+      Math.floor(diffInMinutes / 1440) > 1 ? "s" : ""
+    } ago`;
+  };
+
+  const getNotificationTypeInfo = (type: string) => {
+    const types = {
+      ACTION_REQUIRED: {
+        color: "bg-orange-100 text-orange-800",
+        icon: AlertCircle,
+      },
+      SYSTEM: { color: "bg-blue-100 text-blue-800", icon: Bell },
+      INFO: { color: "bg-blue-100 text-blue-800", icon: Bell },
+      WARNING: { color: "bg-yellow-100 text-yellow-800", icon: AlertCircle },
+      EMERGENCY: { color: "bg-red-100 text-red-800", icon: AlertCircle },
+    };
+    return types[type as keyof typeof types] || types.INFO;
+  };
+
+  const getParentName = (parentId: number) => {
+    const parent = parents?.find((p) => p.id === parentId);
+    return parent ? parent.user_full_name : `Parent ${parentId}`;
+  };
+
+  const getDriverName = (driverId: number) => {
+    const driver = drivers?.find((d) => d.id === driverId);
+    return driver
+      ? `${driver.user_details.first_name} ${driver.user_details.last_name}`
+      : `Driver ${driverId}`;
   };
 
   // Show loading state while schools are being fetched
@@ -188,64 +255,110 @@ const Overview = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     Recent Notifications
+                    {notifications && notifications.length > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {notifications.length}
+                      </Badge>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold text-blue-900 dark:text-blue-100 text-sm">
-                            New Driver Registration
-                          </p>
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            Driver John Doe has completed registration
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        2 min ago
-                      </span>
+                  {!notifications || notifications.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">
+                        No notifications yet
+                      </p>
                     </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.slice(0, 5).map((notification: any) => {
+                        const typeInfo = getNotificationTypeInfo(
+                          notification.notification_type || "INFO"
+                        );
+                        const TypeIcon = typeInfo.icon;
 
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-green-100 dark:border-green-900/30 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold text-green-900 dark:text-green-100 text-sm">
-                            Trip Completed
-                          </p>
-                          <p className="text-xs text-green-700 dark:text-green-300">
-                            Route A morning trip has been completed successfully
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        15 min ago
-                      </span>
+                        return (
+                          <div
+                            key={notification.id}
+                            className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 rounded-xl border shadow-sm hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex items-center gap-3 flex-1">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  notification.notification_type ===
+                                  "ACTION_REQUIRED"
+                                    ? "bg-orange-500"
+                                    : notification.notification_type ===
+                                      "EMERGENCY"
+                                    ? "bg-red-500"
+                                    : notification.notification_type ===
+                                      "WARNING"
+                                    ? "bg-yellow-500"
+                                    : "bg-blue-500"
+                                }`}
+                              ></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge
+                                    className={`text-xs ${typeInfo.color}`}
+                                  >
+                                    <TypeIcon className="w-3 h-3 mr-1" />
+                                    {notification.notification_type || "INFO"}
+                                  </Badge>
+                                  {notification.is_read && (
+                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                  )}
+                                </div>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                  School:{" "}
+                                  {notification.school_name || "Unknown"}
+                                </p>
+                                {/* Show targeted recipients if any */}
+                                {(notification.parents?.length > 0 ||
+                                  notification.drivers?.length > 0) && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {notification.parents?.length > 0 && (
+                                      <span className="text-xs text-blue-600">
+                                        Parents:{" "}
+                                        {notification.parents
+                                          .map(getParentName)
+                                          .join(", ")}
+                                      </span>
+                                    )}
+                                    {notification.drivers?.length > 0 && (
+                                      <span className="text-xs text-green-600">
+                                        Drivers:{" "}
+                                        {notification.drivers
+                                          .map(getDriverName)
+                                          .join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 ml-3">
+                              <span className="text-xs text-gray-500 font-medium">
+                                {notification.created_at
+                                  ? formatDate(notification.created_at)
+                                  : "N/A"}
+                              </span>
+                              {!notification.is_read && (
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-
-                    <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-yellow-100 dark:border-yellow-900/30 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <div>
-                          <p className="font-semibold text-yellow-900 dark:text-yellow-100 text-sm">
-                            Maintenance Due
-                          </p>
-                          <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                            Vehicle KCA 123A is due for maintenance
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
-                        1 hour ago
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             )}
