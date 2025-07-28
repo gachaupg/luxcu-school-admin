@@ -168,79 +168,9 @@ export default function Reports() {
             {/* Trip Results Table */}
             <div className="bg-white rounded-xl shadow p-0 mb-8 border border-gray-200">
             <Trips/>
-              <div className="px-6 pt-6 pb-2 text-base font-medium text-gray-700">
-                "3" results found
-              </div>
-              <div className="overflow-x-auto px-6">
-                <table className="min-w-full text-sm mt-2">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600">
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Trip ID
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Route
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Total Students
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Picked
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Trip Type
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Alerts
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-left font-semibold">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockTrips.map((trip, i) => (
-                      <tr
-                        key={trip.id}
-                        className="border-b last:border-0 hover:bg-gray-50"
-                      >
-                        <td className="px-4 py-3">{trip.id}</td>
-                        <td className="px-4 py-3">{trip.route}</td>
-                        <td className="px-4 py-3">{trip.total}</td>
-                        <td className="px-4 py-3">{trip.picked}</td>
-                        <td className="px-4 py-3">{trip.type}</td>
-                        <td className="px-4 py-3">{trip.alerts}</td>
-                        <td className="px-4 py-3">
-                          <span className="bg-green-100 text-green-700 px-4 py-1 rounded-full text-xs font-semibold">
-                            Completed
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-gray-400 text-xl font-bold cursor-pointer">
-                          &#8942;
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {/* Pagination Controls */}
-              <div className="flex items-center justify-end px-6 py-3 border-t border-gray-100 bg-white rounded-b-xl">
-                <span className="text-xs text-gray-500 mr-4">
-                  Showing 1-10 of 1,253
-                </span>
-                <button
-                  className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-400 mr-2 disabled:opacity-50"
-                  disabled
-                >
-                  &#60;
-                </button>
-                <button className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 text-gray-700">
-                  &#62;
-                </button>
-              </div>
+             
+             
+            
             </div>
             {/* Tab Navigation */}
             <div className="flex items-center gap-8 border-b border-gray-200 mb-8 px-2">

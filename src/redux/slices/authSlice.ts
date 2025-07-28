@@ -89,10 +89,8 @@ const initialState: AuthState = {
   isInitialized: false,
 };
 
-// Initialize API headers if token exists
-if (initialState.token) {
-  api.defaults.headers.common["Authorization"] = `Bearer ${initialState.token}`;
-}
+// Note: API headers will be set by the auth interceptor in api.ts
+// No need to set them here during module initialization
 
 export const login = createAsyncThunk<
   { token: string; user: User },
@@ -111,7 +109,7 @@ export const login = createAsyncThunk<
           const data = JSON.parse(xhr.responseText);
           if (data.data?.token) {
             const { token, user } = data.data;
-            api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            // Note: API headers will be set by the auth interceptor
             resolve({ token, user });
           } else {
             reject(rejectWithValue("Invalid response from server"));
@@ -151,11 +149,7 @@ export const verifyOTP = createAsyncThunk<
       API_ENDPOINTS.VERIFY_OTP,
       otpData
     );
-    if (response.data.token) {
-      api.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${response.data.token}`;
-    }
+    // Note: API headers will be set by the auth interceptor
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ApiError>;
@@ -177,7 +171,7 @@ export const register = createAsyncThunk<
     );
     if (response.data.data?.token) {
       const { token, user } = response.data.data;
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      // Note: API headers will be set by the auth interceptor
       return { token, user };
     } else {
       return rejectWithValue("Invalid response from server");
@@ -202,7 +196,8 @@ const authSlice = createSlice({
       state.isInitialized = true;
       localStorage.removeItem("schoolId");
       localStorage.removeItem("persist:auth");
-      delete api.defaults.headers.common["Authorization"];
+      localStorage.removeItem("token");
+      // Note: API headers will be cleared by the auth interceptor
     },
     clearError: (state) => {
       state.error = null;
@@ -219,7 +214,8 @@ const authSlice = createSlice({
         state.isInitialized = true;
         localStorage.removeItem("schoolId");
         localStorage.removeItem("persist:auth");
-        delete api.defaults.headers.common["Authorization"];
+        localStorage.removeItem("token");
+        // Note: API headers will be cleared by the auth interceptor
       }
     },
     initializeAuth: (state) => {
@@ -238,6 +234,8 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isInitialized = true;
+        // Store token in localStorage for API interceptor
+        localStorage.setItem("token", action.payload.token);
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -257,6 +255,8 @@ const authSlice = createSlice({
           state.token = action.payload.token;
           state.verificationStatus = "verified";
           state.isInitialized = true;
+          // Store token in localStorage for API interceptor
+          localStorage.setItem("token", action.payload.token);
         }
       )
       .addCase(verifyOTP.rejected, (state, action) => {
@@ -275,6 +275,8 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isInitialized = true;
+        // Store token in localStorage for API interceptor
+        localStorage.setItem("token", action.payload.token);
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;

@@ -130,7 +130,83 @@ export const createTrip = createAsyncThunk<
 >("trips/createTrip", async (tripData, { rejectWithValue }) => {
   try {
     console.log("Creating trip with data:", tripData);
-    const response = await api.post(API_ENDPOINTS.TRIPS, tripData);
+
+    // Debug: Check if auth token is available
+    try {
+      const persistData = localStorage.getItem("persist:auth");
+      if (persistData) {
+        const parsed = JSON.parse(persistData);
+        let token = JSON.parse(parsed.token || "null");
+
+        // Handle double-stringified token
+        if (typeof token === "string") {
+          try {
+            token = JSON.parse(token);
+          } catch (e) {
+            // Keep original if second parse fails
+          }
+        }
+
+        console.log("Auth token available:", !!token);
+        if (token) {
+          console.log("Token preview:", token.substring(0, 20) + "...");
+        }
+      } else {
+        console.log("No persist:auth data found in localStorage");
+      }
+
+      // Also check for direct token storage
+      const directToken = localStorage.getItem("token");
+      if (directToken) {
+        console.log(
+          "Direct token found:",
+          directToken.substring(0, 20) + "..."
+        );
+      }
+    } catch (error) {
+      console.warn("Error checking auth token:", error);
+    }
+
+    // Ensure school ID is included
+    const schoolId = localStorage.getItem("schoolId");
+    const tripDataWithSchool = {
+      ...tripData,
+      school: tripData.school || parseInt(schoolId || "0"),
+    };
+
+    console.log("Trip data with school:", tripDataWithSchool);
+
+    // Manual token setting as fallback
+    let token = null;
+    try {
+      const persistData = localStorage.getItem("persist:auth");
+      if (persistData) {
+        const parsed = JSON.parse(persistData);
+        token = JSON.parse(parsed.token || "null");
+        if (typeof token === "string") {
+          try {
+            token = JSON.parse(token);
+          } catch (e) {
+            // Keep original if second parse fails
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Error getting token for manual setting:", error);
+    }
+
+    // Create request config with manual auth header if needed
+    const requestConfig = {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    };
+
+    console.log("Request config:", requestConfig);
+
+    const response = await api.post(
+      API_ENDPOINTS.TRIPS,
+      tripDataWithSchool,
+      requestConfig
+    );
     console.log("Trip creation response:", response.data);
 
     // Transform the response to match our frontend structure
@@ -148,8 +224,16 @@ export const createTrip = createAsyncThunk<
   } catch (error) {
     console.error("Trip creation error:", error);
     if (error instanceof AxiosError) {
+      console.error("Axios error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+      });
       return rejectWithValue(
-        error.response?.data?.message || "Failed to create trip"
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Failed to create trip"
       );
     }
     return rejectWithValue("Failed to create trip");

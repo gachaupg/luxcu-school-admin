@@ -10,7 +10,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const ThemeToggle = () => {
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme, isDark, setTheme, toggleTheme } = useTheme();
+
+  // Get the current effective theme for display
+  const getCurrentDisplayTheme = () => {
+    if (theme === "auto") {
+      return isDark ? "dark" : "light";
+    }
+    return theme;
+  };
+
+  const currentDisplay = getCurrentDisplayTheme();
 
   return (
     <DropdownMenu>
@@ -22,26 +32,41 @@ export const ThemeToggle = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => setTheme("light")}
           className={theme === "light" ? "bg-accent" : ""}
         >
           <Sun className="mr-2 h-4 w-4" />
-          <span>Light</span>
+          <span>Force Light</span>
+          {theme === "light" && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              Active
+            </span>
+          )}
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => setTheme("dark")}
           className={theme === "dark" ? "bg-accent" : ""}
         >
           <Moon className="mr-2 h-4 w-4" />
-          <span>Dark</span>
+          <span>Force Dark</span>
+          {theme === "dark" && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              Active
+            </span>
+          )}
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={() => setTheme("auto")}
           className={theme === "auto" ? "bg-accent" : ""}
         >
           <Monitor className="mr-2 h-4 w-4" />
-          <span>System</span>
+          <span>Follow System</span>
+          {theme === "auto" && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {currentDisplay === "dark" ? "Dark" : "Light"}
+            </span>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

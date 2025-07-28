@@ -272,6 +272,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentSchool) {
+      console.log("Current school data:", currentSchool);
+      console.log("School coordinates:", {
+        longitude_point: currentSchool.longitude_point,
+        latitude_point: currentSchool.latitude_point,
+        school_longitude: currentSchool.school_longitude,
+        school_latitude: currentSchool.school_latitude,
+      });
+
       setSchoolFormData({
         name: currentSchool.name || "",
         location: currentSchool.location || "",
@@ -373,6 +381,17 @@ export default function SettingsPage() {
     }
   };
 
+  // Helper function to safely render values
+  const safeRenderValue = (value: any): string => {
+    if (value === null || value === undefined) {
+      return "Not set";
+    }
+    if (typeof value === "object") {
+      return "Complex data (not displayed)";
+    }
+    return String(value);
+  };
+
   return (
     <div className="min-h-screen bg-background flex w-full">
       {/* Sidebar */}
@@ -418,33 +437,19 @@ export default function SettingsPage() {
                       <span className="ml-2">Loading school details...</span>
                     </div>
                   ) : currentSchool ? (
-                    <form onSubmit={handleSchoolUpdate} className="space-y-6">
+                    <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="name">School Name</Label>
-                          <Input
-                            id="name"
-                            value={schoolFormData.name}
-                            onChange={(e) =>
-                              handleInputChange("name", e.target.value)
-                            }
-                            placeholder="Enter school name"
-                            required
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.name}
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
-                          <Input
-                            ref={locationInputRef}
-                            id="location"
-                            value={schoolFormData.location}
-                            onChange={(e) =>
-                              handleInputChange("location", e.target.value)
-                            }
-                            placeholder="Search for school location..."
-                            required
-                            autoComplete="off"
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.location}
+                          </div>
                         </div>
                       </div>
 
@@ -458,17 +463,22 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="school_location">
-                            Search for School Location
+                            School Location Coordinates
                           </Label>
-                          <Input
-                            ref={schoolLocationInputRef}
-                            id="school_location"
-                            placeholder="Search for specific school location..."
-                            autoComplete="off"
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {typeof schoolFormData.school_latitude ===
+                              "number" &&
+                            typeof schoolFormData.school_longitude === "number"
+                              ? `${safeRenderValue(
+                                  schoolFormData.school_latitude
+                                )}, ${safeRenderValue(
+                                  schoolFormData.school_longitude
+                                )}`
+                              : "Not set"}
+                          </div>
                           <p className="text-sm text-gray-500">
-                            Search for your school's exact location to set
-                            precise coordinates
+                            School-specific coordinates for precise location
+                            tracking
                           </p>
                         </div>
                       </div>
@@ -484,35 +494,17 @@ export default function SettingsPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                               <Label htmlFor="latitude">Latitude</Label>
-                              <Input
-                                id="latitude"
-                                value={schoolFormData.latitude_point || ""}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "latitude_point",
-                                    parseFloat(e.target.value) || null
-                                  )
-                                }
-                                placeholder="Latitude"
-                                type="number"
-                                step="any"
-                              />
+                              <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                                {safeRenderValue(schoolFormData.latitude_point)}
+                              </div>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="longitude">Longitude</Label>
-                              <Input
-                                id="longitude"
-                                value={schoolFormData.longitude_point || ""}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "longitude_point",
-                                    parseFloat(e.target.value) || null
-                                  )
-                                }
-                                placeholder="Longitude"
-                                type="number"
-                                step="any"
-                              />
+                              <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                                {safeRenderValue(
+                                  schoolFormData.longitude_point
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -531,37 +523,21 @@ export default function SettingsPage() {
                               <Label htmlFor="school_latitude">
                                 School Latitude
                               </Label>
-                              <Input
-                                id="school_latitude"
-                                value={schoolFormData.school_latitude || ""}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "school_latitude",
-                                    parseFloat(e.target.value) || null
-                                  )
-                                }
-                                placeholder="School Latitude"
-                                type="number"
-                                step="any"
-                              />
+                              <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                                {safeRenderValue(
+                                  schoolFormData.school_latitude
+                                )}
+                              </div>
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="school_longitude">
                                 School Longitude
                               </Label>
-                              <Input
-                                id="school_longitude"
-                                value={schoolFormData.school_longitude || ""}
-                                onChange={(e) =>
-                                  handleInputChange(
-                                    "school_longitude",
-                                    parseFloat(e.target.value) || null
-                                  )
-                                }
-                                placeholder="School Longitude"
-                                type="number"
-                                step="any"
-                              />
+                              <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                                {safeRenderValue(
+                                  schoolFormData.school_longitude
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -569,45 +545,24 @@ export default function SettingsPage() {
 
                       <div className="space-y-2">
                         <Label htmlFor="description">Description</Label>
-                        <Textarea
-                          id="description"
-                          value={schoolFormData.description}
-                          onChange={(e) =>
-                            handleInputChange("description", e.target.value)
-                          }
-                          placeholder="Enter school description"
-                          rows={3}
-                        />
+                        <div className="p-3 bg-gray-50 border rounded-md text-gray-700 min-h-[80px]">
+                          {schoolFormData.description ||
+                            "No description available"}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="contact_number">Contact Number</Label>
-                          <Input
-                            id="contact_number"
-                            value={schoolFormData.contact_number}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "contact_number",
-                                e.target.value
-                              )
-                            }
-                            placeholder="Enter contact number"
-                            required
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.contact_number}
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={schoolFormData.email}
-                            onChange={(e) =>
-                              handleInputChange("email", e.target.value)
-                            }
-                            placeholder="Enter email address"
-                            required
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.email}
+                          </div>
                         </div>
                       </div>
 
@@ -616,35 +571,17 @@ export default function SettingsPage() {
                           <Label htmlFor="operating_hours_start">
                             Operating Hours Start
                           </Label>
-                          <Input
-                            id="operating_hours_start"
-                            type="time"
-                            value={schoolFormData.operating_hours_start}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "operating_hours_start",
-                                e.target.value
-                              )
-                            }
-                            required
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.operating_hours_start}
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="operating_hours_end">
                             Operating Hours End
                           </Label>
-                          <Input
-                            id="operating_hours_end"
-                            type="time"
-                            value={schoolFormData.operating_hours_end}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "operating_hours_end",
-                                e.target.value
-                              )
-                            }
-                            required
-                          />
+                          <div className="p-3 bg-gray-50 border rounded-md text-gray-700">
+                            {schoolFormData.operating_hours_end}
+                          </div>
                         </div>
                       </div>
 
@@ -663,16 +600,19 @@ export default function SettingsPage() {
                                 parents and drivers
                               </p>
                             </div>
-                            <Switch
-                              id="notification_enabled"
-                              checked={schoolFormData.notification_enabled}
-                              onCheckedChange={(checked) =>
-                                handleInputChange(
-                                  "notification_enabled",
-                                  checked
-                                )
-                              }
-                            />
+                            <div className="p-2 bg-gray-50 border rounded-md">
+                              <span
+                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                  schoolFormData.notification_enabled
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {schoolFormData.notification_enabled
+                                  ? "Enabled"
+                                  : "Disabled"}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center justify-between">
                             <div>
@@ -684,16 +624,19 @@ export default function SettingsPage() {
                                 location
                               </p>
                             </div>
-                            <Switch
-                              id="allow_parent_tracking"
-                              checked={schoolFormData.allow_parent_tracking}
-                              onCheckedChange={(checked) =>
-                                handleInputChange(
-                                  "allow_parent_tracking",
-                                  checked
-                                )
-                              }
-                            />
+                            <div className="p-2 bg-gray-50 border rounded-md">
+                              <span
+                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                  schoolFormData.allow_parent_tracking
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {schoolFormData.allow_parent_tracking
+                                  ? "Enabled"
+                                  : "Disabled"}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center justify-between">
                             <div>
@@ -702,37 +645,30 @@ export default function SettingsPage() {
                                 Enable or disable the school account
                               </p>
                             </div>
-                            <Switch
-                              id="is_active"
-                              checked={schoolFormData.is_active}
-                              onCheckedChange={(checked) =>
-                                handleInputChange("is_active", checked)
-                              }
-                            />
+                            <div className="p-2 bg-gray-50 border rounded-md">
+                              <span
+                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                  schoolFormData.is_active
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {schoolFormData.is_active
+                                  ? "Active"
+                                  : "Inactive"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex justify-end pt-6">
-                        <Button
-                          type="submit"
-                          disabled={isUpdatingSchool}
-                          className="bg-green-500 hover:bg-green-600 text-white"
-                        >
-                          {isUpdatingSchool ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Updating...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="mr-2 h-4 w-4" />
-                              Save Changes
-                            </>
-                          )}
-                        </Button>
+                        <div className="text-sm text-gray-500 italic">
+                          School information is read-only. Contact your
+                          administrator for updates.
+                        </div>
                       </div>
-                    </form>
+                    </div>
                   ) : (
                     <div className="text-center py-8">
                       <Building2 className="mx-auto h-12 w-12 text-gray-400" />
@@ -1148,15 +1084,20 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="text-lg font-semibold text-foreground">
                           Theme & Appearance
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <Label htmlFor="theme">Theme</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Choose how the application theme should behave.
+                              Light/Dark will override your system setting,
+                              while System will follow your OS preference.
+                            </p>
                             <select
                               id="theme"
-                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none bg-background border-border text-foreground"
                               value={theme}
                               onChange={(e) =>
                                 setTheme(
@@ -1164,9 +1105,15 @@ export default function SettingsPage() {
                                 )
                               }
                             >
-                              <option value="light">Light Theme</option>
-                              <option value="dark">Dark Theme</option>
-                              <option value="auto">Auto (System)</option>
+                              <option value="light">
+                                Light Theme (Force Light Mode)
+                              </option>
+                              <option value="dark">
+                                Dark Theme (Force Dark Mode)
+                              </option>
+                              <option value="auto">
+                                System (Follow OS Setting)
+                              </option>
                             </select>
                           </div>
                         </div>

@@ -395,7 +395,6 @@ export default function Trips() {
 
         {/* Trips Table */}
         <Card>
-        
           <CardContent>
             <div className="overflow-x-auto">
               <Table>

@@ -79,6 +79,11 @@ import { HeaderBar } from "../components/HeaderBar";
 import { Textarea } from "@/components/ui/textarea";
 import { parseDriverError } from "@/utils/errorHandler";
 import { ExportDropdown } from "@/components/ExportDropdown";
+import {
+  MultipleUploadModal,
+  DataPreviewModal,
+} from "@/components/multiple-upload";
+import { uploadCSVFile } from "@/services/csvUploadService";
 
 const Drivers = () => {
   const dispatch = useAppDispatch();
@@ -155,6 +160,11 @@ const Drivers = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  // Bulk upload state
+  const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
+  const [isDataPreviewOpen, setIsDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
+
   // Action handlers
   const handleView = (driver: Driver) => {
     setSelectedDriver(driver);
@@ -205,6 +215,113 @@ const Drivers = () => {
         variant: "destructive",
       });
     }
+  };
+
+  // Bulk upload handlers
+  const handleMultipleUpload = async (files: File[]) => {
+    try {
+      console.log("🚀 Starting CSV upload of", files.length, "files");
+
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        throw new Error("School ID not found");
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log(`📝 Processing file ${i + 1}/${files.length}:`, file.name);
+
+        try {
+          // Upload file to CSV upload endpoint
+          const response = await uploadCSVFile(file, "drivers");
+
+          if (response.success) {
+            console.log(`✅ File ${i + 1} uploaded successfully`);
+            totalSuccess += response.created_count || 0;
+            totalFailed += response.skipped_count || 0;
+
+            // Add any errors from the response
+            if (response.errors && response.errors.length > 0) {
+              response.errors.forEach((error) => {
+                if (typeof error === "string") {
+                  // Handle string errors
+                  allErrors.push(error);
+                } else if (error.row && error.field && error.message) {
+                  // Handle structured errors
+                  allErrors.push(
+                    `Row ${error.row}, ${error.field}: ${error.message}`
+                  );
+                } else {
+                  // Handle other error formats
+                  allErrors.push(JSON.stringify(error));
+                }
+              });
+            }
+
+            // Log created users for debugging
+            if (response.created_users && response.created_users.length > 0) {
+              console.log(
+                `📝 Created users from file ${file.name}:`,
+                response.created_users
+              );
+            }
+          } else {
+            console.error(`❌ File ${i + 1} upload failed:`, response.message);
+            totalFailed += 1;
+            allErrors.push(`File "${file.name}": ${response.message}`);
+          }
+        } catch (error: unknown) {
+          console.error(`❌ Failed to upload file ${i + 1}:`, error);
+          totalFailed += 1;
+
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          allErrors.push(`File "${file.name}": ${errorMessage}`);
+        }
+      }
+
+      // Show results
+      if (totalSuccess > 0) {
+        toast({
+          title: "CSV upload completed",
+          description: `Successfully created ${totalSuccess} drivers.${
+            totalFailed > 0 ? ` ${totalFailed} skipped.` : ""
+          }`,
+        });
+      }
+
+      if (totalFailed > 0) {
+        toast({
+          title: "Some records were skipped",
+          description: `${totalFailed} records were skipped. Check the console for details.`,
+          variant: "destructive",
+        });
+
+        // Log all errors for debugging
+        console.error("❌ Upload errors:", allErrors);
+      }
+
+      // Refresh drivers list
+      dispatch(fetchDrivers());
+    } catch (error: unknown) {
+      console.error("❌ CSV upload failed:", error);
+      toast({
+        title: "CSV upload failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      throw error; // Re-throw so the modal can handle it
+    }
+  };
+
+  const handleDataPreview = (data: Record<string, unknown>[]) => {
+    setPreviewData(data);
+    setIsDataPreviewOpen(true);
   };
 
   useEffect(() => {
@@ -1510,32 +1627,37 @@ const Drivers = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
-          {/* Page Title Only */}
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="w-8 h-8 text-green-500" /> Drivers
-            </h1>
-          </div>
+        <main className="flex-0 px-0 sm:px-0 py-0 w-full max-w-[98vw] mx-auto">
           <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="pb-3 border-b border-gray-100 flex flex-row w-full items-center justify-between">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <CardHeader className=" border-b border-gray-100 flex flex-row w-full items-center justify-between">
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center">
                 <Users className="w-6 h-6 text-green-500" />
                 Drivers List
               </CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={handleModalOpenChange}>
-                <DialogTrigger asChild>
-                  <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
-                    <Plus className="mr-2 h-4 w-4" /> Add Driver
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Driver</DialogTitle>
-                  </DialogHeader>
-                  <AddDriverForm />
-                </DialogContent>
-              </Dialog>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setIsMultipleUploadOpen(true)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                >
+                  <Download className="mr-2 h-4 w-4" /> Bulk Upload
+                </Button>
+                <Dialog
+                  open={isDialogOpen}
+                  onOpenChange={handleModalOpenChange}
+                >
+                  <DialogTrigger asChild>
+                    <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
+                      <Plus className="mr-2 h-4 w-4" /> Add Driver
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New Driver</DialogTitle>
+                    </DialogHeader>
+                    <AddDriverForm />
+                  </DialogContent>
+                </Dialog>
+              </div>
             </CardHeader>
             <CardContent>
               {/* Search and Filter Controls */}
@@ -1862,6 +1984,49 @@ const Drivers = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Multiple Upload Modal */}
+          <MultipleUploadModal
+            isOpen={isMultipleUploadOpen}
+            onClose={() => setIsMultipleUploadOpen(false)}
+            title="Bulk Upload Drivers"
+            description="Upload multiple drivers at once using CSV, PDF, or Word documents."
+            acceptedFileTypes={[
+              ".csv",
+              ".xlsx",
+              ".xls",
+              ".txt",
+              ".pdf",
+              ".doc",
+              ".docx",
+              ".html",
+            ]}
+            maxFileSize={10}
+            maxFiles={5}
+            onUpload={handleMultipleUpload}
+            onPreview={handleDataPreview}
+            uploadType="drivers"
+          />
+
+          {/* Data Preview Modal */}
+          <DataPreviewModal
+            isOpen={isDataPreviewOpen}
+            onClose={() => setIsDataPreviewOpen(false)}
+            data={previewData}
+            title="Driver Data Preview"
+            columns={[
+              "Name",
+              "Email",
+              "Phone Number",
+              "License Number",
+              "License Class",
+              "License Expiry",
+              "Is Assistant Driver",
+              "Last Health Check",
+              "Last Background Check",
+              "School ID",
+            ]}
+          />
         </main>
       </div>
     </div>

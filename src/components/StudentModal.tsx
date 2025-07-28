@@ -10,9 +10,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "./ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { Student } from "../redux/slices/studentsSlice";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { cn } from "@/lib/utils";
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -42,14 +57,20 @@ export function StudentModal({
     student
   );
   const { parents } = useSelector((state: RootState) => state.parents);
+  const { grades } = useSelector((state: RootState) => state.grades);
   const schoolId1 = localStorage.getItem("schoolId");
   const [parentsId, setParentsId] = useState(0);
+  const [open, setOpen] = useState(false);
   const filteredParents = (parents || []).filter(
     (parent) => parent.school === Number(schoolId)
+  );
+  const filteredGrades = (grades || []).filter(
+    (grade) => grade.school === Number(schoolId)
   );
 
   console.log(schoolId1);
   console.log(parentsId);
+  console.log("Available grades for school:", filteredGrades);
 
   const [formData, setFormData] = useState<Omit<Student, "id">>({
     first_name: "",
@@ -157,7 +178,13 @@ export function StudentModal({
     }
 
     if (!formData.grade || formData.grade === 0) {
-      alert("Please select a grade");
+      if (filteredGrades.length === 0) {
+        alert(
+          "No grades are available for this school. Please add grades first in the Grades tab."
+        );
+      } else {
+        alert("Please select a grade");
+      }
       return;
     }
 
@@ -290,47 +317,94 @@ export function StudentModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="parent">Parent</Label>
-              <Select
-                value={formData.parent ? formData.parent.toString() : ""}
-                onValueChange={(value) => {
-                  const parentId = Number(value);
-                  setParentsId(parentId);
-                  handleSelectChange("parent", value);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select parent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredParents.map((parent) => (
-                    <SelectItem key={parent.id} value={parent.id.toString()}>
-                      {parent.user_full_name ||
-                        `${parent.user_data?.first_name || ""} ${
-                          parent.user_data?.last_name || ""
-                        }`.trim() ||
-                        "Unknown Parent"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-full justify-between"
+                  >
+                    {formData.parent
+                      ? filteredParents.find((parent) => parent.id === formData.parent)?.user_full_name || "Unknown Parent"
+                      : "Select parent..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput placeholder="Search parent..." />
+                    <CommandList>
+                      <CommandEmpty>No parent found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredParents.map((parent) => (
+                          <CommandItem
+                            key={parent.id}
+                            value={`${parent.user_full_name || "Unknown Parent"} ${parent.user_phone_number || parent.phone_number || parent.user_data?.phone_number || ""}`}
+                            onSelect={() => {
+                              setParentsId(parent.id);
+                              handleSelectChange("parent", parent.id.toString());
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.parent === parent.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {parent.user_full_name || "Unknown Parent"} -{" "}
+                            {parent.user_phone_number ||
+                              parent.phone_number ||
+                              parent.user_data?.phone_number ||
+                              "No phone"}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="grade">Grade</Label>
               <Select
                 value={formData.grade ? formData.grade.toString() : ""}
                 onValueChange={(value) => handleSelectChange("grade", value)}
+                disabled={filteredGrades.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select grade" />
+                  <SelectValue
+                    placeholder={
+                      filteredGrades.length > 0
+                        ? "Select grade"
+                        : "No grades available"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((grade) => (
-                    <SelectItem key={grade} value={grade.toString()}>
-                      Grade {grade}
+                  {filteredGrades.length > 0 ? (
+                    filteredGrades.map((grade) => (
+                      <SelectItem
+                        key={grade.id}
+                        value={grade.id?.toString() || ""}
+                      >
+                        {grade.name} - {grade.level}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      No grades available for this school
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
+              {filteredGrades.length === 0 && (
+                <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
+                  ⚠️ No grades have been created for this school yet. Please add
+                  grades first in the Grades tab.
+                </p>
+              )}
             </div>
           </div>
 

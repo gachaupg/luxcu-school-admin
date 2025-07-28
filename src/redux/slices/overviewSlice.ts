@@ -4,7 +4,7 @@ import { fetchParents } from "./parentsSlice";
 import { fetchStaff } from "./staffSlice";
 import { fetchVehicles } from "./vehiclesSlice";
 import { fetchRoutes } from "./routesSlice";
-import { AppDispatch } from "../store";
+import type { AppDispatch } from "../store";
 
 interface OverviewStats {
   totalStudents: number;

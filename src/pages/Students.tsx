@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
   Users,
@@ -11,6 +11,16 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
+  Filter,
+  SortAsc,
+  SortDesc,
+  CheckSquare,
+  Square,
+  Download,
+  Upload,
+  RefreshCw,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import {
   createStudent,
@@ -35,6 +45,7 @@ import { GradeModal } from "../components/GradeModal";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
+import { Label } from "../components/ui/label";
 import {
   Card,
   CardContent,
@@ -63,7 +74,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "../components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
 import { ExportDropdown } from "../components/ExportDropdown";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function Students() {
   const dispatch = useAppDispatch();
@@ -78,11 +97,17 @@ export default function Students() {
   const { schools } = useAppSelector((state) => state.schools);
   const { user } = useAppSelector((state) => state.auth);
 
-  // Debug logging for students data
-  console.log("Students component render - students:", students);
-  console.log("Students component render - students length:", students?.length);
-  console.log("Students component render - loading:", loading);
-  console.log("Students component render - error:", error);
+  // Enhanced state management
+  const [selectedStudents, setSelectedStudents] = useState<Set<number>>(
+    new Set()
+  );
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof Student | null;
+    direction: "asc" | "desc";
+  }>({ key: null, direction: "asc" });
+  const [showFilters, setShowFilters] = useState(false);
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
 
   // Active tab state
   const [activeTab, setActiveTab] = useState("students");
@@ -169,38 +194,62 @@ export default function Students() {
     }
   }, [isDeleteDialogOpen, selectedStudent]);
 
-  // Debug edit modal state changes
-  useEffect(() => {
-    console.log("Edit modal state changed - isEditModalOpen:", isEditModalOpen);
-    console.log("Selected student:", selectedStudent);
-  }, [isEditModalOpen, selectedStudent]);
+  // Enhanced filtering and sorting logic
+  const filteredStudents = useMemo(() => {
+    const filtered = (students || []).filter((student) => {
+      const matchesSearch =
+        (student.first_name?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase()
+        ) ||
+        (student.last_name?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase()
+        ) ||
+        (student.admission_number?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase()
+        ) ||
+        (student.section?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase()
+        ) ||
+        (student.middle_name?.toLowerCase() || "").includes(
+          searchTerm.toLowerCase()
+        );
 
-  // Filter students based on search term and status
-  const filteredStudents = (students || []).filter((student) => {
-    const matchesSearch =
-      (student.first_name?.toLowerCase() || "").includes(
-        searchTerm.toLowerCase()
-      ) ||
-      (student.last_name?.toLowerCase() || "").includes(
-        searchTerm.toLowerCase()
-      ) ||
-      (student.admission_number?.toLowerCase() || "").includes(
-        searchTerm.toLowerCase()
-      ) ||
-      (student.section?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && student.transport_enabled) ||
+        (statusFilter === "inactive" && !student.transport_enabled);
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && student.transport_enabled) ||
-      (statusFilter === "inactive" && !student.transport_enabled);
+      const matchesGrade =
+        gradeFilter === "all" || student.grade?.toString() === gradeFilter;
+      const matchesGender =
+        genderFilter === "all" || student.gender === genderFilter;
 
-    return matchesSearch && matchesStatus;
-  });
+      return matchesSearch && matchesStatus && matchesGrade && matchesGender;
+    });
 
-  console.log("Filtered students:", filteredStudents);
-  console.log("Filtered students length:", filteredStudents.length);
-  console.log("Search term:", searchTerm);
-  console.log("Status filter:", statusFilter);
+    // Apply sorting
+    if (sortConfig.key) {
+      return [...filtered].sort((a, b) => {
+        const aValue = a[sortConfig.key!];
+        const bValue = b[sortConfig.key!];
+
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+
+        const comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        return sortConfig.direction === "desc" ? -comparison : comparison;
+      });
+    }
+
+    return filtered;
+  }, [
+    students,
+    searchTerm,
+    statusFilter,
+    gradeFilter,
+    genderFilter,
+    sortConfig,
+  ]);
 
   // Filter grades based on search term
   const filteredGrades = (Array.isArray(grades) ? grades : []).filter(
@@ -228,11 +277,85 @@ export default function Students() {
   // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, gradeFilter, genderFilter]);
 
   useEffect(() => {
     setCurrentGradePage(1);
   }, [gradeSearchTerm]);
+
+  // Enhanced utility functions
+  const handleSort = useCallback((key: keyof Student) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }));
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedStudents.size === paginatedStudents.length) {
+      setSelectedStudents(new Set());
+    } else {
+      setSelectedStudents(new Set(paginatedStudents.map((s) => s.id!)));
+    }
+  }, [selectedStudents.size, paginatedStudents]);
+
+  const handleSelectStudent = useCallback((studentId: number) => {
+    setSelectedStudents((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId);
+      } else {
+        newSet.add(studentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const handleBulkStatusToggle = useCallback(
+    async (enabled: boolean) => {
+      try {
+        const promises = Array.from(selectedStudents).map((studentId) => {
+          const student = students?.find((s) => s.id === studentId);
+          if (student) {
+            return dispatch(
+              updateStudent({
+                id: studentId,
+                data: { transport_enabled: enabled },
+              })
+            ).unwrap();
+          }
+          return Promise.resolve();
+        });
+
+        await Promise.all(promises);
+        showToast.success(
+          `Successfully ${
+            enabled ? "activated" : "deactivated"
+          } transport for ${selectedStudents.size} students`
+        );
+        setSelectedStudents(new Set());
+      } catch (error) {
+        showToast.error(`Failed to update transport status for students`);
+      }
+    },
+    [selectedStudents, students, dispatch]
+  );
+
+  const handleBulkDelete = useCallback(async () => {
+    try {
+      const promises = Array.from(selectedStudents).map((studentId) =>
+        dispatch(deleteStudent(studentId)).unwrap()
+      );
+
+      await Promise.all(promises);
+      showToast.success(
+        `Successfully deleted ${selectedStudents.size} students`
+      );
+      setSelectedStudents(new Set());
+    } catch (error) {
+      showToast.error(`Failed to delete some students`);
+    }
+  }, [selectedStudents, dispatch]);
 
   const handleCreateStudent = async (studentData: Omit<Student, "id">) => {
     try {
@@ -408,6 +531,13 @@ export default function Students() {
     </Badge>
   );
 
+  // Helper function to get grade name from grade ID
+  const getGradeName = (gradeId: number | string) => {
+    if (!gradeId) return "N/A";
+    const grade = grades.find((g) => g.id === Number(gradeId));
+    return grade ? grade.name : `Grade ${gradeId}`;
+  };
+
   const handleCreateGrade = async (gradeData: Omit<Grade, "id">) => {
     try {
       await dispatch(createGrade(gradeData)).unwrap();
@@ -475,17 +605,17 @@ export default function Students() {
   // Show loading state while determining schoolId
   if (!schoolId && schools.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex w-full">
+      <div className="min-h-screen bg-background flex w-full">
         <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 px-6 py-4 bg-gray-50">
+          <main className="flex-1 px-6 py-4 bg-background">
             <Card>
               <CardContent className="py-12">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     Initializing
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Setting up your school dashboard...
                   </p>
                 </div>
@@ -500,9 +630,9 @@ export default function Students() {
   // Show error state if no schoolId is available after schools are loaded
   if (!schoolId && schools.length > 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex w-full">
+      <div className="min-h-screen bg-background flex w-full">
         <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 px-6 py-4 bg-gray-50">
+          <main className="flex-1 px-6 py-4 bg-background">
             <Card>
               <CardContent className="py-12">
                 <div className="text-center">
@@ -521,10 +651,10 @@ export default function Students() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     School Configuration Required
                   </h3>
-                  <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                  <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                     We couldn't determine which school you're managing. Please
                     contact your administrator to set up your school access.
                   </p>
@@ -558,20 +688,14 @@ export default function Students() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
-          {/* Page Title Only */}
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="w-8 h-8 text-green-500" /> Students
-            </h1>
-          </div>
+        <main className="flex-1 px-1 sm:px-2 py-1 w-full max-w-[98vw] mx-auto">
           {/* Main Content Card */}
-          <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="pb-3 border-b border-gray-100">
+          <Card className="shadow-lg border-0 rounded-xl">
+            <CardHeader className="pb-1 border-b border-border">
               <div className="flex items-center justify-between w-full">
-                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                   <Users className="w-6 h-6 text-green-500" />
                   Students List
                 </CardTitle>
@@ -584,13 +708,13 @@ export default function Students() {
               </div>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="pt-2">
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
                 className="w-full"
               >
-                <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger
                     value="students"
                     className="flex items-center gap-2"
@@ -608,89 +732,229 @@ export default function Students() {
                 </TabsList>
 
                 {/* Students Tab */}
-                <TabsContent value="students" className="space-y-4">
-                  {/* Search and Filter Bar */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="Search students by name, admission number, or section..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
+                <TabsContent value="students" className="space-y-3">
+                  {/* Enhanced Search and Filter Bar */}
+                  <div className="space-y-4">
+                    {/* Main Search and Actions */}
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder="Search students by name, admission number, section, or middle name..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowFilters(!showFilters)}
+                          className="flex items-center gap-2"
+                        >
+                          <Filter className="h-4 w-4" />
+                          Filters
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (schoolId) {
+                              dispatch(fetchStudents({ schoolId }));
+                              dispatch(fetchParents({ schoolId }));
+                              dispatch(fetchGrades({ schoolId }));
+                            }
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Refresh
+                        </Button>
+                        <ExportDropdown
+                          data={{
+                            headers: [
+                              "Name",
+                              "Admission Number",
+                              "Grade",
+                              "Section",
+                              "Gender",
+                              "Transport Status",
+                            ],
+                            data: filteredStudents.map((student) => ({
+                              name: `${student.first_name || ""} ${
+                                student.middle_name || ""
+                              } ${student.last_name || ""}`,
+                              admission_number: student.admission_number || "",
+                              grade: getGradeName(student.grade),
+                              section: student.section || "",
+                              gender: student.gender || "",
+                              transport_status: student.transport_enabled
+                                ? "Active"
+                                : "Inactive",
+                            })),
+                            fileName: "students_export",
+                            title: "Students Directory",
+                          }}
+                          className="border-border hover:bg-accent px-3 py-2"
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="active">Active Transport</option>
-                        <option value="inactive">Inactive Transport</option>
-                      </select>
-                      <label
-                        htmlFor="students-per-page"
-                        className="text-sm text-gray-700 ml-2"
-                      >
-                        Per page:
-                      </label>
-                      <select
-                        id="students-per-page"
-                        value={itemsPerPage}
-                        onChange={(e) => {
-                          setItemsPerPage(Number(e.target.value));
-                          setCurrentPage(1); // Reset to first page on change
-                        }}
-                        className="px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        style={{ minWidth: 60 }}
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </select>
-                      <ExportDropdown
-                        data={{
-                          headers: [
-                            "Name",
-                            "Admission Number",
-                            "Grade",
-                            "Section",
-                            "Gender",
-                            "Transport Status",
-                          ],
-                          data: filteredStudents.map((student) => ({
-                            name: `${student.first_name || ""} ${
-                              student.middle_name || ""
-                            } ${student.last_name || ""}`,
-                            admission_number: student.admission_number || "",
-                            grade: student.grade || "",
-                            section: student.section || "",
-                            gender: student.gender || "",
-                            transport_status: student.transport_enabled
-                              ? "Active"
-                              : "Inactive",
-                          })),
-                          fileName: "students_export",
-                          title: "Students Directory",
-                        }}
-                        className="border-gray-200 hover:bg-gray-50 px-3 py-2"
-                      />
-                    </div>
+
+                    {/* Advanced Filters */}
+                    {showFilters && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Status</Label>
+                          <Select
+                            value={statusFilter}
+                            onValueChange={setStatusFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Status</SelectItem>
+                              <SelectItem value="active">
+                                Active Transport
+                              </SelectItem>
+                              <SelectItem value="inactive">
+                                Inactive Transport
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Grade</Label>
+                          <Select
+                            value={gradeFilter}
+                            onValueChange={setGradeFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Grades</SelectItem>
+                              {grades.map((grade) => (
+                                <SelectItem
+                                  key={grade.id}
+                                  value={grade.id.toString()}
+                                >
+                                  {grade.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Gender</Label>
+                          <Select
+                            value={genderFilter}
+                            onValueChange={setGenderFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Genders</SelectItem>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">
+                            Per Page
+                          </Label>
+                          <Select
+                            value={itemsPerPage.toString()}
+                            onValueChange={(value) => {
+                              setItemsPerPage(Number(value));
+                              setCurrentPage(1);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="20">20</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bulk Actions */}
+                    {selectedStudents.size > 0 && (
+                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-blue-900">
+                            {selectedStudents.size} student(s) selected
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleBulkStatusToggle(true)}
+                            className="flex items-center gap-2 text-green-700 border-green-300 hover:bg-green-50"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                            Activate Transport
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleBulkStatusToggle(false)}
+                            className="flex items-center gap-2 text-orange-700 border-orange-300 hover:bg-orange-50"
+                          >
+                            <UserX className="h-4 w-4" />
+                            Deactivate Transport
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 text-red-700 border-red-300 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete Selected
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Loading State */}
+                  {/* Enhanced Loading State */}
                   {loading && (
-                    <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        Loading Students
-                      </h3>
-                      <p className="text-gray-600">
-                        Please wait while we fetch your student data...
-                      </p>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-8 w-32" />
+                      </div>
+                      <div className="space-y-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center space-x-4 p-4 border rounded-lg"
+                          >
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="space-y-2 flex-1">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-24" />
+                            </div>
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-16" />
+                            <Skeleton className="h-4 w-12" />
+                            <Skeleton className="h-8 w-8" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -757,19 +1021,88 @@ export default function Students() {
                           <thead className="sticky top-0 bg-white">
                             <tr className="border-b border-gray-200">
                               <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                                Student
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      selectedStudents.size ===
+                                        paginatedStudents.length &&
+                                      paginatedStudents.length > 0
+                                    }
+                                    onChange={handleSelectAll}
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                  />
+                                </div>
                               </th>
-                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                                Admission #
+                              <th
+                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSort("first_name")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Student
+                                  {sortConfig.key === "first_name" &&
+                                    (sortConfig.direction === "asc" ? (
+                                      <SortAsc className="h-4 w-4" />
+                                    ) : (
+                                      <SortDesc className="h-4 w-4" />
+                                    ))}
+                                </div>
                               </th>
-                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                                Grade & Section
+                              <th
+                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSort("admission_number")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Admission #
+                                  {sortConfig.key === "admission_number" &&
+                                    (sortConfig.direction === "asc" ? (
+                                      <SortAsc className="h-4 w-4" />
+                                    ) : (
+                                      <SortDesc className="h-4 w-4" />
+                                    ))}
+                                </div>
                               </th>
-                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                                Gender
+                              <th
+                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSort("grade")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Grade & Section
+                                  {sortConfig.key === "grade" &&
+                                    (sortConfig.direction === "asc" ? (
+                                      <SortAsc className="h-4 w-4" />
+                                    ) : (
+                                      <SortDesc className="h-4 w-4" />
+                                    ))}
+                                </div>
                               </th>
-                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
-                                Status
+                              <th
+                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSort("gender")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Gender
+                                  {sortConfig.key === "gender" &&
+                                    (sortConfig.direction === "asc" ? (
+                                      <SortAsc className="h-4 w-4" />
+                                    ) : (
+                                      <SortDesc className="h-4 w-4" />
+                                    ))}
+                                </div>
+                              </th>
+                              <th
+                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handleSort("transport_enabled")}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Status
+                                  {sortConfig.key === "transport_enabled" &&
+                                    (sortConfig.direction === "asc" ? (
+                                      <SortAsc className="h-4 w-4" />
+                                    ) : (
+                                      <SortDesc className="h-4 w-4" />
+                                    ))}
+                                </div>
                               </th>
                               <th className="text-right py-2 px-3 font-semibold text-gray-700">
                                 Actions
@@ -782,6 +1115,16 @@ export default function Students() {
                                 key={student.id}
                                 className="hover:bg-gray-50 transition-colors"
                               >
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedStudents.has(student.id!)}
+                                    onChange={() =>
+                                      handleSelectStudent(student.id!)
+                                    }
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                  />
+                                </td>
                                 <td className="py-2 px-3">
                                   <div className="flex items-center">
                                     <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -807,7 +1150,7 @@ export default function Students() {
                                 <td className="py-2 px-3">
                                   <div>
                                     <p className="text-sm font-medium text-gray-900">
-                                      Grade {student.grade || "N/A"}
+                                      {getGradeName(student.grade)}
                                     </p>
                                     <p className="text-xs text-gray-500">
                                       Section {student.section || "N/A"}
@@ -979,9 +1322,9 @@ export default function Students() {
                 </TabsContent>
 
                 {/* Grades Tab */}
-                <TabsContent value="grades" className="space-y-4">
+                <TabsContent value="grades" className="space-y-3">
                   {/* Search Bar */}
-                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <div className="relative flex-1">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input

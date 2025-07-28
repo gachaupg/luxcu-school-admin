@@ -37,7 +37,11 @@ export const addRoute = createAsyncThunk<
   { rejectValue: string }
 >("routes/addRoute", async (routeData, { rejectWithValue }) => {
   try {
-    const response = await api.post(API_ENDPOINTS.ROUTES, routeData);
+    const schoolId = routeData.school;
+    const response = await api.post(
+      `${API_ENDPOINTS.ROUTES}${schoolId}/routes/`,
+      routeData
+    );
     return response.data.data;
   } catch (error) {
     const axiosError = error as AxiosError<{ message: string }>;
@@ -57,13 +61,14 @@ export const fetchRoutes = createAsyncThunk<
 >("routes/fetchRoutes", async (params, { rejectWithValue }) => {
   try {
     const schoolId = typeof params === "object" ? params.schoolId : undefined;
-    let url = API_ENDPOINTS.ROUTES;
 
-    if (schoolId) {
-      url += `?school=${schoolId}`;
+    if (!schoolId) {
+      throw new Error("School ID is required");
     }
 
+    const url = `${API_ENDPOINTS.ROUTES}${schoolId}/routes/`;
     const response = await api.get(url);
+
     if (Array.isArray(response.data)) {
       return response.data;
     } else if (response.data.data && Array.isArray(response.data.data)) {
@@ -86,7 +91,12 @@ export const deleteRoute = createAsyncThunk<
 >("routes/deleteRoute", async (id, { rejectWithValue }) => {
   try {
     console.log(`Deleting route ${id}`);
-    await api.delete(`${API_ENDPOINTS.ROUTES}${id}/`);
+    // We need to get the schoolId from localStorage or pass it as a parameter
+    const schoolId = localStorage.getItem("schoolId");
+    if (!schoolId) {
+      throw new Error("School ID not found");
+    }
+    await api.delete(`${API_ENDPOINTS.ROUTES}${schoolId}/routes/${id}/`);
     console.log("Route deleted successfully");
     return id;
   } catch (error) {
@@ -106,7 +116,11 @@ export const updateRoute = createAsyncThunk<
   { rejectValue: string }
 >("routes/updateRoute", async ({ id, routeData }, { rejectWithValue }) => {
   try {
-    const response = await api.put(`${API_ENDPOINTS.ROUTES}${id}/`, routeData);
+    const schoolId = routeData.school;
+    const response = await api.put(
+      `${API_ENDPOINTS.ROUTES}${schoolId}/routes/${id}/`,
+      routeData
+    );
     return response.data.data;
   } catch (error) {
     const axiosError = error as AxiosError<{ message: string }>;

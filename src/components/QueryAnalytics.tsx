@@ -87,12 +87,12 @@ export const QueryAnalytics = () => {
   };
 
   const recentTrips = [...trips]
-  .sort(
-    (a, b) =>
-      new Date(b.created_at || "").getTime() -
-      new Date(a.created_at || "").getTime()
-  )
-  .slice(0, 5);
+    .sort(
+      (a, b) =>
+        new Date(b.created_at || "").getTime() -
+        new Date(a.created_at || "").getTime()
+    )
+    .slice(0, 5);
 
   const formatDate = (dateString: string) => {
     try {
@@ -127,7 +127,7 @@ export const QueryAnalytics = () => {
   return (
     <div className="space-y-6">
       {/* Key Performance Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { AxiosError } from "axios";
-import { store } from "@/redux/store";
+import type { RootState } from "@/redux/store";
 
 export interface Vehicle {
   id?: number;
@@ -115,13 +115,13 @@ export const deleteVehicle = createAsyncThunk<
   number,
   number,
   { rejectValue: string }
->("vehicles/deleteVehicle", async (id, { rejectWithValue }) => {
+>("vehicles/deleteVehicle", async (id, { rejectWithValue, getState }) => {
   try {
     console.log(`Deleting vehicle ${id}`);
     console.log(`API URL: ${API_ENDPOINTS.VEHICLES}${id}/`);
 
     // Get the current auth token for debugging
-    const state = store.getState();
+    const state = getState() as RootState;
     const token = state.auth.token;
     console.log("Auth token present:", !!token);
 

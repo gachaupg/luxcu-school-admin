@@ -62,7 +62,7 @@ export const StatOverviewCards = () => {
               <stat.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-8 bg-muted rounded animate-pulse"></div>
               <p className="text-xs text-muted-foreground mt-2">
                 {stat.description}
               </p>

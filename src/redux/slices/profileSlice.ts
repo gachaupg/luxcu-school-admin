@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import { RootState, store } from "../store";
+import type { RootState } from "../store";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -25,9 +25,9 @@ const initialState: ProfileState = {
 // Async thunks
 export const fetchProfile = createAsyncThunk(
   "profile/fetchProfile",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const state = store.getState();
+      const state = getState() as RootState;
       const token = state.auth.token;
       const response = await axios.get(`${API_URL}/api/user-profile/`, {
         headers: {
@@ -45,9 +45,9 @@ export const fetchProfile = createAsyncThunk(
 
 export const updateProfile = createAsyncThunk(
   "profile/updateProfile",
-  async (profileData: any, { rejectWithValue }) => {
+  async (profileData: any, { rejectWithValue, getState }) => {
     try {
-      const state = store.getState();
+      const state = getState() as RootState;
       const token = state.auth.token;
       const response = await axios.patch(
         `${API_URL}/api/user-profile/`,
@@ -69,9 +69,9 @@ export const updateProfile = createAsyncThunk(
 
 export const logout = createAsyncThunk(
   "profile/logout",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      const state = store.getState();
+      const state = getState() as RootState;
       const token = state.auth.token;
       await axios.post(
         `${API_URL}/api/logout/`,

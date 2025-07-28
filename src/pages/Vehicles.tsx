@@ -19,6 +19,7 @@ import {
   Trash2,
   Eye as ViewIcon,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,6 +64,20 @@ import { HeaderBar } from "../components/HeaderBar";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { parseVehicleError } from "@/utils/errorHandler";
 import { ExportDropdown } from "@/components/ExportDropdown";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 // Form component moved outside to prevent recreation on every render
 interface VehicleFormData {
@@ -85,9 +100,16 @@ interface VehicleFormData {
 
 interface Driver {
   id: number;
+  phone_number?: string;
   user_details: {
+    id?: number;
+    phone_number: string;
+    user_type: string;
+    email: string;
     first_name: string;
     last_name: string;
+    username?: string;
+    profile_image?: string;
   };
 }
 
@@ -168,32 +190,100 @@ const AddVehicleForm = ({
         </div>
         <div className="space-y-2">
           <Label htmlFor="driver">Driver</Label>
-          <Select
-            value={formData.driver.toString()}
-            onValueChange={(value) => handleSelectChange("driver", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select driver" />
-            </SelectTrigger>
-            <SelectContent>
-              {driversLoading ? (
-                <SelectItem value="loading" disabled>
-                  Loading drivers...
-                </SelectItem>
-              ) : filteredDrivers.length === 0 ? (
-                <SelectItem value="none" disabled>
-                  No drivers available
-                </SelectItem>
-              ) : (
-                filteredDrivers.map((driver) => (
-                  <SelectItem key={driver.id} value={driver.id.toString()}>
-                    {driver.user_details.first_name}{" "}
-                    {driver.user_details.last_name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className="w-full justify-between"
+                disabled={driversLoading}
+              >
+                {formData.driver === 0
+                  ? "Select driver..."
+                  : filteredDrivers.find(
+                      (driver) =>
+                        (driver.user_details.id || driver.id) ===
+                        formData.driver
+                    )
+                  ? `${
+                      filteredDrivers.find(
+                        (driver) =>
+                          (driver.user_details.id || driver.id) ===
+                          formData.driver
+                      )?.user_details.first_name
+                    } ${
+                      filteredDrivers.find(
+                        (driver) =>
+                          (driver.user_details.id || driver.id) ===
+                          formData.driver
+                      )?.user_details.last_name
+                    } (${
+                      filteredDrivers.find(
+                        (driver) =>
+                          (driver.user_details.id || driver.id) ===
+                          formData.driver
+                      )?.phone_number
+                    })`
+                  : "Select driver..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search drivers..." />
+                <CommandList>
+                  <CommandEmpty>No driver found.</CommandEmpty>
+                  <CommandGroup>
+                    {driversLoading ? (
+                      <CommandItem disabled>
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading drivers...
+                        </div>
+                      </CommandItem>
+                    ) : filteredDrivers.length === 0 ? (
+                      <CommandItem disabled>No drivers available</CommandItem>
+                    ) : (
+                      filteredDrivers.map((driver) => (
+                        <CommandItem
+                          key={driver.id}
+                          value={`${driver.user_details.first_name} ${
+                            driver.user_details.last_name
+                          } ${driver.phone_number || ""}`}
+                          onSelect={() =>
+                            handleSelectChange(
+                              "driver",
+                              (driver.user_details.id || driver.id).toString()
+                            )
+                          }
+                        >
+                          <Check
+                            className={`mr-2 h-4 w-4 ${
+                              formData.driver ===
+                              (driver.user_details.id || driver.id)
+                                ? "opacity-100"
+                                : "opacity-0"
+                            }`}
+                          />
+                          <div className="flex flex-col">
+                            <span>
+                              {driver.user_details.first_name}{" "}
+                              {driver.user_details.last_name}
+                            </span>
+                            {driver.phone_number && (
+                              <span className="text-xs text-muted-foreground">
+                                {driver.phone_number}
+                              </span>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))
+                    )}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -312,7 +402,11 @@ const AddVehicleForm = ({
         </div>
       </div>
 
-      <Button type="submit" disabled={loading} className="w-full">
+      <Button
+        type="submit"
+        disabled={loading}
+        className="w-full bg-green-600 hover:bg-green-700 text-white mt-1"
+      >
         {loading ? "Adding Vehicle..." : "Add Vehicle"}
       </Button>
     </form>
@@ -654,16 +748,15 @@ export default function Vehicles() {
     }
   };
 
-  // Add loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-3 flex w-full">
-        <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 bg-gray-100">
-            <div className="flex justify-center items-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading vehicles...</p>
+      <div className="min-h-screen bg-background p-3 flex w-full">
+        <div className="flex-1">
+          <main className="flex-1 bg-background">
+            <div className="flex items-center justify-center h-64">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p className="text-muted-foreground">Loading vehicles...</p>
               </div>
             </div>
           </main>
@@ -672,20 +765,16 @@ export default function Vehicles() {
     );
   }
 
-  // Add error boundary
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 p-3 flex w-full">
-        <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 bg-gray-100">
-            <div className="flex justify-center items-center h-full">
+      <div className="min-h-screen bg-background p-3 flex w-full">
+        <div className="flex-1">
+          <main className="flex-1 bg-background">
+            <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Error Loading Vehicles
-                </h2>
-                <p className="text-gray-600 mb-4">{error}</p>
+                <p className="text-destructive mb-4">{error}</p>
                 <Button onClick={() => window.location.reload()}>
-                  Refresh Page
+                  Try Again
                 </Button>
               </div>
             </div>
@@ -696,286 +785,502 @@ export default function Vehicles() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
-          {/* Page Title Only */}
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Car className="w-8 h-8 text-green-500" /> Vehicles
-            </h1>
-          </div>
-          <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="pb-3 border-b border-gray-100 flex flex-row w-full items-center justify-between">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Car className="w-6 h-6 text-green-500" />
-                Vehicles List
-              </CardTitle>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
-                    disabled={!schoolId}
-                    title={
-                      !schoolId
-                        ? "No school found. Please contact your administrator."
-                        : ""
-                    }
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Vehicle</DialogTitle>
-                  </DialogHeader>
-                  <AddVehicleForm
-                    formData={formData}
-                    setFormData={setFormData}
-                    onSubmit={handleSubmit}
-                    loading={loading}
-                    filteredDrivers={filteredDrivers}
-                    driversLoading={driversLoading}
-                  />
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-
-            {/* Search and Filter Controls */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search vehicles by registration, manufacturer, model, or driver..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-400" />
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Vehicles</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <ExportDropdown
-                    data={{
-                      headers: [
-                        "Registration Number",
-                        "Driver",
-                        "Vehicle Type",
-                        "Capacity",
-                        "Manufacturer",
-                        "Model",
-                        "Year",
-                        "Fuel Type",
-                        "Status",
-                        "Mileage",
-                        "GPS",
-                        "Camera",
-                        "Emergency Button",
-                      ],
-                      data: filteredAndSearchedVehicles.map((vehicle) => ({
-                        registration_number: vehicle.registration_number || "",
-                        driver: filteredDrivers.find(
-                          (d) => d?.id === vehicle.driver
-                        )
-                          ? `${
-                              filteredDrivers.find(
-                                (d) => d?.id === vehicle.driver
-                              )?.user_details?.first_name || ""
-                            } ${
-                              filteredDrivers.find(
-                                (d) => d?.id === vehicle.driver
-                              )?.user_details?.last_name || ""
-                            }`
-                          : "Not Assigned",
-                        vehicle_type: vehicle.vehicle_type || "",
-                        capacity: vehicle.capacity?.toString() || "",
-                        manufacturer: vehicle.manufacturer || "",
-                        model: vehicle.model || "",
-                        year: vehicle.year?.toString() || "",
-                        fuel_type: vehicle.fuel_type || "",
-                        status: vehicle.is_active ? "Active" : "Inactive",
-                        mileage: vehicle.mileage?.toString() || "",
-                        gps: vehicle.has_gps ? "Yes" : "No",
-                        camera: vehicle.has_camera ? "Yes" : "No",
-                        emergency_button: vehicle.has_emergency_button
-                          ? "Yes"
-                          : "No",
-                      })),
-                      fileName: "vehicles_export",
-                      title: "Vehicles Directory",
-                    }}
-                    className="border-gray-200 hover:bg-gray-50 px-3 py-2"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Registration No.
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Driver
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Capacity
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-3 text-center">
-                      Loading vehicles...
-                    </td>
-                  </tr>
-                ) : error ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 py-3 text-center text-red-500"
+    <div className="min-h-screen bg-background flex w-full">
+      <div className="flex-1">
+        <main className="flex-1 bg-background">
+          <div className="">
+            <Card className="mt-1">
+              <CardHeader className="pb-3 border-b border-border flex flex-row w-full items-center justify-between">
+                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Vehicle List
+                </CardTitle>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                      disabled={!schoolId}
+                      title={
+                        !schoolId
+                          ? "No school found. Please contact your administrator."
+                          : ""
+                      }
                     >
-                      {error}
-                    </td>
-                  </tr>
-                ) : vehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-3 text-center">
-                      No vehicles found
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedVehicles.map((vehicle) => {
-                    console.log("Rendering vehicle:", vehicle);
-                    if (!vehicle) return null;
-                    return (
-                      <tr key={vehicle.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          {vehicle.registration_number || "N/A"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {filteredDrivers.find((d) => d?.id === vehicle.driver)
-                            ?.user_details?.first_name || ""}{" "}
-                          {filteredDrivers.find((d) => d?.id === vehicle.driver)
-                            ?.user_details?.last_name || ""}
-                        </td>
-                        <td className="px-4 py-3 capitalize">
-                          {vehicle.vehicle_type || "N/A"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {vehicle.capacity || "N/A"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            variant={
-                              vehicle.is_active ? "default" : "secondary"
-                            }
-                          >
-                            {vehicle.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleView(vehicle)}
-                              >
-                                <ViewIcon className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleEdit(vehicle)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(vehicle)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                      <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Add New Vehicle</DialogTitle>
+                    </DialogHeader>
+                    <AddVehicleForm
+                      formData={formData}
+                      setFormData={setFormData}
+                      onSubmit={handleSubmit}
+                      loading={loading}
+                      filteredDrivers={filteredDrivers}
+                      driversLoading={driversLoading}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
 
-            {/* Pagination Controls - always show at the bottom */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200">
-              <div className="text-sm text-gray-600">
-                Showing {startIndex + 1}-
-                {Math.min(endIndex, filteredAndSearchedVehicles.length)} of{" "}
-                {filteredAndSearchedVehicles.length} vehicles
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setCurrentPage(page)}
-                        className="w-8 h-8 p-0"
+              {/* Search and Filter Controls */}
+              <div className="p-6 border-b border-border/50 bg-muted/10">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input
+                        placeholder="Search vehicles by registration, manufacturer, model, or driver..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-10 bg-background border-border/50 focus:border-primary/50 transition-colors"
+                      />
+                    </div>
+                    {searchTerm && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Found {filteredAndSearchedVehicles.length} vehicle
+                        {filteredAndSearchedVehicles.length !== 1 ? "s" : ""}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-muted-foreground" />
+                      <Select
+                        value={statusFilter}
+                        onValueChange={setStatusFilter}
                       >
-                        {page}
-                      </Button>
-                    )
+                        <SelectTrigger className="w-[160px] h-10 bg-background border-border/50">
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Vehicles</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <ExportDropdown
+                      data={{
+                        headers: [
+                          "Registration Number",
+                          "Driver",
+                          "Vehicle Type",
+                          "Capacity",
+                          "Manufacturer",
+                          "Model",
+                          "Year",
+                          "Fuel Type",
+                          "Status",
+                          "Mileage",
+                          "GPS",
+                          "Camera",
+                          "Emergency Button",
+                        ],
+                        data: filteredAndSearchedVehicles.map((vehicle) => ({
+                          registration_number:
+                            vehicle.registration_number || "",
+                          driver: filteredDrivers.find(
+                            (d) => d?.id === vehicle.driver
+                          )
+                            ? `${
+                                filteredDrivers.find(
+                                  (d) => d?.id === vehicle.driver
+                                )?.user_details?.first_name || ""
+                              } ${
+                                filteredDrivers.find(
+                                  (d) => d?.id === vehicle.driver
+                                )?.user_details?.last_name || ""
+                              }`
+                            : "Not Assigned",
+                          vehicle_type: vehicle.vehicle_type || "",
+                          capacity: vehicle.capacity?.toString() || "",
+                          manufacturer: vehicle.manufacturer || "",
+                          model: vehicle.model || "",
+                          year: vehicle.year?.toString() || "",
+                          fuel_type: vehicle.fuel_type || "",
+                          status: vehicle.is_active ? "Active" : "Inactive",
+                          mileage: vehicle.mileage?.toString() || "",
+                          gps: vehicle.has_gps ? "Yes" : "No",
+                          camera: vehicle.has_camera ? "Yes" : "No",
+                          emergency_button: vehicle.has_emergency_button
+                            ? "Yes"
+                            : "No",
+                        })),
+                        fileName: "vehicles_export",
+                        title: "Vehicles Directory",
+                      }}
+                      className="h-10 bg-background border-border/50 hover:bg-accent/50 transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/30">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Registration No.
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Driver
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Capacity
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <span className="text-muted-foreground">
+                            Loading vehicles...
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-destructive font-medium">
+                            {error}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.reload()}
+                          >
+                            Try Again
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : vehicles.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <Car className="h-12 w-12 text-muted-foreground/50" />
+                          <div className="text-center">
+                            <h3 className="text-lg font-medium text-muted-foreground">
+                              No vehicles found
+                            </h3>
+                            <p className="text-sm text-muted-foreground/70 mt-1">
+                              Get started by adding your first vehicle
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => setIsDialogOpen(true)}
+                            className="mt-2"
+                            disabled={!schoolId}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Vehicle
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedVehicles.map((vehicle) => {
+                      console.log("Rendering vehicle:", vehicle);
+                      if (!vehicle) return null;
+
+                      const driver = filteredDrivers.find(
+                        (d) => d?.id === vehicle.driver
+                      );
+                      const driverName = driver
+                        ? `${driver.user_details?.first_name || ""} ${
+                            driver.user_details?.last_name || ""
+                          }`.trim()
+                        : "Not Assigned";
+
+                      return (
+                        <tr
+                          key={vehicle.id}
+                          className="group hover:bg-muted/50 transition-colors duration-200 cursor-pointer"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                                  <Car className="h-4 w-4 text-primary" />
+                                </div>
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-medium text-foreground">
+                                  {vehicle.registration_number || "N/A"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {vehicle.manufacturer} {vehicle.model}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                    {driverName
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-medium text-foreground">
+                                  {driverName}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Driver
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge
+                              variant="outline"
+                              className="capitalize font-medium"
+                            >
+                              {vehicle.vehicle_type || "N/A"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="text-sm font-medium text-foreground">
+                                {vehicle.capacity || "N/A"}
+                              </div>
+                              <div className="text-xs text-muted-foreground ml-1">
+                                seats
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge
+                              variant={
+                                vehicle.is_active ? "default" : "secondary"
+                              }
+                              className={`font-medium ${
+                                vehicle.is_active
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                  : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+                              }`}
+                            >
+                              <div className="w-2 h-2 rounded-full mr-2 bg-current"></div>
+                              {vehicle.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-accent"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-48"
+                                >
+                                  <DropdownMenuItem
+                                    onClick={() => handleView(vehicle)}
+                                    className="cursor-pointer"
+                                  >
+                                    <ViewIcon className="h-4 w-4 mr-2" />
+                                    View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleEdit(vehicle)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit Vehicle
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(vehicle)}
+                                    className="text-red-600 cursor-pointer focus:text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Vehicle
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+
+                              {/* Quick action buttons - always visible */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleView(vehicle)}
+                                  className="h-7 w-7 p-0 hover:bg-accent"
+                                  title="View Details"
+                                >
+                                  <ViewIcon className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(vehicle)}
+                                  className="h-7 w-7 p-0 hover:bg-accent"
+                                  title="Edit Vehicle"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(vehicle)}
+                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                  title="Delete Vehicle"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+
+              {/* Pagination Controls - always show at the bottom */}
+              <div className="flex items-center justify-between p-6 border-t border-border/50 bg-muted/20">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing{" "}
+                    <span className="font-medium text-foreground">
+                      {startIndex + 1}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-medium text-foreground">
+                      {Math.min(endIndex, filteredAndSearchedVehicles.length)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-foreground">
+                      {filteredAndSearchedVehicles.length}
+                    </span>{" "}
+                    vehicles
+                  </div>
+                  {filteredAndSearchedVehicles.length > 0 && (
+                    <div className="text-xs text-muted-foreground/70">
+                      Page {currentPage} of {totalPages}
+                    </div>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="h-8 px-3"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+
+                    <div className="flex items-center gap-1">
+                      {/* Show first page */}
+                      {currentPage > 3 && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(1)}
+                            className="w-8 h-8 p-0"
+                          >
+                            1
+                          </Button>
+                          {currentPage > 4 && (
+                            <span className="px-2 text-muted-foreground">
+                              ...
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Show current page and surrounding pages */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(
+                          (page) =>
+                            page === 1 ||
+                            page === totalPages ||
+                            Math.abs(page - currentPage) <= 1
+                        )
+                        .map((page) => (
+                          <Button
+                            key={page}
+                            variant={
+                              currentPage === page ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        ))}
+
+                      {/* Show last page */}
+                      {currentPage < totalPages - 2 && (
+                        <>
+                          {currentPage < totalPages - 3 && (
+                            <span className="px-2 text-muted-foreground">
+                              ...
+                            </span>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(totalPages)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {totalPages}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="h-8 px-3"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
-          </Card>
+            </Card>
+          </div>
         </main>
       </div>
 
@@ -1038,10 +1343,10 @@ export default function Vehicles() {
                   <Label className="font-semibold">Driver</Label>
                   <p>
                     {filteredDrivers.find(
-                      (d) => d?.id === selectedVehicle.driver
+                      (d) => d?.user_details?.id === selectedVehicle.driver
                     )?.user_details?.first_name || ""}{" "}
                     {filteredDrivers.find(
-                      (d) => d?.id === selectedVehicle.driver
+                      (d) => d?.user_details?.id === selectedVehicle.driver
                     )?.user_details?.last_name || "Not assigned"}
                   </p>
                 </div>

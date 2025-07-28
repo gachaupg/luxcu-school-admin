@@ -45,10 +45,12 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToExcel = () => {
     try {
+      console.log("📊 Starting CSV export with data:", data);
+
       const csvContent = [
         data.headers.join(","),
-        ...data.data.map((row) => {
-          return data.headers
+        ...data.data.map((row, index) => {
+          const rowData = data.headers
             .map((header) => {
               const value =
                 row[header.toLowerCase().replace(/\s+/g, "_")] ||
@@ -57,6 +59,13 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
               return `"${String(value).replace(/"/g, '""')}"`;
             })
             .join(",");
+
+          // Debug: Log first few rows
+          if (index < 3) {
+            console.log(`📊 CSV Row ${index + 1}:`, rowData);
+          }
+
+          return rowData;
         }),
       ].join("\n");
 
@@ -89,6 +98,8 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToPDF = () => {
     try {
+      console.log("📄 Starting PDF export with data:", data);
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -102,6 +113,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
             h1 { color: #333; }
             .header { margin-bottom: 20px; }
             .date { color: #666; font-size: 14px; }
+            .summary { margin: 20px 0; padding: 10px; background-color: #f9f9f9; }
           </style>
         </head>
         <body>
@@ -109,6 +121,13 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
             <h1>${data.title || "Report"}</h1>
             <div class="date">Generated on: ${new Date().toLocaleDateString()}</div>
           </div>
+          
+          <div class="summary">
+            <h3>Summary</h3>
+            <p>Total Records: ${data.data.length}</p>
+            <p>Generated: ${new Date().toLocaleString()}</p>
+          </div>
+          
           <table>
             <thead>
               <tr>
@@ -117,8 +136,13 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
             </thead>
             <tbody>
               ${data.data
-                .map(
-                  (row) => `
+                .map((row, index) => {
+                  // Debug: Log first few rows
+                  if (index < 3) {
+                    console.log(`📄 PDF Row ${index + 1}:`, row);
+                  }
+
+                  return `
                 <tr>
                   ${data.headers
                     .map((header) => {
@@ -130,8 +154,8 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                     })
                     .join("")}
                 </tr>
-              `
-                )
+              `;
+                })
                 .join("")}
             </tbody>
           </table>
@@ -171,6 +195,8 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToWord = () => {
     try {
+      console.log("📝 Starting Word export with data:", data);
+
       const wordContent = `
         <!DOCTYPE html>
         <html>
@@ -184,7 +210,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
             h1 { color: #000; text-align: center; }
             .header { margin-bottom: 20px; text-align: center; }
             .date { color: #666; font-size: 14px; text-align: center; }
-            .summary { margin: 20px 0; }
+            .summary { margin: 20px 0; padding: 10px; background-color: #f9f9f9; }
           </style>
         </head>
         <body>
@@ -196,6 +222,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
           <div class="summary">
             <h3>Summary</h3>
             <p>Total Records: ${data.data.length}</p>
+            <p>Generated: ${new Date().toLocaleString()}</p>
           </div>
 
           <table>
@@ -206,8 +233,13 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
             </thead>
             <tbody>
               ${data.data
-                .map(
-                  (row) => `
+                .map((row, index) => {
+                  // Debug: Log first few rows
+                  if (index < 3) {
+                    console.log(`📝 Word Row ${index + 1}:`, row);
+                  }
+
+                  return `
                 <tr>
                   ${data.headers
                     .map((header) => {
@@ -219,8 +251,8 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                     })
                     .join("")}
                 </tr>
-              `
-                )
+              `;
+                })
                 .join("")}
             </tbody>
           </table>

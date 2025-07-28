@@ -219,14 +219,14 @@ export default function Subscription() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-1">
+        <div className=" mb-3">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
             Choose Your Subscription Plan
           </h1>
         </div>
 
         {/* Billing Toggle */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify- mb-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border dark:border-gray-700">
             <div className="flex">
               <button

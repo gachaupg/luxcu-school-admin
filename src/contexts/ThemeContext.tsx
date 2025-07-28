@@ -27,42 +27,97 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const dispatch = useAppDispatch();
-  // Ignore preferences and always use light mode
+  const { preferences } = useAppSelector((state) => state.preferences);
   const [isDark, setIsDark] = useState(false);
 
-  // Always return 'light' as the effective theme
-  const getEffectiveTheme = (): "light" => {
-    return "light";
+  // Get the effective theme based on user preference
+  const getEffectiveTheme = (): "light" | "dark" => {
+    if (preferences.theme === "auto") {
+      // Auto mode: follow system preference
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+    // Light or Dark mode: use the selected theme directly (force the theme)
+    return preferences.theme;
   };
 
   // Apply theme to document
-  const applyTheme = (theme: "light") => {
+  const applyTheme = (theme: "light" | "dark") => {
     const root = document.documentElement;
-    setIsDark(false);
-    root.classList.remove("dark");
-    root.setAttribute("data-theme", "light");
+    setIsDark(theme === "dark");
+
+    if (theme === "dark") {
+      root.classList.add("dark");
+      root.setAttribute("data-theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      root.setAttribute("data-theme", "light");
+    }
   };
 
-  // Update theme (noop, always light)
-  const setTheme = async (_newTheme: Theme) => {
-    applyTheme("light");
+  // Update theme and save to preferences
+  const setTheme = async (newTheme: Theme) => {
+    await dispatch(updateUserPreferences({ theme: newTheme }));
+    // Apply the new theme immediately
+    if (newTheme === "auto") {
+      // If switching to auto, follow current system preference
+      const systemIsDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      applyTheme(systemIsDark ? "dark" : "light");
+    } else {
+      // If switching to light or dark, apply that theme directly
+      applyTheme(newTheme);
+    }
   };
 
-  // Toggle theme (noop, always light)
+  // Toggle between light and dark (skip auto)
   const toggleTheme = () => {
-    applyTheme("light");
+    const currentTheme = preferences.theme;
+    let newTheme: Theme;
+
+    if (currentTheme === "auto") {
+      // If currently auto, switch to the opposite of current system preference
+      const systemIsDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      newTheme = systemIsDark ? "light" : "dark";
+    } else if (currentTheme === "light") {
+      newTheme = "dark";
+    } else {
+      newTheme = "light";
+    }
+
+    setTheme(newTheme);
   };
 
-  // Remove system theme listener (not needed)
+  // Listen for system theme changes when in auto mode
+  useEffect(() => {
+    if (preferences.theme === "auto") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => {
+        applyTheme(getEffectiveTheme());
+      };
+
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [preferences.theme]);
+
+  // Apply theme when preferences change
+  useEffect(() => {
+    applyTheme(getEffectiveTheme());
+  }, [preferences.theme]);
 
   // Apply theme on mount
   useEffect(() => {
-    applyTheme("light");
+    applyTheme(getEffectiveTheme());
   }, []);
 
   const value: ThemeContextType = {
-    theme: "light",
-    isDark: false,
+    theme: preferences.theme,
+    isDark,
     setTheme,
     toggleTheme,
   };

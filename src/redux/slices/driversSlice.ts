@@ -5,6 +5,7 @@ import { AxiosError } from "axios";
 
 export interface Driver {
   id: number;
+  phone_number?: string;
   user_details: {
     id?: number;
     phone_number: string;

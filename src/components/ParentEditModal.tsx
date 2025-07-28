@@ -29,10 +29,14 @@ interface Parent {
   user: number;
   user_email: string;
   user_full_name: string;
+  user_phone_number?: string;
   phone_number?: string;
   address?: string;
   emergency_contact?: string;
   school?: number;
+  school_name?: string;
+  school_longitude?: number;
+  school_latitude?: number;
   preferred_contact_method?: string;
   secondary_phone?: string;
   user_data?: {
@@ -46,6 +50,7 @@ interface Parent {
   authorized_pickup_persons?: {
     persons: AuthorizedPerson[];
   };
+  children?: unknown[];
 }
 
 interface ParentEditModalProps {
@@ -93,7 +98,13 @@ export function ParentEditModal({
           persons: [],
         },
       });
-      setAuthorizedPersons(parent.authorized_pickup_persons?.persons || []);
+      // Safely set authorized persons with array checking
+      const persons = parent.authorized_pickup_persons?.persons;
+      if (persons && Array.isArray(persons)) {
+        setAuthorizedPersons(persons);
+      } else {
+        setAuthorizedPersons([]);
+      }
     }
   }, [parent]);
 
@@ -289,67 +300,68 @@ export function ParentEditModal({
                 <Plus className="h-4 w-4 mr-2" /> Add Person
               </Button>
             </div>
-            {authorizedPersons.map((person, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-3 gap-4 p-4 border rounded-lg"
-              >
-                <div className="space-y-2">
-                  <Label>Name</Label>
-                  <Input
-                    value={person.name}
-                    onChange={(e) =>
-                      handleAuthorizedPersonChange(
-                        index,
-                        "name",
-                        e.target.value
-                      )
-                    }
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Relation</Label>
-                  <Input
-                    value={person.relation}
-                    onChange={(e) =>
-                      handleAuthorizedPersonChange(
-                        index,
-                        "relation",
-                        e.target.value
-                      )
-                    }
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <div className="flex gap-2">
+            {Array.isArray(authorizedPersons) &&
+              authorizedPersons.map((person, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-3 gap-4 p-4 border rounded-lg"
+                >
+                  <div className="space-y-2">
+                    <Label>Name</Label>
                     <Input
-                      value={person.phone}
+                      value={person.name}
                       onChange={(e) =>
                         handleAuthorizedPersonChange(
                           index,
-                          "phone",
+                          "name",
                           e.target.value
                         )
                       }
                       required
                     />
-                    {index > 0 && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => removeAuthorizedPerson(index)}
-                        className="px-2"
-                      >
-                        ×
-                      </Button>
-                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Relation</Label>
+                    <Input
+                      value={person.relation}
+                      onChange={(e) =>
+                        handleAuthorizedPersonChange(
+                          index,
+                          "relation",
+                          e.target.value
+                        )
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={person.phone}
+                        onChange={(e) =>
+                          handleAuthorizedPersonChange(
+                            index,
+                            "phone",
+                            e.target.value
+                          )
+                        }
+                        required
+                      />
+                      {index > 0 && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => removeAuthorizedPerson(index)}
+                          className="px-2"
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
 
           <div className="flex justify-end gap-4">

@@ -281,8 +281,6 @@ export default function Trips() {
   return (
     <div className="h-full w-full bg-gray-100 p-4">
       <div className="max-w-7xl mx-auto space-y-2">
-      
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
@@ -366,9 +364,9 @@ export default function Trips() {
                         ? formatDateTime(trip.scheduled_end_time)
                         : "",
                       status: trip.status.replace("_", " "),
-                      students_count: trip.students?.length?.toString() || "0",
-                      distance: trip.distance?.toString() || "",
-                      duration: trip.duration?.toString() || "",
+                      students_count: trip.students_count?.toString() || "0",
+                      distance: "",
+                      duration: "",
                     })),
                     fileName: "trips_export",
                     title: "Trips Report",
@@ -382,7 +380,6 @@ export default function Trips() {
 
         {/* Trips Table */}
         <Card>
-        
           <CardContent>
             <div className="overflow-x-auto">
               <Table>

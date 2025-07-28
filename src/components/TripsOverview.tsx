@@ -159,7 +159,7 @@ export const TripsOverview = () => {
   return (
     <div className="space-y-6">
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Trips</CardTitle>
@@ -216,7 +216,7 @@ export const TripsOverview = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
               <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {analytics.morning}
@@ -239,6 +239,14 @@ export const TripsOverview = () => {
               </div>
               <div className="text-sm text-purple-600 dark:text-purple-400">
                 Evening Trips
+              </div>
+            </div>
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {analytics.total}
+              </div>
+              <div className="text-sm text-orange-600 dark:text-orange-400">
+                Total Trips
               </div>
             </div>
           </div>

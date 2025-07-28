@@ -13,6 +13,8 @@ import {
   Trash2,
   Eye as ViewIcon,
   Users,
+  MapPin,
+  RefreshCw,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
@@ -24,10 +26,12 @@ import {
 } from "../redux/slices/routesSlice";
 import {
   createRouteAssignment,
+  fetchRouteAssignments,
   type RouteAssignment,
 } from "../redux/slices/routeAssignmentsSlice";
 import { fetchStudents, type Student } from "../redux/slices/studentsSlice";
 import { fetchDrivers, type Driver } from "../redux/slices/driversSlice";
+import { fetchGrades } from "../redux/slices/gradesSlice";
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSelector } from "react-redux";
@@ -102,6 +106,7 @@ const formSchema = z.object({
   is_active: z.boolean(),
   schedule_days: z.array(z.string()),
   traffic_factor: z.number(),
+  path: z.string(),
 });
 
 const assignmentFormSchema = z.object({
@@ -118,15 +123,35 @@ const assignmentFormSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
 
+// Extended Route interface to include path property
+interface ExtendedRoute extends Route {
+  path?: string;
+}
+
 export default function RoutesPage() {
   const dispatch = useAppDispatch();
   const { routes, loading, error } = useAppSelector((state) => state.routes);
   const { students } = useAppSelector((state) => state.students);
   const { drivers } = useAppSelector((state) => state.drivers);
+  const { assignments } = useAppSelector((state) => state.routeAssignments);
+  const { grades } = useAppSelector((state) => state.grades);
   const data = JSON.parse(localStorage.getItem("profile") || "{}");
   const user = data;
   const { schools } = useAppSelector((state) => state.schools);
   const { toast } = useToast();
+
+  // Debug logging for hot reload issues
+  console.log(
+    "RoutesPage render - routes:",
+    routes?.length,
+    "loading:",
+    loading,
+    "error:",
+    error
+  );
+  console.log("Routes data:", routes);
+  console.log("SchoolId from localStorage:", localStorage.getItem("schoolId"));
+  console.log("User data:", user);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [startPlace, setStartPlace] = useState("");
   const [endPlace, setEndPlace] = useState("");
@@ -137,8 +162,13 @@ export default function RoutesPage() {
   const [calculatedDuration, setCalculatedDuration] = useState<string | null>(
     null
   );
+  const [routeStops, setRouteStops] = useState<
+    Array<{ name: string; lat: number; lng: number; sequence: number }>
+  >([]);
+  const [stopSearchTerm, setStopSearchTerm] = useState("");
   const startInputRef = useRef<HTMLInputElement>(null);
   const endInputRef = useRef<HTMLInputElement>(null);
+  const stopSearchInputRef = useRef<HTMLInputElement>(null);
 
   // Table state management
   const [searchTerm, setSearchTerm] = useState("");
@@ -147,12 +177,24 @@ export default function RoutesPage() {
   const [itemsPerPage] = useState(10);
 
   // Action modals state
-  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<ExtendedRoute | null>(
+    null
+  );
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAssignRouteModalOpen, setIsAssignRouteModalOpen] = useState(false);
+
+  // Student search state
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  // Route search state
+  const [routeSearchTerm, setRouteSearchTerm] = useState("");
+  // Driver search state
+  const [driverSearchTerm, setDriverSearchTerm] = useState("");
+
+  // Track if data has been loaded to handle hot reload
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Filter schools for the current admin
   const filteredSchools =
@@ -166,11 +208,78 @@ export default function RoutesPage() {
       (student) => student && student.school === parseInt(schoolId || "0")
     ) || [];
 
+  // Get students who are already assigned to routes
+  const assignedStudentIds = new Set(
+    assignments?.map((assignment) => assignment?.student) || []
+  );
+
+  // Filter out students who are already assigned to routes
+  const unassignedStudents = filteredStudents.filter(
+    (student) => !assignedStudentIds.has(student.id!)
+  );
+
+  // Filter students based on search term (only unassigned students)
+  const searchedStudents = unassignedStudents.filter((student) => {
+    if (!studentSearchTerm) return true;
+
+    const searchLower = studentSearchTerm.toLowerCase();
+    return (
+      student.first_name?.toLowerCase().includes(searchLower) ||
+      student.last_name?.toLowerCase().includes(searchLower) ||
+      student.admission_number?.toLowerCase().includes(searchLower) ||
+      `${student.first_name} ${student.last_name}`
+        .toLowerCase()
+        .includes(searchLower)
+    );
+  });
+
+  // Filter routes based on search term
+  const searchedRoutes = (routes || []).filter((route) => {
+    if (!routeSearchTerm) return true;
+
+    const searchLower = routeSearchTerm.toLowerCase();
+    return (
+      route.name?.toLowerCase().includes(searchLower) ||
+      route.total_distance?.toString().includes(searchLower) ||
+      route.estimated_duration?.toLowerCase().includes(searchLower)
+    );
+  });
+
   // Filter drivers for the current school
   const filteredDrivers =
     drivers?.filter(
       (driver) => driver && driver.school === parseInt(schoolId || "0")
     ) || [];
+
+  // Filter drivers based on search term (name and phone number)
+  const searchedDrivers = filteredDrivers.filter((driver) => {
+    if (!driverSearchTerm) return true;
+
+    const searchLower = driverSearchTerm.toLowerCase();
+    const driverName = `${driver.user_details.first_name || ""} ${
+      driver.user_details.last_name || ""
+    }`.toLowerCase();
+    const driverPhone = (driver.phone_number || "").toLowerCase();
+
+    return (
+      driverName.includes(searchLower) || driverPhone.includes(searchLower)
+    );
+  });
+
+  // Helper functions
+  const getGradeName = (gradeId: number | string) => {
+    if (!gradeId) return "N/A";
+    const grade = grades.find((g) => g.id === Number(gradeId));
+    return grade ? grade.name : `Grade ${gradeId}`;
+  };
+
+  const getDriverName = (driverId: number) => {
+    if (!driverId) return "N/A";
+    const driver = filteredDrivers.find((d) => d.id === driverId);
+    return driver
+      ? `${driver.user_details.first_name} ${driver.user_details.last_name}`
+      : "Unknown Driver";
+  };
 
   // Debug logging
   console.log("All drivers:", drivers);
@@ -241,7 +350,17 @@ export default function RoutesPage() {
         "friday",
       ],
       traffic_factor: route.traffic_factor || 1.3,
+      path:
+        (route as ExtendedRoute).path ||
+        JSON.stringify({
+          type: "LineString",
+          coordinates: [
+            [0, 0],
+            [0, 0],
+          ],
+        }),
     });
+
     setIsEditModalOpen(true);
   };
 
@@ -249,6 +368,34 @@ export default function RoutesPage() {
     if (!route) return;
     setSelectedRoute(route);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleAddStop = (name: string, lat: number, lng: number) => {
+    console.log("Adding stop:", { name, lat, lng });
+    const newStop = {
+      name,
+      lat,
+      lng,
+      sequence: routeStops.length + 1,
+    };
+    console.log("New stop object:", newStop);
+    console.log("Current routeStops before adding:", routeStops);
+    setRouteStops((prevStops) => {
+      const updatedStops = [...prevStops, newStop];
+      console.log("Updated routeStops:", updatedStops);
+      return updatedStops;
+    });
+    setStopSearchTerm("");
+  };
+
+  const handleRemoveStop = (index: number) => {
+    const updatedStops = routeStops.filter((_, i) => i !== index);
+    // Update sequence numbers
+    const reorderedStops = updatedStops.map((stop, i) => ({
+      ...stop,
+      sequence: i + 1,
+    }));
+    setRouteStops(reorderedStops);
   };
 
   const confirmDelete = async () => {
@@ -262,6 +409,15 @@ export default function RoutesPage() {
         return;
       }
 
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        toast({
+          title: "Error",
+          description: "No school found for the current admin",
+          variant: "destructive",
+        });
+        return;
+      }
       await dispatch(deleteRoute(selectedRoute.id!)).unwrap();
       toast({
         title: "Success",
@@ -310,6 +466,13 @@ export default function RoutesPage() {
       is_active: true,
       schedule_days: ["monday", "tuesday", "wednesday", "thursday", "friday"],
       traffic_factor: 1.3,
+      path: JSON.stringify({
+        type: "LineString",
+        coordinates: [
+          [0, 0],
+          [0, 0],
+        ],
+      }),
     },
   });
 
@@ -325,14 +488,25 @@ export default function RoutesPage() {
     },
   });
 
+  // Always fetch data on component mount, regardless of existing state
   useEffect(() => {
     const schoolId = localStorage.getItem("schoolId");
+    console.log("Routes useEffect - schoolId:", schoolId);
     if (schoolId) {
+      console.log("Dispatching fetchRoutes with schoolId:", parseInt(schoolId));
+      // Always fetch data, even if it already exists
       dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
       dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
       dispatch(fetchDrivers());
+      dispatch(fetchRouteAssignments({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchGrades({ schoolId: parseInt(schoolId) }));
+      setDataLoaded(true);
+    } else {
+      console.log("No schoolId found in localStorage");
     }
-  }, [dispatch]);
+  }, []); // Remove dispatch dependency to ensure it runs on every mount
+
+
 
   useEffect(() => {
     // Load Google Maps script
@@ -536,6 +710,44 @@ export default function RoutesPage() {
           }
         });
 
+        // Add stop search autocomplete
+        if (stopSearchInputRef.current) {
+          const stopAutocomplete = new google.maps.places.Autocomplete(
+            stopSearchInputRef.current,
+            {
+              types: ["geocode", "establishment"],
+              fields: ["geometry", "formatted_address", "name"],
+              componentRestrictions: { country: "ke" },
+            }
+          );
+
+          stopAutocomplete.addListener("place_changed", () => {
+            console.log("Autocomplete place_changed event triggered");
+            const place = stopAutocomplete.getPlace();
+            console.log("Selected place:", place);
+            if (place.geometry) {
+              const lat = place.geometry.location?.lat() || 0;
+              const lng = place.geometry.location?.lng() || 0;
+              const name = place.name || place.formatted_address || "";
+              console.log("Setting stopSearchTerm to:", name);
+              // Only update the search term, don't add to stops list
+              setStopSearchTerm(name);
+              // Clear the autocomplete to prevent it from interfering
+              if (stopSearchInputRef.current) {
+                stopSearchInputRef.current.value = name;
+              }
+              // Prevent form submission by stopping event propagation
+              setTimeout(() => {
+                if (stopSearchInputRef.current) {
+                  stopSearchInputRef.current.blur();
+                }
+              }, 100);
+            } else {
+              console.log("No geometry found for selected place");
+            }
+          });
+        }
+
         // Add click event listeners to the autocomplete items
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
@@ -582,6 +794,24 @@ export default function RoutesPage() {
     }
 
     try {
+      // Generate path from route stops if available, otherwise from start/end coordinates
+      let path;
+      if (routeStops.length > 0) {
+        const coordinates = routeStops.map((stop) => [stop.lng, stop.lat]);
+        path = JSON.stringify({
+          type: "LineString",
+          coordinates: coordinates,
+        });
+      } else {
+        path = JSON.stringify({
+          type: "LineString",
+          coordinates: [
+            [values.start_lng, values.start_lat],
+            [values.end_lng, values.end_lat],
+          ],
+        });
+      }
+
       const routeData = {
         name: values.name,
         school: parseInt(schoolId || "1"),
@@ -595,9 +825,10 @@ export default function RoutesPage() {
         is_active: values.is_active,
         schedule_days: values.schedule_days,
         traffic_factor: values.traffic_factor,
-      } satisfies Omit<Route, "id">;
+        path: path,
+      } as Omit<Route, "id"> & { path: string };
 
-      await dispatch(addRoute(routeData)).unwrap();
+      const newRoute = await dispatch(addRoute(routeData)).unwrap();
       toast({
         title: "Success",
         description: "Route added successfully",
@@ -618,6 +849,8 @@ export default function RoutesPage() {
       setCalculatedDistance(null);
       setCalculatedDuration(null);
       setIsCalculatingRoute(false);
+      setRouteStops([]);
+      setStopSearchTerm("");
     } catch (err) {
       console.error("Route creation error:", err);
 
@@ -673,6 +906,24 @@ export default function RoutesPage() {
     }
 
     try {
+      // Generate path from route stops if available, otherwise from start/end coordinates
+      let path;
+      if (routeStops.length > 0) {
+        const coordinates = routeStops.map((stop) => [stop.lng, stop.lat]);
+        path = JSON.stringify({
+          type: "LineString",
+          coordinates: coordinates,
+        });
+      } else {
+        path = JSON.stringify({
+          type: "LineString",
+          coordinates: [
+            [values.start_lng, values.start_lat],
+            [values.end_lng, values.end_lat],
+          ],
+        });
+      }
+
       const routeData = {
         name: values.name,
         school: parseInt(schoolId || "1"),
@@ -686,9 +937,11 @@ export default function RoutesPage() {
         is_active: values.is_active,
         schedule_days: values.schedule_days,
         traffic_factor: values.traffic_factor,
-      } satisfies Omit<Route, "id">;
+        path: path,
+      } as Omit<Route, "id"> & { path: string };
 
       await dispatch(updateRoute({ id: selectedRoute.id, routeData })).unwrap();
+
       toast({
         title: "Success",
         description: "Route updated successfully",
@@ -710,6 +963,8 @@ export default function RoutesPage() {
       setCalculatedDistance(null);
       setCalculatedDuration(null);
       setIsCalculatingRoute(false);
+      setRouteStops([]);
+      setStopSearchTerm("");
     } catch (err) {
       console.error("Route update error:", err);
 
@@ -786,29 +1041,52 @@ export default function RoutesPage() {
     }
   };
 
+  const handleRefresh = () => {
+    const schoolId = localStorage.getItem("schoolId");
+    if (schoolId) {
+      console.log("Manual refresh triggered");
+      dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchDrivers());
+      dispatch(fetchRouteAssignments({ schoolId: parseInt(schoolId) }));
+      dispatch(fetchGrades({ schoolId: parseInt(schoolId) }));
+      toast({
+        title: "Refreshing",
+        description: "Data is being refreshed...",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="flex-1 flex flex-col min-h-screen">
-        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
-          {/* Page Title Only */}
-          <div className="mb-2">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Map className="w-8 h-8 text-green-500" /> Routes
-            </h1>
-          </div>
+        <main className="flex-1 px-2 sm:px-1 py-0 w-full max-w-[98vw] mx-auto">
           <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="pb-3 border-b border-gray-100 flex flex-row w-full items-center justify-between">
+            <CardHeader className="border-b border-gray-100 flex flex-row w-full items-center justify-between py-4">
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
                 <Map className="w-6 h-6 text-green-500" />
                 Routes List
               </CardTitle>
               <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </Button>
                 <Dialog
                   open={isAssignRouteModalOpen}
                   onOpenChange={(open) => {
                     setIsAssignRouteModalOpen(open);
                     if (!open) {
                       assignmentForm.reset();
+                      setStudentSearchTerm("");
+                      setRouteSearchTerm("");
                     }
                   }}
                 >
@@ -824,6 +1102,16 @@ export default function RoutesPage() {
                   <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Assign Route to Student</DialogTitle>
+                      <div className="text-sm text-muted-foreground">
+                        {unassignedStudents.length} students available for route
+                        assignment
+                        {assignedStudentIds.size > 0 && (
+                          <span className="text-amber-600">
+                            {" "}
+                            ({assignedStudentIds.size} already assigned)
+                          </span>
+                        )}
+                      </div>
                     </DialogHeader>
                     <Form {...assignmentForm}>
                       <form
@@ -850,15 +1138,44 @@ export default function RoutesPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {filteredStudents.map((student) => (
-                                    <SelectItem
-                                      key={student.id}
-                                      value={student.id?.toString() || ""}
-                                    >
-                                      {student.first_name} {student.last_name} -{" "}
-                                      {student.admission_number}
-                                    </SelectItem>
-                                  ))}
+                                  <div className="flex items-center px-3 pb-2">
+                                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <input
+                                      placeholder="Search students..."
+                                      value={studentSearchTerm}
+                                      onChange={(e) =>
+                                        setStudentSearchTerm(e.target.value)
+                                      }
+                                      className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                  </div>
+                                  <div className="max-h-[200px] overflow-y-auto">
+                                    {searchedStudents.length === 0 ? (
+                                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        {studentSearchTerm
+                                          ? "No unassigned students found matching your search"
+                                          : "No unassigned students available"}
+                                      </div>
+                                    ) : (
+                                      searchedStudents.map((student) => (
+                                        <SelectItem
+                                          key={student.id}
+                                          value={student.id?.toString() || ""}
+                                        >
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">
+                                              {student.first_name}{" "}
+                                              {student.last_name}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {student.admission_number} -{" "}
+                                              {getGradeName(student.grade)}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </div>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -884,14 +1201,45 @@ export default function RoutesPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {routes?.map((route) => (
-                                    <SelectItem
-                                      key={route.id}
-                                      value={route.id?.toString() || ""}
-                                    >
-                                      {route.name} - {route.total_distance}km
-                                    </SelectItem>
-                                  ))}
+                                  {/* Route Search Input */}
+                                  <div className="flex items-center px-3 pb-2">
+                                    <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                    <input
+                                      placeholder="Search routes by name, distance, or duration..."
+                                      value={routeSearchTerm}
+                                      onChange={(e) =>
+                                        setRouteSearchTerm(e.target.value)
+                                      }
+                                      className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                  </div>
+                                  <div className="max-h-[200px] overflow-y-auto">
+                                    {searchedRoutes.length === 0 ? (
+                                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                                        {routeSearchTerm
+                                          ? "No routes found matching your search"
+                                          : "No routes available"}
+                                      </div>
+                                    ) : (
+                                      searchedRoutes.map((route) => (
+                                        <SelectItem
+                                          key={route.id}
+                                          value={route.id?.toString() || ""}
+                                        >
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">
+                                              {route.name}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {route.total_distance}km -{" "}
+                                              {route.estimated_duration} -{" "}
+                                              {getDriverName(route.driver)}
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))
+                                    )}
+                                  </div>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1003,6 +1351,7 @@ export default function RoutesPage() {
                       setCalculatedDistance(null);
                       setCalculatedDuration(null);
                       setIsCalculatingRoute(false);
+                      setDriverSearchTerm("");
                     }
                   }}
                 >
@@ -1023,76 +1372,102 @@ export default function RoutesPage() {
                         onSubmit={form.handleSubmit(handleAddRoute)}
                         className="space-y-4"
                       >
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Route Name</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Enter route name"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="driver"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Select Driver</FormLabel>
-                              <Select
-                                onValueChange={(value) =>
-                                  field.onChange(parseInt(value))
-                                }
-                                value={field.value.toString()}
-                                disabled={filteredDrivers.length === 0}
-                              >
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Route Name</FormLabel>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue
-                                      placeholder={
-                                        filteredDrivers.length === 0
-                                          ? "No drivers available"
-                                          : "Choose a driver"
-                                      }
-                                    />
-                                  </SelectTrigger>
+                                  <Input
+                                    placeholder="Enter route name"
+                                    {...field}
+                                  />
                                 </FormControl>
-                                <SelectContent>
-                                  {filteredDrivers.length === 0 ? (
-                                    <SelectItem value="" disabled>
-                                      No drivers available for this school
-                                    </SelectItem>
-                                  ) : (
-                                    filteredDrivers.map((driver) => (
-                                      <SelectItem
-                                        key={driver.id}
-                                        value={driver.id?.toString() || ""}
-                                      >
-                                        {driver.user_details.first_name}{" "}
-                                        {driver.user_details.last_name} -{" "}
-                                        {driver.license_number}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                              {filteredDrivers.length === 0 && (
-                                <p className="text-sm text-amber-600 mt-1">
-                                  No drivers are available for this school.
-                                  Please add drivers first.
-                                </p>
-                              )}
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="driver"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Select Driver</FormLabel>
+                                <Select
+                                  onValueChange={(value) =>
+                                    field.onChange(parseInt(value))
+                                  }
+                                  value={field.value.toString()}
+                                  disabled={searchedDrivers.length === 0}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue
+                                        placeholder={
+                                          searchedDrivers.length === 0
+                                            ? "No drivers available"
+                                            : "Choose a driver"
+                                        }
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {/* Driver Search Input */}
+                                    <div className="flex items-center px-3 pb-2">
+                                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                      <input
+                                        placeholder="Search drivers by name or phone..."
+                                        value={driverSearchTerm}
+                                        onChange={(e) =>
+                                          setDriverSearchTerm(e.target.value)
+                                        }
+                                        className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                      />
+                                    </div>
+                                    <div className="max-h-[200px] overflow-y-auto">
+                                      {searchedDrivers.length === 0 ? (
+                                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                                          {driverSearchTerm
+                                            ? "No drivers found matching your search"
+                                            : "No drivers available for this school"}
+                                        </div>
+                                      ) : (
+                                        searchedDrivers.map((driver) => (
+                                          <SelectItem
+                                            key={driver.id}
+                                            value={driver.id?.toString() || ""}
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">
+                                                {driver.user_details.first_name}{" "}
+                                                {driver.user_details.last_name}
+                                              </span>
+                                              <span className="text-xs text-muted-foreground">
+                                                {driver.phone_number ||
+                                                  "No phone"}{" "}
+                                                - {driver.license_number}
+                                              </span>
+                                            </div>
+                                          </SelectItem>
+                                        ))
+                                      )}
+                                    </div>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                {filteredDrivers.length === 0 && (
+                                  <p className="text-sm text-amber-600 mt-1">
+                                    No drivers are available for this school.
+                                    Please add drivers first.
+                                  </p>
+                                )}
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <FormItem>
@@ -1270,6 +1645,143 @@ export default function RoutesPage() {
                           )}
                         />
 
+                        {/* Route Stops Section */}
+                        <div className="space-y-4">
+                          <div>
+                            <Label className="text-base font-semibold">
+                              Route Stops
+                            </Label>
+                            <p className="text-sm text-gray-600 mt-1">
+                              Add intermediate stops for this route
+                            </p>
+                          </div>
+
+                          {/* Stop Search Input */}
+                          <div className="space-y-2">
+                            <Label>Add Stop</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                ref={stopSearchInputRef}
+                                placeholder="Search for a location to add as a stop..."
+                                value={stopSearchTerm}
+                                onChange={(e) =>
+                                  setStopSearchTerm(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }
+                                }}
+                                className="flex-1"
+                                autoComplete="off"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  console.log(
+                                    "Add button clicked, stopSearchTerm:",
+                                    stopSearchTerm
+                                  );
+                                  if (stopSearchTerm.trim()) {
+                                    // Get coordinates from the search input
+                                    const geocoder = new google.maps.Geocoder();
+                                    console.log(
+                                      "Geocoding address:",
+                                      stopSearchTerm
+                                    );
+                                    geocoder.geocode(
+                                      { address: stopSearchTerm },
+                                      (results, status) => {
+                                        console.log("Geocoding results:", {
+                                          results,
+                                          status,
+                                        });
+                                        if (status === "OK" && results?.[0]) {
+                                          const lat =
+                                            results[0].geometry.location?.lat() ||
+                                            0;
+                                          const lng =
+                                            results[0].geometry.location?.lng() ||
+                                            0;
+                                          console.log("Found coordinates:", {
+                                            lat,
+                                            lng,
+                                          });
+                                          handleAddStop(
+                                            stopSearchTerm,
+                                            lat,
+                                            lng
+                                          );
+                                        } else {
+                                          console.log(
+                                            "Geocoding failed:",
+                                            status
+                                          );
+                                          toast({
+                                            title: "Error",
+                                            description:
+                                              "Could not find coordinates for this location",
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      }
+                                    );
+                                  } else {
+                                    console.log(
+                                      "stopSearchTerm is empty or whitespace"
+                                    );
+                                  }
+                                }}
+                                disabled={!stopSearchTerm.trim()}
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Stops List */}
+                          {routeStops.length > 0 && (
+                            <div className="space-y-2">
+                              <Label>Added Stops ({routeStops.length})</Label>
+                              <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                                {routeStops.map((stop, index) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-xs font-medium text-blue-600">
+                                          {stop.sequence}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-sm">
+                                          {stop.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {stop.lat.toFixed(6)},{" "}
+                                          {stop.lng.toFixed(6)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRemoveStop(index)}
+                                      className="text-red-500 hover:text-red-700"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="flex justify-end">
                           <Button
                             type="submit"
@@ -1284,7 +1796,7 @@ export default function RoutesPage() {
                 </Dialog>
               </div>
             </CardHeader>
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -1353,123 +1865,249 @@ export default function RoutesPage() {
               {/* REMOVED: <div className="text-sm text-gray-600 mt-4">...</div> */}
             </div>
 
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Driver
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Distance
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Schedule
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
-                      Loading routes...
-                    </td>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Route Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Driver
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Distance
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Schedule
+                    </th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ) : error ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-4 text-center text-red-500"
-                    >
-                      {error}
-                    </td>
-                  </tr>
-                ) : routes?.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center">
-                      No routes found
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedRoutes.map((route) => {
-                    // Skip rendering if route is null or undefined
-                    if (!route) return null;
-
-                    return (
-                      <tr key={route.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {route.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {
-                            filteredDrivers?.find((d) => d.id === route.driver)
-                              ?.user_details.first_name
-                          }{" "}
-                          {
-                            filteredDrivers?.find((d) => d.id === route.driver)
-                              ?.user_details.last_name
-                          }
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {route.total_distance} km
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {route.schedule_days.join(", ")}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            variant={route.is_active ? "default" : "secondary"}
-                          >
-                            {route.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                          <span className="text-gray-600 font-medium">
+                            Loading routes...
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          </div>
+                          <span className="text-red-600 font-medium">
+                            {error}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : routes?.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center space-y-3">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                            <Map className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <div>
+                            <p className="text-gray-600 font-medium">
+                              {loading
+                                ? "Loading routes..."
+                                : "No routes found"}
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                              {loading
+                                ? "Please wait while we fetch your routes"
+                                : "Create your first route to get started"}
+                            </p>
+                            {!loading && (
+                              <Button
+                                onClick={handleRefresh}
+                                variant="outline"
+                                size="sm"
+                                className="mt-2"
+                              >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Refresh Data
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleView(route)}
-                              >
-                                <ViewIcon className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleEdit(route)}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(route)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedRoutes.map((route, index) => {
+                      // Skip rendering if route is null or undefined
+                      if (!route) return null;
+
+                      return (
+                        <tr
+                          key={route.id}
+                          className={`hover:bg-gray-50 transition-colors duration-200 ${
+                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                          }`}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {route.name}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  ID: {route.id}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {filteredDrivers
+                                    ?.find((d) => d.id === route.driver)
+                                    ?.user_details.first_name?.charAt(0) || "?"}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {filteredDrivers?.find(
+                                    (d) => d.id === route.driver
+                                  )?.user_details.first_name ||
+                                    "Not Assigned"}{" "}
+                                  {filteredDrivers?.find(
+                                    (d) => d.id === route.driver
+                                  )?.user_details.last_name || ""}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {filteredDrivers?.find(
+                                    (d) => d.id === route.driver
+                                  )?.license_number || "No license"}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                <span className="text-xs font-medium text-purple-600">
+                                  {route.total_distance?.toString().charAt(0) ||
+                                    "0"}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {route.total_distance} km
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {route.estimated_duration}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1">
+                              {route.schedule_days?.slice(0, 3).map((day) => (
+                                <Badge
+                                  key={day}
+                                  variant="outline"
+                                  className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200"
+                                >
+                                  {day.slice(0, 3)}
+                                </Badge>
+                              ))}
+                              {route.schedule_days?.length > 3 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-1 bg-gray-50 text-gray-600 border-gray-200"
+                                >
+                                  +{route.schedule_days.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Badge
+                              variant={
+                                route.is_active ? "default" : "secondary"
+                              }
+                              className={`${
+                                route.is_active
+                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                              } font-medium`}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    route.is_active
+                                      ? "bg-green-500"
+                                      : "bg-gray-400"
+                                  }`}
+                                ></div>
+                                <span>
+                                  {route.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </div>
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+                                >
+                                  <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem
+                                  onClick={() => handleView(route)}
+                                  className="cursor-pointer"
+                                >
+                                  <ViewIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                  <span>View Details</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEdit(route)}
+                                  className="cursor-pointer"
+                                >
+                                  <Edit className="h-4 w-4 mr-2 text-green-600" />
+                                  <span>Edit Route</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleDelete(route)}
+                                  className="cursor-pointer text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  <span>Delete Route</span>
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Pagination Controls - always show at the bottom */}
-            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+            <div className="flex items-center justify-between p-4 border-t border-gray-200">
               <div className="text-sm text-gray-600">
                 Showing {startIndex + 1}-
                 {Math.min(endIndex, filteredAndSearchedRoutes.length)} of{" "}
@@ -1612,6 +2250,7 @@ export default function RoutesPage() {
             setCalculatedDistance(null);
             setCalculatedDuration(null);
             setIsCalculatingRoute(false);
+            setDriverSearchTerm("");
           }
         }}
       >
@@ -1624,71 +2263,98 @@ export default function RoutesPage() {
               onSubmit={form.handleSubmit(handleUpdateRoute)}
               className="space-y-4"
             >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Route Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter route name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="driver"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Select Driver</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(parseInt(value))}
-                      value={field.value.toString()}
-                      disabled={filteredDrivers.length === 0}
-                    >
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Route Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              filteredDrivers.length === 0
-                                ? "No drivers available"
-                                : "Choose a driver"
-                            }
-                          />
-                        </SelectTrigger>
+                        <Input placeholder="Enter route name" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {filteredDrivers.length === 0 ? (
-                          <SelectItem value="" disabled>
-                            No drivers available for this school
-                          </SelectItem>
-                        ) : (
-                          filteredDrivers.map((driver) => (
-                            <SelectItem
-                              key={driver.id}
-                              value={driver.id?.toString() || ""}
-                            >
-                              {driver.user_details.first_name}{" "}
-                              {driver.user_details.last_name} -{" "}
-                              {driver.license_number}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                    {filteredDrivers.length === 0 && (
-                      <p className="text-sm text-amber-600 mt-1">
-                        No drivers are available for this school. Please add
-                        drivers first.
-                      </p>
-                    )}
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="driver"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Driver</FormLabel>
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                        value={field.value.toString()}
+                        disabled={searchedDrivers.length === 0}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                searchedDrivers.length === 0
+                                  ? "No drivers available"
+                                  : "Choose a driver"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {/* Driver Search Input */}
+                          <div className="flex items-center px-3 pb-2">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                              placeholder="Search drivers by name or phone..."
+                              value={driverSearchTerm}
+                              onChange={(e) =>
+                                setDriverSearchTerm(e.target.value)
+                              }
+                              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto">
+                            {searchedDrivers.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">
+                                {driverSearchTerm
+                                  ? "No drivers found matching your search"
+                                  : "No drivers available for this school"}
+                              </div>
+                            ) : (
+                              searchedDrivers.map((driver) => (
+                                <SelectItem
+                                  key={driver.id}
+                                  value={driver.id?.toString() || ""}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {driver.user_details.first_name}{" "}
+                                      {driver.user_details.last_name}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {driver.phone_number || "No phone"} -{" "}
+                                      {driver.license_number}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      {filteredDrivers.length === 0 && (
+                        <p className="text-sm text-amber-600 mt-1">
+                          No drivers are available for this school. Please add
+                          drivers first.
+                        </p>
+                      )}
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormItem>
@@ -1856,6 +2522,130 @@ export default function RoutesPage() {
                   </FormItem>
                 )}
               />
+
+              {/* Route Stops Section */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-semibold">Route Stops</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Add intermediate stops for this route
+                  </p>
+                </div>
+
+                {/* Stop Search Input */}
+                <div className="space-y-2">
+                  <Label>Add Stop</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      ref={stopSearchInputRef}
+                      placeholder="Search for a location to add as a stop..."
+                      value={stopSearchTerm}
+                      onChange={(e) => setStopSearchTerm(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      className="flex-1"
+                      autoComplete="off"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        console.log(
+                          "Add button clicked (edit modal), stopSearchTerm:",
+                          stopSearchTerm
+                        );
+                        if (stopSearchTerm.trim()) {
+                          // Get coordinates from the search input
+                          const geocoder = new google.maps.Geocoder();
+                          console.log(
+                            "Geocoding address (edit modal):",
+                            stopSearchTerm
+                          );
+                          geocoder.geocode(
+                            { address: stopSearchTerm },
+                            (results, status) => {
+                              console.log("Geocoding results (edit modal):", {
+                                results,
+                                status,
+                              });
+                              if (status === "OK" && results?.[0]) {
+                                const lat =
+                                  results[0].geometry.location?.lat() || 0;
+                                const lng =
+                                  results[0].geometry.location?.lng() || 0;
+                                console.log("Found coordinates (edit modal):", {
+                                  lat,
+                                  lng,
+                                });
+                                handleAddStop(stopSearchTerm, lat, lng);
+                              } else {
+                                console.log(
+                                  "Geocoding failed (edit modal):",
+                                  status
+                                );
+                                toast({
+                                  title: "Error",
+                                  description:
+                                    "Could not find coordinates for this location",
+                                  variant: "destructive",
+                                });
+                              }
+                            }
+                          );
+                        } else {
+                          console.log(
+                            "stopSearchTerm is empty or whitespace (edit modal)"
+                          );
+                        }
+                      }}
+                      disabled={!stopSearchTerm.trim()}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Stops List */}
+                {routeStops.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Added Stops ({routeStops.length})</Label>
+                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                      {routeStops.map((stop, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-medium text-blue-600">
+                                {stop.sequence}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{stop.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {stop.lat.toFixed(6)}, {stop.lng.toFixed(6)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveStop(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="flex justify-end">
                 <Button

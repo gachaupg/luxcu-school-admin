@@ -20,10 +20,14 @@ interface Parent {
   user: number;
   user_email: string;
   user_full_name: string;
+  user_phone_number?: string;
   phone_number?: string;
   address?: string;
   emergency_contact?: string;
   school?: number;
+  school_name?: string;
+  school_longitude?: number;
+  school_latitude?: number;
   preferred_contact_method?: string;
   secondary_phone?: string;
   user_data?: {
@@ -37,6 +41,7 @@ interface Parent {
   authorized_pickup_persons?: {
     persons: AuthorizedPerson[];
   };
+  children?: unknown[];
 }
 
 interface ParentViewModalProps {
@@ -185,50 +190,55 @@ export function ParentViewModal({
               <Users className="h-4 w-4" />
               Authorized Pickup Persons
             </h3>
-            {parent.authorized_pickup_persons?.persons &&
-            parent.authorized_pickup_persons.persons.length > 0 ? (
-              <div className="space-y-3">
-                {parent.authorized_pickup_persons.persons.map(
-                  (person, index) => (
-                    <div
-                      key={index}
-                      className="p-3 border rounded-lg bg-gray-50"
-                    >
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">
-                            Name
-                          </Label>
-                          <p className="mt-1 text-gray-900">
-                            {person.name || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">
-                            Relation
-                          </Label>
-                          <p className="mt-1 text-gray-900">
-                            {person.relation || "-"}
-                          </p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">
-                            Phone
-                          </Label>
-                          <p className="mt-1 text-gray-900">
-                            {person.phone || "-"}
-                          </p>
+            {(() => {
+              // Safe access to authorized_pickup_persons
+              const persons = parent.authorized_pickup_persons?.persons;
+              if (persons && Array.isArray(persons) && persons.length > 0) {
+                return (
+                  <div className="space-y-3">
+                    {persons.map((person, index) => (
+                      <div
+                        key={index}
+                        className="p-3 border rounded-lg bg-gray-50"
+                      >
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">
+                              Name
+                            </Label>
+                            <p className="mt-1 text-gray-900">
+                              {person.name || "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">
+                              Relation
+                            </Label>
+                            <p className="mt-1 text-gray-900">
+                              {person.relation || "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">
+                              Phone
+                            </Label>
+                            <p className="mt-1 text-gray-900">
+                              {person.phone || "-"}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                )}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic">
-                No authorized pickup persons listed
-              </p>
-            )}
+                    ))}
+                  </div>
+                );
+              } else {
+                return (
+                  <p className="text-gray-500 italic">
+                    No authorized pickup persons listed
+                  </p>
+                );
+              }
+            })()}
           </div>
         </div>
       </DialogContent>

@@ -14,10 +14,14 @@ interface Parent {
   user: number;
   user_email: string;
   user_full_name: string;
+  user_phone_number?: string;
   phone_number?: string;
   address?: string;
   emergency_contact?: string;
   school?: number;
+  school_name?: string;
+  school_longitude?: number;
+  school_latitude?: number;
   preferred_contact_method?: string;
   secondary_phone?: string;
   // Keep the nested structure for backward compatibility
@@ -28,10 +32,12 @@ interface Parent {
     phone_number: string;
     user_type: string;
     profile_image: string | null;
+    user_phone_number: string;
   };
   authorized_pickup_persons?: {
     persons: AuthorizedPerson[];
   };
+  children?: unknown[];
 }
 
 interface ParentsState {
@@ -58,6 +64,7 @@ export const registerParent = createAsyncThunk<
       confirm_password: string;
       user_type: string;
       profile_image: string | null;
+      user_phone_number: string;
     };
     address: string;
     emergency_contact: string;
@@ -83,6 +90,7 @@ export const registerParent = createAsyncThunk<
         confirm_password: parentData.user.confirm_password,
         user_type: parentData.user.user_type,
         profile_image: parentData.user.profile_image,
+        user_phone_number: parentData.user.user_phone_number,
       },
       address: parentData.address,
       emergency_contact: parentData.emergency_contact,

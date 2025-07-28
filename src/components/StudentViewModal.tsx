@@ -4,7 +4,10 @@ import { Badge } from "./ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { Student } from "../redux/slices/studentsSlice";
+import { Grade } from "../redux/slices/gradesSlice";
 import { Calendar, Phone, User, School, MapPin, Heart } from "lucide-react";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
 
 interface StudentViewModalProps {
   isOpen: boolean;
@@ -17,9 +20,18 @@ export function StudentViewModal({
   onClose,
   student,
 }: StudentViewModalProps) {
+  const { grades } = useSelector((state: RootState) => state.grades);
+
   if (!student || !student.id) {
     return null;
   }
+
+  // Helper function to get grade name from grade ID
+  const getGradeName = (gradeId: number | string) => {
+    if (!gradeId) return "N/A";
+    const grade = grades.find((g) => g.id === Number(gradeId));
+    return grade ? grade.name : `Grade ${gradeId}`;
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -107,7 +119,7 @@ export function StudentViewModal({
                     Grade
                   </label>
                   <p className="text-lg font-semibold">
-                    {student.grade || "N/A"}
+                    {getGradeName(student.grade)}
                   </p>
                 </div>
                 <div>

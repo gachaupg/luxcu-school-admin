@@ -66,6 +66,70 @@ import { ParentViewModal } from "@/components/ParentViewModal";
 import { ParentEditModal } from "@/components/ParentEditModal";
 import { ExportDropdown } from "@/components/ExportDropdown";
 import { RootState } from "@/redux/store";
+import {
+  MultipleUploadModal,
+  DataPreviewModal,
+} from "@/components/multiple-upload";
+import { uploadCSVFile } from "@/services/csvUploadService";
+
+interface ParsedData {
+  first_name?: string;
+  firstName?: string;
+  last_name?: string;
+  lastName?: string;
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  phone?: string;
+  phoneNumber?: string;
+  address?: string;
+  emergency_contact?: string;
+  emergencyContact?: string;
+  preferred_contact_method?: string;
+  secondary_phone?: string;
+  secondaryPhone?: string;
+  authorized_pickup_persons?: AuthorizedPerson[];
+  authorizedPickupPersons?: AuthorizedPerson[];
+  // CSV column mappings
+  "First Name"?: string;
+  First_Name?: string;
+  "Last Name"?: string;
+  Last_Name?: string;
+  Email?: string;
+  "Phone Number"?: string;
+  Phone_Number?: string;
+  Address?: string;
+  "Emergency Contact"?: string;
+  Emergency_Contact?: string;
+  "Secondary Phone"?: string;
+  Secondary_Phone?: string;
+  "Preferred Contact Method"?: string;
+  Preferred_Contact_Method?: string;
+  "Authorized Pickup Persons"?: AuthorizedPerson[];
+  Authorized_Pickup_Persons?: AuthorizedPerson[];
+  // Additional name variations
+  "Full Name"?: string;
+  full_name?: string;
+  Full_Name?: string;
+  Parent?: string;
+  parent?: string;
+  "Parent Name"?: string;
+  parent_name?: string;
+  Parent_Name?: string;
+  // Additional phone variations
+  Phone?: string;
+  mobile?: string;
+  Mobile?: string;
+  "Mobile Number"?: string;
+  mobile_number?: string;
+  Mobile_Number?: string;
+  // Contact variations
+  contact?: string;
+  Contact?: string;
+  tel?: string;
+  Tel?: string;
+  [key: string]: unknown;
+}
 
 interface AuthorizedPerson {
   name: string;
@@ -78,10 +142,14 @@ interface Parent {
   user: number;
   user_email: string;
   user_full_name: string;
+  user_phone_number?: string;
   phone_number?: string;
   address?: string;
   emergency_contact?: string;
   school?: number;
+  school_name?: string;
+  school_longitude?: number;
+  school_latitude?: number;
   preferred_contact_method?: string;
   secondary_phone?: string;
   user_data?: {
@@ -89,12 +157,14 @@ interface Parent {
     last_name: string;
     email: string;
     phone_number: string;
+    user_phone_number: string;
     user_type: string;
     profile_image: string | null;
   };
   authorized_pickup_persons?: {
     persons: AuthorizedPerson[];
   };
+  children?: unknown[];
 }
 
 interface ParentFormData {
@@ -103,6 +173,7 @@ interface ParentFormData {
     last_name: string;
     email: string;
     phone_number: string;
+    user_phone_number: string;
     password: string;
     confirm_password: string;
     user_type: string;
@@ -165,12 +236,18 @@ export default function Parents() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
+  // Multiple upload states
+  const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
+  const [isDataPreviewOpen, setIsDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
+
   const [formData, setFormData] = useState<ParentFormData>({
     user_data: {
       first_name: "",
       last_name: "",
       email: "",
       phone_number: "",
+      user_phone_number: "",
       password: "",
       confirm_password: "",
       user_type: "parent",
@@ -191,26 +268,25 @@ export default function Parents() {
   ) => {
     const { name, value } = e.target;
 
-    // Convert phone numbers to international format
+    // For phone numbers, allow typing but don't auto-convert during input
     if (
       name === "user_data.phone_number" ||
       name === "secondary_phone" ||
       name === "emergency_contact"
     ) {
-      const convertedValue = convertToInternationalFormat(value);
       if (name.startsWith("user_data.")) {
         const field = name.split(".")[1];
         setFormData((prev) => ({
           ...prev,
           user_data: {
             ...prev.user_data,
-            [field]: convertedValue,
+            [field]: value,
           },
         }));
       } else {
         setFormData((prev) => ({
           ...prev,
-          [name]: convertedValue,
+          [name]: value,
         }));
       }
     } else if (name.startsWith("user_data.")) {
@@ -230,33 +306,95 @@ export default function Parents() {
     }
   };
 
-  // Function to convert local phone numbers to international format
+  // Generate email from name if not provided
+  const generateEmail = (firstName: string, lastName: string): string => {
+    // Ensure we have valid names to work with
+    const cleanFirstName = (firstName || "parent")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+    const cleanLastName = (lastName || "user")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+
+    // If names are empty after cleaning, use fallback
+    const finalFirstName = cleanFirstName || "parent";
+    const finalLastName = cleanLastName || "user";
+
+    const timestamp = Date.now();
+    return `${finalFirstName}.${finalLastName}${timestamp}@school.com`;
+  };
+
+  // Generate unique phone number
+  const generateUniquePhoneNumber = (): string => {
+    const timestamp = Date.now();
+    const randomSuffix = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0");
+    const phoneSuffix = timestamp.toString().slice(-6) + randomSuffix;
+    const localNumber = `07${phoneSuffix.slice(0, 8)}`;
+    // Convert to international format
+    return `+254${localNumber.slice(1)}`;
+  };
+
   const convertToInternationalFormat = (phoneNumber: string): string => {
+    console.log("🔄 Converting phone number:", phoneNumber);
+
+    if (!phoneNumber || !phoneNumber.trim()) {
+      console.log("⚠️ Empty phone number, generating unique number");
+      return generateUniquePhoneNumber();
+    }
+
     // Remove all non-digit characters
     const cleaned = phoneNumber.replace(/\D/g, "");
+    console.log("🔄 Cleaned phone number:", cleaned, "Length:", cleaned.length);
 
-    // If it's already in international format, return as is
-    if (cleaned.startsWith("254")) {
+    // Validate the cleaned number
+    if (cleaned.length === 0) {
+      console.log(
+        "⚠️ Empty phone number after cleaning, generating unique number"
+      );
+      return generateUniquePhoneNumber();
+    }
+
+    // If it's already in international format (starts with 254), return as is
+    if (cleaned.startsWith("254") && cleaned.length === 12) {
+      const result = `+${cleaned}`;
+      console.log("✅ Already international format:", result);
+      return result;
+    }
+
+    // If it starts with 0, replace with 254
+    if (cleaned.startsWith("0") && cleaned.length === 10) {
+      const result = `+254${cleaned.slice(1)}`;
+      console.log("✅ Converted from 0 format:", result);
+      return result;
+    }
+
+    // If it's 9 digits (without country code), add 254
+    if (cleaned.length === 9) {
+      const result = `+254${cleaned}`;
+      console.log("✅ Converted from 9 digits:", result);
+      return result;
+    }
+
+    // If it's already 12 digits (with country code), add +
+    if (cleaned.length === 12) {
       return `+${cleaned}`;
     }
 
-    // If it starts with 0, replace with +254
-    if (cleaned.startsWith("0")) {
-      return `+254${cleaned.substring(1)}`;
-    }
-
-    // If it's 9 digits (Kenyan number without country code), add +254
-    if (cleaned.length === 9) {
+    // If it's 11 digits and starts with 7, it's likely a Kenyan number
+    if (cleaned.length === 11 && cleaned.startsWith("7")) {
       return `+254${cleaned}`;
     }
 
-    // If it's already 12 digits and starts with 254, add +
-    if (cleaned.length === 12 && cleaned.startsWith("254")) {
-      return `+${cleaned}`;
+    // Default: assume it's a valid number and add +254 if needed
+    if (cleaned.length >= 9) {
+      return `+254${cleaned.slice(-9)}`;
     }
 
-    // Return as is if it doesn't match any pattern
-    return phoneNumber;
+    // If the number is too short or invalid, generate a unique one
+    console.log("⚠️ Invalid phone number format, generating unique number");
+    return generateUniquePhoneNumber();
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -296,6 +434,400 @@ export default function Parents() {
     }));
   };
 
+  // Multiple upload handlers - Updated to use CSV upload service
+  const handleMultipleUpload = async (files: File[]) => {
+    try {
+      console.log("🚀 Starting CSV upload of", files.length, "files");
+
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        throw new Error("School ID not found");
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        console.log(`📝 Processing file ${i + 1}/${files.length}:`, file.name);
+
+        try {
+          // Upload file to CSV upload endpoint
+          const response = await uploadCSVFile(file, "parents");
+
+          if (response.success) {
+            console.log(`✅ File ${i + 1} uploaded successfully`);
+            totalSuccess += response.created_count || 0;
+            totalFailed += response.skipped_count || 0;
+
+            // Add any errors from the response
+            if (response.errors && response.errors.length > 0) {
+              response.errors.forEach((error) => {
+                if (typeof error === "string") {
+                  // Handle string errors
+                  allErrors.push(error);
+                } else if (error.row && error.field && error.message) {
+                  // Handle structured errors
+                  allErrors.push(
+                    `Row ${error.row}, ${error.field}: ${error.message}`
+                  );
+                } else {
+                  // Handle other error formats
+                  allErrors.push(JSON.stringify(error));
+                }
+              });
+            }
+
+            // Log created users for debugging
+            if (response.created_users && response.created_users.length > 0) {
+              console.log(
+                `📝 Created users from file ${file.name}:`,
+                response.created_users
+              );
+            }
+          } else {
+            console.error(`❌ File ${i + 1} upload failed:`, response.message);
+            totalFailed += 1;
+            allErrors.push(`File "${file.name}": ${response.message}`);
+          }
+        } catch (error: unknown) {
+          console.error(`❌ Failed to upload file ${i + 1}:`, error);
+          totalFailed += 1;
+
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          allErrors.push(`File "${file.name}": ${errorMessage}`);
+        }
+      }
+
+      // Show results
+      if (totalSuccess > 0) {
+        toast({
+          title: "CSV upload completed",
+          description: `Successfully created ${totalSuccess} parents.${
+            totalFailed > 0 ? ` ${totalFailed} skipped.` : ""
+          }`,
+        });
+      }
+
+      if (totalFailed > 0) {
+        toast({
+          title: "Some records were skipped",
+          description: `${totalFailed} records were skipped. Check the console for details.`,
+          variant: "destructive",
+        });
+
+        // Log all errors for debugging
+        console.error("❌ Upload errors:", allErrors);
+      }
+
+      // Refresh parents list
+      dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
+    } catch (error: unknown) {
+      console.error("❌ CSV upload failed:", error);
+      toast({
+        title: "CSV upload failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      throw error; // Re-throw so the modal can handle it
+    }
+  };
+
+  // Validate email format
+  const isValidEmail = (email: string): boolean => {
+    if (!email || typeof email !== "string") return false;
+
+    // Basic email regex pattern
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    // Additional checks
+    const trimmedEmail = email.trim();
+    if (trimmedEmail.length === 0) return false;
+    if (trimmedEmail.length > 254) return false; // RFC 5321 limit
+
+    return emailRegex.test(trimmedEmail);
+  };
+
+  // Generate parent data with automatic field generation
+  const generateParentData = (record: ParsedData, schoolId: string) => {
+    // Debug: Log the incoming record to see what fields are available
+    console.log("🔍 Processing record:", record);
+    console.log("🔍 Available fields:", Object.keys(record));
+    console.log("🔍 Preferred contact method fields:", {
+      preferred_contact_method: record.preferred_contact_method,
+      "Preferred Contact Method": record["Preferred Contact Method"],
+      Preferred_Contact_Method: record["Preferred_Contact_Method"],
+    });
+
+    // Extract and clean data from the record with proper CSV column mapping
+    // Try multiple variations of name fields
+    const rawName = String(
+      record.name ||
+        record["Name"] ||
+        record["Full Name"] ||
+        record["full_name"] ||
+        record["Full_Name"] ||
+        record["Parent"] ||
+        record["parent"] ||
+        record["Parent Name"] ||
+        record["parent_name"] ||
+        record["Parent_Name"] ||
+        record.first_name ||
+        record["First Name"] ||
+        record["First_Name"] ||
+        record.firstName ||
+        ""
+    );
+
+    // Remove quotes and clean the name
+    const name = rawName.replace(/^["']|["']$/g, "").trim();
+
+    // Split name into first and last name
+    const nameParts = name
+      .trim()
+      .split(" ")
+      .filter((part) => part.trim());
+    const firstName = nameParts.length > 0 ? nameParts[0] : "";
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+    // Debug: Log extracted name parts
+    console.log("📝 Extracted name parts:", {
+      originalName: name,
+      firstName,
+      lastName,
+      nameParts,
+    });
+
+    // Handle email with validation
+    const rawEmail = record.email || record["Email"];
+    let email = "";
+
+    if (rawEmail && String(rawEmail).trim()) {
+      // Remove quotes and clean the email
+      const cleanedEmail = String(rawEmail)
+        .replace(/^["']|["']$/g, "")
+        .trim();
+      console.log("📧 Raw email:", rawEmail);
+      console.log("📧 Cleaned email:", cleanedEmail);
+
+      if (isValidEmail(cleanedEmail)) {
+        email = cleanedEmail;
+        console.log("✅ Using provided email:", email);
+      } else {
+        console.log("⚠️ Invalid email format, generating new email");
+        email = generateEmail(firstName, lastName);
+        console.log("🔄 Generated email:", email);
+      }
+    } else {
+      console.log("📧 No email provided, generating new email");
+      email = generateEmail(firstName, lastName);
+      console.log("🔄 Generated email:", email);
+    }
+
+    // Final email validation
+    if (!isValidEmail(email)) {
+      console.error("❌ Failed to generate valid email for record:", record);
+      throw new Error("Failed to generate valid email address");
+    }
+
+    console.log("📧 Final email:", email);
+
+    // Try multiple variations of phone fields
+    const rawPhoneNumber = String(
+      record.phone_number ||
+        record["Phone Number"] ||
+        record["Phone_Number"] ||
+        record["phone_number"] ||
+        record.phone ||
+        record["Phone"] ||
+        record["phone"] ||
+        record.mobile ||
+        record["Mobile"] ||
+        record["mobile"] ||
+        record["Mobile Number"] ||
+        record["mobile_number"] ||
+        record["Mobile_Number"] ||
+        record.phoneNumber ||
+        record.contact ||
+        record["Contact"] ||
+        record["contact"] ||
+        record.tel ||
+        record["Tel"] ||
+        record["tel"] ||
+        ""
+    );
+
+    // Remove quotes and clean the phone number
+    const phoneNumber = rawPhoneNumber.replace(/^["']|["']$/g, "").trim();
+
+    console.log("📱 Raw phone number:", phoneNumber);
+
+    // Convert to international format
+    const formattedPhone = convertToInternationalFormat(phoneNumber);
+    console.log("📱 Raw phone number:", phoneNumber);
+    console.log("📱 Formatted phone number:", formattedPhone);
+    console.log("📱 Formatted phone length:", formattedPhone?.length);
+
+    // Validate phone number format
+    if (!formattedPhone) {
+      console.error("❌ Phone number is empty");
+      throw new Error("Phone number is required");
+    }
+
+    if (!formattedPhone.startsWith("+254")) {
+      console.error("❌ Phone number must start with +254:", formattedPhone);
+      throw new Error(
+        "Phone number must be in international format (+254XXXXXXXXX)"
+      );
+    }
+
+    if (formattedPhone.length !== 13) {
+      console.error(
+        "❌ Phone number must be exactly 13 characters:",
+        formattedPhone,
+        "Length:",
+        formattedPhone.length
+      );
+      throw new Error(
+        "Phone number must be exactly 13 characters (+254XXXXXXXXX)"
+      );
+    }
+
+    const rawAddress = String(record.address || record["Address"] || "");
+    const address = rawAddress.replace(/^["']|["']$/g, "").trim();
+
+    // Optional fields with fallbacks
+    const rawEmergencyContact = String(
+      record.emergency_contact ||
+        record.emergencyContact ||
+        record["Emergency Contact"] ||
+        record["Emergency_Contact"] ||
+        record["emergency_contact"] ||
+        phoneNumber || // Use primary phone as fallback
+        generateUniquePhoneNumber()
+    );
+    const emergencyContact = rawEmergencyContact
+      .replace(/^["']|["']$/g, "")
+      .trim();
+    const rawSecondaryPhone = String(
+      record.secondary_phone ||
+        record.secondaryPhone ||
+        record["Secondary Phone"] ||
+        record["Secondary_Phone"] ||
+        record["secondary_phone"] ||
+        ""
+    );
+    const secondaryPhone = rawSecondaryPhone.replace(/^["']|["']$/g, "").trim();
+    const rawPreferredContactMethod = String(
+      record.preferred_contact_method ||
+        record["Preferred Contact Method"] ||
+        record["Preferred_Contact_Method"] ||
+        record["preferred_contact_method"] ||
+        ""
+    )
+      .toLowerCase()
+      .trim();
+
+    // Normalize and validate preferred contact method
+    let preferredContactMethod = "phone"; // default
+    if (rawPreferredContactMethod) {
+      if (["email", "e-mail", "mail"].includes(rawPreferredContactMethod)) {
+        preferredContactMethod = "email";
+      } else if (
+        ["phone", "mobile", "call", "telephone"].includes(
+          rawPreferredContactMethod
+        )
+      ) {
+        preferredContactMethod = "phone";
+      } else if (
+        ["sms", "text", "message"].includes(rawPreferredContactMethod)
+      ) {
+        preferredContactMethod = "sms";
+      } else {
+        console.log(
+          "⚠️ Invalid preferred contact method:",
+          rawPreferredContactMethod,
+          "using default: phone"
+        );
+        preferredContactMethod = "phone";
+      }
+    }
+
+    console.log("📞 Final preferred contact method:", preferredContactMethod);
+    const authorizedPickupPersons =
+      record.authorized_pickup_persons ||
+      record.authorizedPickupPersons ||
+      record["Authorized Pickup Persons"] ||
+      record["Authorized_Pickup_Persons"] ||
+      record["authorized_pickup_persons"] ||
+      [];
+
+    // Validate required fields only (name and phone are mandatory)
+    const errors: string[] = [];
+
+    if (!name.trim()) {
+      errors.push("Name is required");
+    }
+
+    if (!phoneNumber.trim()) {
+      errors.push("Phone number is required");
+    }
+
+    // Email and address are optional - generate if missing
+    if (!email.trim() || !isValidEmail(email)) {
+      console.log("⚠️ Invalid or missing email, generating one");
+    }
+
+    if (!address.trim()) {
+      console.log("⚠️ Missing address, using default");
+    }
+
+    // If there are validation errors, throw them
+    if (errors.length > 0) {
+      console.error("❌ Validation errors:", errors);
+      console.error("❌ Record data:", record);
+      console.error("❌ Extracted values:", {
+        name,
+        email,
+        phoneNumber,
+        address,
+      });
+      throw new Error(`Validation failed: ${errors.join(", ")}`);
+    }
+
+    // Generate password (default: Pass1234 as requested)
+    const password = "Pass1234";
+
+    return {
+      user: {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        phone_number: convertToInternationalFormat(phoneNumber),
+        password: password,
+        confirm_password: password,
+        user_type: "parent",
+        profile_image: null,
+      },
+      address: address,
+      emergency_contact: convertToInternationalFormat(emergencyContact),
+      school: parseInt(schoolId),
+      preferred_contact_method: preferredContactMethod,
+      secondary_phone: secondaryPhone,
+      authorized_pickup_persons: {
+        persons: authorizedPickupPersons,
+      },
+    };
+  };
+
+  const handleDataPreview = (data: Record<string, unknown>[]) => {
+    setPreviewData(data as ParsedData[]);
+    setIsDataPreviewOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -325,7 +857,7 @@ export default function Parents() {
         ...validationErrors.user_data,
         email: "Email is required",
       };
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.user_data.email)) {
+    } else if (!isValidEmail(formData.user_data.email)) {
       validationErrors.user_data = {
         ...validationErrors.user_data,
         email: "Please enter a valid email address",
@@ -425,6 +957,7 @@ export default function Parents() {
           last_name: formData.user_data?.last_name || "",
           email: formData.user_data?.email || "",
           phone_number: formattedUserPhone,
+          user_phone_number: formattedUserPhone,
           password: formData.user_data?.password || "",
           confirm_password: formData.user_data?.confirm_password || "",
           user_type: formData.user_data?.user_type || "parent",
@@ -443,10 +976,6 @@ export default function Parents() {
         },
       };
 
-      console.log("Form data before submission:", formData);
-      console.log("API data being sent:", apiData);
-      console.log("School ID:", schoolId);
-
       const result = await dispatch(registerParent(apiData)).unwrap();
       console.log("Registration successful:", result);
 
@@ -455,6 +984,7 @@ export default function Parents() {
         description: "Parent registered successfully",
       });
       setIsDialogOpen(false);
+
       // Reset form
       setFormData({
         user_data: {
@@ -462,6 +992,7 @@ export default function Parents() {
           last_name: "",
           email: "",
           phone_number: "",
+          user_phone_number: "",
           password: "",
           confirm_password: "",
           user_type: "parent",
@@ -480,132 +1011,9 @@ export default function Parents() {
       setFormErrors({});
     } catch (error) {
       console.error("Parent registration error:", error);
-      console.error("Error type:", typeof error);
-      console.error("Error instanceof Error:", error instanceof Error);
-      console.error("Raw error:", error);
-
-      // Handle different types of errors
-      let errorMessage = "Failed to register parent";
-      const fieldErrors: Record<string, string> = {};
-
-      if (typeof error === "string") {
-        try {
-          // Try to parse as JSON (Redux error format)
-          const parsedError = JSON.parse(error);
-          console.log("Successfully parsed error as JSON:", parsedError);
-
-          if (typeof parsedError === "object" && parsedError !== null) {
-            // This is a field-specific error object
-            Object.entries(parsedError).forEach(([field, errorValue]) => {
-              const errorMsg = Array.isArray(errorValue)
-                ? errorValue[0]
-                : String(errorValue);
-              console.log(
-                `Processing field: ${field} with value: ${errorValue}, extracted message: ${errorMsg}`
-              );
-
-              // Map database field names to form field names
-              if (field === "email") {
-                fieldErrors["user_data.email"] = errorMsg;
-                console.log(
-                  `Mapped email error to user_data.email: ${errorMsg}`
-                );
-              } else if (field === "phone_number") {
-                fieldErrors["user_data.phone_number"] = errorMsg;
-                console.log(
-                  `Mapped phone_number error to user_data.phone_number: ${errorMsg}`
-                );
-              } else if (field === "first_name") {
-                fieldErrors["user_data.first_name"] = errorMsg;
-                console.log(
-                  `Mapped first_name error to user_data.first_name: ${errorMsg}`
-                );
-              } else if (field === "last_name") {
-                fieldErrors["user_data.last_name"] = errorMsg;
-                console.log(
-                  `Mapped last_name error to user_data.last_name: ${errorMsg}`
-                );
-              } else if (field === "password") {
-                fieldErrors["user_data.password"] = errorMsg;
-                console.log(
-                  `Mapped password error to user_data.password: ${errorMsg}`
-                );
-              } else if (field === "confirm_password") {
-                fieldErrors["user_data.confirm_password"] = errorMsg;
-                console.log(
-                  `Mapped confirm_password error to user_data.confirm_password: ${errorMsg}`
-                );
-              } else if (field === "user") {
-                // Handle nested user object errors
-                if (typeof errorValue === "object" && errorValue !== null) {
-                  Object.entries(errorValue).forEach(
-                    ([userField, userErrorValue]) => {
-                      const userErrorMsg = Array.isArray(userErrorValue)
-                        ? userErrorValue[0]
-                        : String(userErrorValue);
-                      fieldErrors[`user_data.${userField}`] = userErrorMsg;
-                      console.log(
-                        `Mapped nested user.${userField} error to user_data.${userField}: ${userErrorMsg}`
-                      );
-                    }
-                  );
-                }
-              } else {
-                fieldErrors[field] = errorMsg;
-                console.log(`Mapped ${field} error directly: ${errorMsg}`);
-              }
-            });
-
-            // Create a user-friendly error message
-            const errorMessages = Object.values(parsedError).flat();
-            errorMessage = errorMessages.join(", ");
-            console.log("Combined error message for toast:", errorMessage);
-          } else {
-            errorMessage = error;
-            console.log(
-              "Parsed error is not an object, using as string:",
-              error
-            );
-          }
-        } catch (parseError) {
-          // If it's not JSON, use the string as is
-          errorMessage = error;
-          console.log("Failed to parse error as JSON, using as string:", error);
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-        console.log("Error is Error instance, using message:", error.message);
-      }
-
-      console.log("Final parsed error message:", errorMessage);
-      console.log("Final parsed field errors:", fieldErrors);
-
-      // Convert field errors to the expected format
-      const formFieldErrors: FormErrors = {};
-
-      Object.entries(fieldErrors).forEach(([field, errorMsg]) => {
-        console.log(`Processing field: ${field} with error: ${errorMsg}`);
-        if (field.startsWith("user_data.")) {
-          const userField = field.split(".")[1];
-          formFieldErrors.user_data = {
-            ...formFieldErrors.user_data,
-            [userField]: errorMsg,
-          };
-          console.log(`Mapped to user_data.${userField}: ${errorMsg}`);
-        } else {
-          (formFieldErrors as Record<string, string>)[field] = errorMsg;
-          console.log(`Mapped to ${field}: ${errorMsg}`);
-        }
-      });
-
-      console.log("Final form field errors:", formFieldErrors);
-
-      setFormErrors(formFieldErrors);
-
-      // Show toast with the main error message
       toast({
         title: "Registration Failed",
-        description: errorMessage,
+        description: "Failed to register parent. Please try again.",
         variant: "destructive",
       });
     }
@@ -627,32 +1035,11 @@ export default function Parents() {
       }
     } catch (error) {
       console.error("Parent update error:", error);
-
-      // Parse the error similar to registration
-      let errorMessage = "Failed to update parent";
-
-      if (typeof error === "string") {
-        try {
-          const parsedError = JSON.parse(error);
-          if (typeof parsedError === "object" && parsedError !== null) {
-            const errorMessages = Object.values(parsedError).flat();
-            errorMessage = errorMessages.join(", ");
-          } else {
-            errorMessage = error;
-          }
-        } catch (parseError) {
-          errorMessage = error;
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
       toast({
         title: "Update Failed",
-        description: errorMessage,
+        description: "Failed to update parent. Please try again.",
         variant: "destructive",
       });
-      throw error;
     }
   };
 
@@ -669,29 +1056,9 @@ export default function Parents() {
       setSelectedParent(null);
     } catch (error) {
       console.error("Parent delete error:", error);
-
-      // Parse the error similar to registration
-      let errorMessage = "Failed to delete parent";
-
-      if (typeof error === "string") {
-        try {
-          const parsedError = JSON.parse(error);
-          if (typeof parsedError === "object" && parsedError !== null) {
-            const errorMessages = Object.values(parsedError).flat();
-            errorMessage = errorMessages.join(", ");
-          } else {
-            errorMessage = error;
-          }
-        } catch (parseError) {
-          errorMessage = error;
-        }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-
       toast({
         title: "Delete Failed",
-        description: errorMessage,
+        description: "Failed to delete parent. Please try again.",
         variant: "destructive",
       });
     }
@@ -751,7 +1118,12 @@ export default function Parents() {
       (parent.user_data?.email || parent.user_email || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (parent.user_data?.phone_number || parent.phone_number || "")
+      (
+        parent.user_data?.phone_number ||
+        parent.user_phone_number ||
+        parent.phone_number ||
+        ""
+      )
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
@@ -838,15 +1210,17 @@ export default function Parents() {
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
           {/* Page Title Only */}
-          <div className="mb-2">
+          <div className="mb-2 flex justify-between">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               <Users className="w-8 h-8 text-green-500" /> Parents
             </h1>
-          </div>
-
-          {/* Header Section */}
-          <div className="mb-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsMultipleUploadOpen(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+              >
+                <Download className="mr-2 h-4 w-4" /> Bulk Upload
+              </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
@@ -857,7 +1231,7 @@ export default function Parents() {
                   <DialogHeader>
                     <DialogTitle>Add New Parent</DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit} className="space-y-2">
                     {/* General Error Display */}
                     {formErrors.general && (
                       <div className="p-4 bg-red-50 border border-red-200 rounded-md">
@@ -1062,10 +1436,6 @@ export default function Parents() {
                             {formErrors.user_data.phone_number}
                           </p>
                         )}
-                        <p className="text-xs text-gray-500">
-                          Enter local format (0722858508) or international
-                          format (+254722858508)
-                        </p>
                       </div>
                     </div>
 
@@ -1335,119 +1705,125 @@ export default function Parents() {
                 </DialogContent>
               </Dialog>
             </div>
-
-            {/* Search and Filter Toolbar */}
-            <Card className="bg-white shadow-md border-0 mb-4 rounded-xl">
-              <CardContent className="p-4">
-                <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
-                  <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        placeholder="Search parents by name, email, or phone..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
-                      />
-                    </div>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={handleStatusFilter}
-                    >
-                      <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Parents</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={clearFilters}
-                      className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
-                    >
-                      Clear Filters
-                    </Button>
-                    <ExportDropdown
-                      data={{
-                        headers: [
-                          "Name",
-                          "Email",
-                          "Phone Number",
-                          "Address",
-                          "Emergency Contact",
-                          "Secondary Phone",
-                          "Preferred Contact Method",
-                          "Authorized Pickup Persons",
-                        ],
-                        data: filteredParents.map((parent) => {
-                          const authorizedPersons =
-                            parent.authorized_pickup_persons?.persons
-                              ?.map(
-                                (person) =>
-                                  `${person.name} (${person.relation})`
-                              )
-                              .join("; ") || "None";
-
-                          return {
-                            name: `${
-                              parent.user_data?.first_name ||
-                              parent.user_full_name?.split(" ")[0] ||
-                              ""
-                            } ${
-                              parent.user_data?.last_name ||
-                              parent.user_full_name
-                                ?.split(" ")
-                                .slice(1)
-                                .join(" ") ||
-                              ""
-                            }`,
-                            email:
-                              parent.user_data?.email ||
-                              parent.user_email ||
-                              "",
-                            phone_number:
-                              parent.user_data?.phone_number ||
-                              parent.phone_number ||
-                              "",
-                            address: parent.address || "",
-                            emergency_contact: parent.emergency_contact || "",
-                            secondary_phone: parent.secondary_phone || "",
-                            preferred_contact_method:
-                              parent.preferred_contact_method || "",
-                            authorized_pickup_persons: authorizedPersons,
-                          };
-                        }),
-                        fileName: "parents_export",
-                        title: "Parents Directory",
-                      }}
-                      className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Parents Table */}
-          <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="pb-3 border-b border-gray-100">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-6 h-6 text-green-500" />
-                Parents List
-              </CardTitle>
-              <p className="text-gray-500 text-sm mt-1">
-                All registered parents are listed below.
-              </p>
-            </CardHeader>
+          <Card className="bg-white border-0 rounded-xl">
+            <div className="mb-2">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2"></div>
+
+              {/* Search and Filter Toolbar */}
+              <div className="bg-white ">
+                <CardContent className="">
+                  <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
+                    <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search parents by name, email, or phone..."
+                          value={searchTerm}
+                          onChange={(e) => handleSearch(e.target.value)}
+                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
+                        />
+                      </div>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={handleStatusFilter}
+                      >
+                        <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Parents</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={clearFilters}
+                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                      >
+                        Clear Filters
+                      </Button>
+                      <ExportDropdown
+                        data={{
+                          headers: [
+                            "Name",
+                            "Email",
+                            "Phone Number",
+                            "Address",
+                            "Emergency Contact",
+                            "Secondary Phone",
+                            "Preferred Contact Method",
+                            "Authorized Pickup Persons",
+                          ],
+                          data: filteredParents.map((parent) => {
+                            const authorizedPersons = Array.isArray(
+                              parent.authorized_pickup_persons?.persons
+                            )
+                              ? parent.authorized_pickup_persons.persons
+                                  .map(
+                                    (person) =>
+                                      `${person.name} (${person.relation})`
+                                  )
+                                  .join("; ")
+                              : "None";
+
+                            const phoneNumber =
+                              parent.user_data?.phone_number ||
+                              parent.user_phone_number ||
+                              parent.phone_number ||
+                              "";
+
+                            // Debug: Log the phone number for each parent
+                            console.log(
+                              `📞 Export - Parent: ${parent.user_full_name}, Phone: ${phoneNumber}`
+                            );
+
+                            return {
+                              name: `${
+                                parent.user_data?.first_name ||
+                                parent.user_full_name?.split(" ")[0] ||
+                                ""
+                              } ${
+                                parent.user_data?.last_name ||
+                                parent.user_full_name
+                                  ?.split(" ")
+                                  .slice(1)
+                                  .join(" ") ||
+                                ""
+                              }`,
+                              email:
+                                parent.user_data?.email ||
+                                parent.user_email ||
+                                "",
+                              phone_number: phoneNumber,
+                              address: parent.address || "",
+                              emergency_contact: parent.emergency_contact || "",
+                              secondary_phone: parent.secondary_phone || "",
+                              preferred_contact_method:
+                                parent.preferred_contact_method || "",
+                              authorized_pickup_persons: authorizedPersons,
+                            };
+                          }),
+                          fileName: "parents_export",
+                          title: "Parents Directory",
+                        }}
+                        className="border-gray-200 hover:bg-gray-50  rounded-full shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+
             <CardContent className="p-0">
               {currentParents?.length > 0 ? (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[700px]">
+                    <table className="w-full min-w-[800px]">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th className="w-10 px-4 py-3 text-left">
@@ -1465,7 +1841,10 @@ export default function Parents() {
                             Name
                           </th>
                           <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
-                            Contact
+                            Email
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Phone Number
                           </th>
                           <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
                             Address
@@ -1501,34 +1880,31 @@ export default function Parents() {
                                   parent.user_full_name?.[0] ||
                                   "?"}
                               </div>
-                              <div>
-                                <div className="font-medium text-gray-900 text-sm">
-                                  {parent.user_data?.first_name ||
-                                    parent.user_full_name?.split(" ")[0] ||
-                                    "-"}{" "}
-                                  {parent.user_data?.last_name ||
-                                    parent.user_full_name
-                                      ?.split(" ")
-                                      .slice(1)
-                                      .join(" ") ||
-                                    ""}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {parent.user_data?.email ||
-                                    parent.user_email ||
-                                    "-"}
-                                </div>
+                              <div className="font-medium text-gray-900 text-sm">
+                                {parent.user_data?.first_name ||
+                                  parent.user_full_name?.split(" ")[0] ||
+                                  "-"}{" "}
+                                {parent.user_data?.last_name ||
+                                  parent.user_full_name
+                                    ?.split(" ")
+                                    .slice(1)
+                                    .join(" ") ||
+                                  ""}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-sm text-gray-900">
+                                {parent.user_data?.email ||
+                                  parent.user_email ||
+                                  "-"}
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <div className="text-sm text-gray-900">
                                 {parent.user_data?.phone_number ||
+                                  parent.user_phone_number ||
                                   parent.phone_number ||
                                   "-"}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {parent.emergency_contact ||
-                                  "No emergency contact"}
                               </div>
                             </td>
                             <td className="px-4 py-3">
@@ -1686,6 +2062,48 @@ export default function Parents() {
           </Card>
         </main>
       </div>
+
+      {/* Multiple Upload Modal */}
+      <MultipleUploadModal
+        isOpen={isMultipleUploadOpen}
+        onClose={() => setIsMultipleUploadOpen(false)}
+        title="Bulk Upload Parents"
+        description="Upload multiple parents at once using CSV, PDF, or Word documents."
+        acceptedFileTypes={[
+          ".csv",
+          ".xlsx",
+          ".xls",
+          ".txt",
+          ".pdf",
+          ".doc",
+          ".docx",
+          ".html",
+        ]}
+        maxFileSize={10}
+        maxFiles={5}
+        onUpload={handleMultipleUpload}
+        onPreview={handleDataPreview}
+        uploadType="parents"
+      />
+
+      {/* Data Preview Modal */}
+      <DataPreviewModal
+        isOpen={isDataPreviewOpen}
+        onClose={() => setIsDataPreviewOpen(false)}
+        data={previewData}
+        title="Parent Data Preview"
+        columns={[
+          "Name",
+          "Email",
+          "Phone Number",
+          "Address",
+          "Emergency Contact",
+          "Secondary Phone",
+          "Preferred Contact Method",
+          "Authorized Pickup Persons",
+          "School ID",
+        ]}
+      />
 
       {/* View Modal */}
       <ParentViewModal

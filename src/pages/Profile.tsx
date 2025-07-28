@@ -21,7 +21,7 @@ import {
 } from "../redux/slices/profileSlice";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { store } from "../redux/store";
+import type { RootState } from "../redux/store";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -46,7 +46,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { profile, loading, error } = useAppSelector((state) => state.profile);
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, token } = useAppSelector((state) => state.auth);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -119,8 +119,14 @@ const Profile = () => {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const state = store.getState();
-      const token = state.auth.token;
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "No authentication token found. Please log in again.",
+          variant: "destructive",
+        });
+        return;
+      }
       await axios.post(`${API_URL}/api/change-password/`, passwordData, {
         headers: {
           Authorization: `Bearer ${token}`,

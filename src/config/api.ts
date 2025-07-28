@@ -1,9 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
 import { API_BASE_URL } from "@/utils/api";
 import { handleApiError } from "@/utils/errorHandler";
-import { store } from "@/redux/store";
-import { logout } from "@/redux/slices/authSlice";
-import { clearSchoolsError } from "@/redux/slices/schoolsSlice";
 
 interface ApiClientConfig {
   timeout?: number;
@@ -65,13 +62,81 @@ const createAxiosInstance = (
 const addAuthInterceptor = (instance: AxiosInstance): AxiosInstance => {
   instance.interceptors.request.use(
     (config) => {
-      // Get token from Redux store instead of localStorage
-      const state = store.getState();
-      const token = state.auth.token;
+      // Simple token extraction - try multiple sources
+      let token = null;
 
+      // Method 1: Try direct token storage
+      token = localStorage.getItem("token");
+
+      // Method 2: Try Redux Persist if direct method fails
+      if (!token) {
+        try {
+          const persistData = localStorage.getItem("persist:auth");
+          if (persistData) {
+            const parsed = JSON.parse(persistData);
+            if (parsed.token) {
+              token = JSON.parse(parsed.token);
+              // Handle double-stringification
+              if (typeof token === "string") {
+                try {
+                  token = JSON.parse(token);
+                } catch (e) {
+                  // Keep original if second parse fails
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Error parsing persist data:", error);
+        }
+      }
+
+      // Force token extraction from multiple sources
+      if (!token) {
+        // Try Redux Persist directly
+        const persistData = localStorage.getItem("persist:auth");
+        if (persistData) {
+          try {
+            const parsed = JSON.parse(persistData);
+            if (parsed.token) {
+              token = JSON.parse(parsed.token);
+              if (typeof token === "string") {
+                try {
+                  token = JSON.parse(token);
+                } catch (e) {
+                  // Keep original if second parse fails
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("Error parsing persist data:", e);
+          }
+        }
+      }
+
+      // Set Authorization header if token found
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log("Auth header set for:", config.url);
+      } else {
+        console.error("NO TOKEN FOUND - Authentication will fail!");
+        console.log("Available localStorage keys:", Object.keys(localStorage));
+
+        // Check if user is logged in
+        const persistData = localStorage.getItem("persist:auth");
+        if (persistData) {
+          console.log(
+            "User appears to be logged in but token extraction failed"
+          );
+          console.log(
+            "Raw persist data:",
+            persistData.substring(0, 200) + "..."
+          );
+        } else {
+          console.log("User is NOT logged in - need to login first");
+        }
       }
+
       return config;
     },
     (error) => Promise.reject(error)
@@ -92,14 +157,15 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized errors (token expired)
     if (error.response?.status === 401) {
       console.log("Token expired, logging out user");
-      store.dispatch(logout());
-      // Clear any error states that might have been set
-      store.dispatch(clearSchoolsError());
+      // Clear auth data from localStorage
+      localStorage.removeItem("persist:auth");
+      localStorage.removeItem("schoolId");
       // Redirect to login page
       window.location.href = "/login";
       return Promise.reject(error);
     }
 
+    // Only call handleApiError for other errors
     handleApiError(error);
     return Promise.reject(error);
   }

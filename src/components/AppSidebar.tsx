@@ -6,6 +6,7 @@ import {
   Car,
   Home,
   CreditCard,
+  Bell,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -19,6 +20,7 @@ const menu = [
   { label: "Trips", icon: Car, href: "/trips" },
   { label: "Staff", icon: Users, href: "/staff" },
   { label: "Reports", icon: FileText, href: "/reports" },
+  { label: "Notifications", icon: Bell, href: "/notifications" },
   { label: "Subscription", icon: CreditCard, href: "/subscription" },
 ];
 
@@ -92,7 +94,11 @@ export function AppSidebar() {
         >
           <Settings
             size={20}
-            className={isActive("/settings") ? "text-white" : "text-gray-700 dark:text-gray-300"}
+            className={
+              isActive("/settings")
+                ? "text-white"
+                : "text-gray-700 dark:text-gray-300"
+            }
           />
           <span className="font-medium">Settings</span>
         </Link>
