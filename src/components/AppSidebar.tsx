@@ -37,24 +37,26 @@ export function AppSidebar() {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-6 flex items-center gap-2">
-        <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
-          <svg width="28" height="28" fill="none">
-            <circle cx="14" cy="14" r="13" stroke="#22c55e" strokeWidth="2" />
-            <path
-              d="M14 9v7"
-              stroke="#22c55e"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-            <circle cx="14" cy="17.5" r="1.5" fill="#22c55e" />
-          </svg>
+      <Link to="/home">
+        <div className="p-6 flex items-center gap-2">
+          <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
+            <svg width="28" height="28" fill="none">
+              <circle cx="14" cy="14" r="13" stroke="#22c55e" strokeWidth="2" />
+              <path
+                d="M14 9v7"
+                stroke="#22c55e"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <circle cx="14" cy="17.5" r="1.5" fill="#22c55e" />
+            </svg>
+          </div>
+          <span className="font-extrabold text-lg">
+            <span className="text-black dark:text-white">Lux</span>
+            <span className="text-green-500">Cab</span>
+          </span>
         </div>
-        <span className="font-extrabold text-lg">
-          <span className="text-black dark:text-white">Lux</span>
-          <span className="text-green-500">Cab</span>
-        </span>
-      </div>
+      </Link>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-4">
