@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!token) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
@@ -142,7 +142,7 @@ const AppRoutes = () => {
       <Route path="/verification" element={<Verification />} />
       <Route
         path="/"
-        element={token ? <Index /> : <Navigate to="/home" replace />}
+        element={token ? <Index /> : <Navigate to="/login" replace />}
       >
         <Route index element={<Overview />} />
         <Route path="trips" element={<Trips />} />

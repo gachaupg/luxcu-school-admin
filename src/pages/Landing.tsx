@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import TestAccountModal from "@/components/TestAccountModal";
+import { useAppSelector } from "@/redux/hooks";
 import {
   Card,
   CardContent,
@@ -57,6 +58,22 @@ const Landing = () => {
   const [showTestAccountModal, setShowTestAccountModal] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Get authentication state
+  const { token, user } = useAppSelector((state) => state.auth);
+  const isAuthenticated = !!token && !!user;
+
+  // Check if user has logged in before (has login history)
+  const hasLoginHistory = () => {
+    // Check if there's any auth data in localStorage
+    const persistData = localStorage.getItem("persist:auth");
+    const tokenData = localStorage.getItem("token");
+    const profileData = localStorage.getItem("profile");
+
+    return !!(persistData || tokenData || profileData);
+  };
+
+  const isExistingUser = hasLoginHistory();
 
   useEffect(() => {
     setIsVisible(true);
@@ -263,37 +280,41 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-white from-slate-50 via-white to-emerald-50">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400 backdrop-blur-md border-b border-emerald-300/50 transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-all duration-300 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-white">LuxCub</span>
+              <span className="text-xl font-bold text-emerald-600">LuxCub</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a
                 href="#features"
-                className="text-white/90 hover:text-white transition-colors font-medium"
+                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-white/90 hover:text-white transition-colors font-medium"
+                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="text-white/90 hover:text-white transition-colors font-medium"
+                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
               >
                 Contact
               </a>
             </div>
             <Button
-              className="bg-white/20 hover:bg-white/30 text-white border border-white/30 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 backdrop-blur-sm"
-              onClick={() => navigate("/register")}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+              onClick={() => navigate(isAuthenticated ? "/" : "/login")}
             >
-              Get Started
+              {isAuthenticated
+                ? "Dashboard"
+                : isExistingUser
+                ? "Login"
+                : "Get Started"}
             </Button>
           </div>
         </div>
@@ -302,37 +323,50 @@ const Landing = () => {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="relative min-h-screen flex items-center  overflow-hidden  bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400"
+        className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-100"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="text-left">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-200 rounded-full opacity-20 blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-300 rounded-full opacity-20 blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100 rounded-full opacity-10 blur-3xl"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Left Content */}
+            <div className="text-left space-y-8">
+              {/* Badge */}
               <Badge
                 variant="secondary"
-                className={`mb-4 bg-white/20 text-white border-white/30 px-4 py-2 rounded-full transition-all duration-1000 ${
+                className={`inline-flex items-center bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full transition-all duration-1000 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
-                } hover:scale-105 transition-transform backdrop-blur-sm`}
+                } hover:scale-105 transition-transform`}
               >
-                <Star className="h-4 w-4 mr-2 text-white" />
+                <Star className="h-4 w-4 mr-2 text-emerald-600" />
                 Trusted by 500+ Schools Nationwide
               </Badge>
+              {/* Main Headline */}
+              <div className="space-y-3">
               <h1
-                className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight transition-all duration-1000 delay-200 ${
+                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight transition-all duration-1000 delay-200 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
                 }`}
               >
                 Modern School
-                <span className="text-white/90 block">Transportation</span>
-                <span className="text-2xl md:text-3xl lg:text-4xl font-normal text-white/80 block mt-3">
+                  <span className="text-emerald-600 block">Transportation</span>
+                  <span className="text-xl md:text-2xl lg:text-3xl font-normal text-slate-600 block mt-2">
                   Made Simple
                 </span>
               </h1>
+              </div>
+              {/* Description */}
               <p
-                className={`text-lg md:text-xl text-white/90 mb-8 leading-relaxed transition-all duration-1000 delay-400 ${
+                className={`text-base md:text-lg text-slate-600 leading-relaxed max-w-xl transition-all duration-1000 delay-400 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
@@ -342,6 +376,25 @@ const Landing = () => {
                 platform. Real-time tracking, smart routes, and complete
                 transparency for parents, drivers, and administrators.
               </p>
+
+              {/* Stats Card */}
+              <div
+                className={`inline-flex items-center bg-white rounded-xl p-3 shadow-md border border-emerald-100 transition-all duration-1000 delay-500 ${
+                  isVisible
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
+                }`}
+              >
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
+                  <Users className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-500 font-medium">
+                    Total Schools
+                  </div>
+                  <div className="text-lg font-bold text-slate-900">500+</div>
+                </div>
+              </div>
               <div
                 className={`flex flex-col sm:flex-row gap-4 transition-all duration-1000 delay-600 ${
                   isVisible
@@ -351,41 +404,296 @@ const Landing = () => {
               >
                 <Button
                   size="lg"
-                  className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl backdrop-blur-sm"
+                  className="text-base px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white border-0 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-lg font-semibold"
                   onClick={() => setShowTestAccountModal(true)}
                 >
-                  <Play className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
+                  <Play className="h-4 w-4 mr-2" />
                   Test Account
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-base md:text-lg px-6 md:px-8 py-4 text-green-700 md:py-6 border-2 border-white/30  hover:bg-white/20 hover:scale-105 transition-all duration-200 rounded-xl backdrop-blur-sm"
+                  className="text-base px-6 py-4 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 rounded-lg font-semibold"
                 >
-                  <ArrowRight className="h-4 w-4 text-green-700 md:h-5 md:w-5 mr-2 md:mr-3" />
+                  <ArrowRight className="h-4 w-4 mr-2" />
                   Learn More
                 </Button>
               </div>
             </div>
+            {/* Right Visual Content */}
             <div className="relative">
+              {/* Main SVG Illustration */}
               <div className="relative z-10">
-                <img
-                  src="https://res.cloudinary.com/pitz/image/upload/v1753866768/images__1_-removebg-preview_gkn47i.png"
-                  alt="School Bus Transportation"
-                  className="w-full h-auto max-h-[500px] object-contain rounded-3xl hover:scale-105 transition-transform duration-500"
-                />
+                <svg
+                  viewBox="0 0 500 350"
+                  className="w-full h-auto max-h-[450px] hover:scale-105 transition-transform duration-500"
+                >
+                  {/* Background gradients */}
+                  <defs>
+                    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "#87ceeb", stopOpacity: 0.8 }} />
+                      <stop offset="100%" style={{ stopColor: "#e0f6ff", stopOpacity: 0.4 }} />
+                    </linearGradient>
+                    <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" style={{ stopColor: "#374151" }} />
+                      <stop offset="20%" style={{ stopColor: "#6b7280" }} />
+                      <stop offset="80%" style={{ stopColor: "#6b7280" }} />
+                      <stop offset="100%" style={{ stopColor: "#374151" }} />
+                    </linearGradient>
+                    <linearGradient id="busGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "#fbbf24" }} />
+                      <stop offset="100%" style={{ stopColor: "#f59e0b" }} />
+                    </linearGradient>
+                    <linearGradient id="schoolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "#10b981" }} />
+                      <stop offset="100%" style={{ stopColor: "#059669" }} />
+                    </linearGradient>
+                    <linearGradient id="grassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: "#22c55e" }} />
+                      <stop offset="100%" style={{ stopColor: "#16a34a" }} />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Sky background */}
+                  <rect x="0" y="0" width="500" height="200" fill="url(#skyGradient)" />
+
+                  {/* Clouds */}
+                  <g opacity="0.8">
+                    <circle cx="80" cy="40" r="15" fill="white" />
+                    <circle cx="95" cy="40" r="20" fill="white" />
+                    <circle cx="110" cy="40" r="15" fill="white" />
+                    <circle cx="95" cy="25" r="12" fill="white" />
+                    
+                    <circle cx="350" cy="60" r="12" fill="white" />
+                    <circle cx="365" cy="60" r="18" fill="white" />
+                    <circle cx="380" cy="60" r="12" fill="white" />
+                    <circle cx="365" cy="45" r="10" fill="white" />
+                  </g>
+
+                  {/* Sun */}
+                  <circle cx="420" cy="50" r="25" fill="#fbbf24" />
+                  <g opacity="0.3">
+                    <line x1="420" y1="15" x2="420" y2="25" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="420" y1="75" x2="420" y2="85" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="395" y1="40" x2="385" y2="40" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="455" y1="40" x2="445" y2="40" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="405" y1="15" x2="415" y2="25" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="435" y1="15" x2="425" y2="25" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="405" y1="65" x2="415" y2="55" stroke="#fbbf24" strokeWidth="3" />
+                    <line x1="435" y1="65" x2="425" y2="55" stroke="#fbbf24" strokeWidth="3" />
+                  </g>
+
+                  {/* Ground */}
+                  <rect x="0" y="200" width="500" height="150" fill="url(#grassGradient)" />
+
+                  {/* Road */}
+                  <rect x="0" y="280" width="500" height="40" fill="url(#roadGradient)" />
+                  <rect x="0" y="295" width="500" height="4" fill="#fbbf24" />
+                  <rect x="0" y="301" width="500" height="4" fill="#fbbf24" />
+                  <rect x="100" y="295" width="80" height="4" fill="white" />
+                  <rect x="100" y="301" width="80" height="4" fill="white" />
+                  <rect x="320" y="295" width="80" height="4" fill="white" />
+                  <rect x="320" y="301" width="80" height="4" fill="white" />
+
+                  {/* School Building */}
+                  <g transform="translate(350, 120)">
+                    {/* Main building */}
+                    <rect x="0" y="0" width="120" height="80" rx="8" fill="url(#schoolGradient)" stroke="#047857" strokeWidth="2" />
+                    
+                    {/* Roof */}
+                    <polygon points="0,0 60,-15 120,0" fill="#047857" />
+                    
+                    {/* Windows */}
+                    <rect x="15" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
+                    <rect x="45" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
+                    <rect x="75" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
+                    <rect x="15" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
+                    <rect x="45" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
+                    <rect x="75" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
+                    
+                    {/* Door */}
+                    <rect x="55" y="55" width="10" height="25" rx="2" fill="#fbbf24" />
+                    <circle cx="60" cy="67" r="1" fill="#374151" />
+                    
+                    {/* Flag */}
+                    <rect x="110" y="5" width="3" height="25" fill="#374151" />
+                    <rect x="113" y="5" width="12" height="8" fill="#ef4444" />
+                    <rect x="113" y="13" width="12" height="8" fill="white" />
+                    <rect x="113" y="21" width="12" height="8" fill="#ef4444" />
+                  </g>
+
+                  {/* School Bus - More detailed */}
+                  <g transform="translate(80, 200)">
+                    {/* Bus body */}
+                    <rect x="0" y="0" width="160" height="70" rx="10" fill="url(#busGradient)" stroke="#d97706" strokeWidth="3" />
+                    
+                    {/* Bus front (driver area) */}
+                    <rect x="0" y="0" width="40" height="70" rx="10" fill="url(#busGradient)" stroke="#d97706" strokeWidth="3" />
+                    
+                    {/* Driver window */}
+                    <rect x="5" y="10" width="30" height="25" rx="4" fill="#87ceeb" />
+                    <rect x="8" y="13" width="24" height="19" rx="2" fill="#e0f6ff" />
+                    
+                    {/* Passenger windows */}
+                    <rect x="50" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
+                    <rect x="85" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
+                    <rect x="120" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
+                    
+                    {/* Emergency door */}
+                    <rect x="155" y="15" width="5" height="40" rx="2" fill="#ef4444" />
+                    <rect x="156" y="20" width="3" height="30" fill="#dc2626" />
+                    
+                    {/* Wheels */}
+                    <circle cx="30" cy="70" r="15" fill="#374151" />
+                    <circle cx="30" cy="70" r="10" fill="#6b7280" />
+                    <circle cx="30" cy="70" r="5" fill="#374151" />
+                    
+                    <circle cx="130" cy="70" r="15" fill="#374151" />
+                    <circle cx="130" cy="70" r="10" fill="#6b7280" />
+                    <circle cx="130" cy="70" r="5" fill="#374151" />
+                    
+                    {/* Headlights */}
+                    <circle cx="5" cy="25" r="4" fill="#fef3c7" />
+                    <circle cx="5" cy="45" r="4" fill="#fef3c7" />
+                    
+                    {/* Taillights */}
+                    <circle cx="155" cy="25" r="3" fill="#ef4444" />
+                    <circle cx="155" cy="45" r="3" fill="#ef4444" />
+                    
+                    {/* School bus sign */}
+                    <rect x="45" y="5" width="70" height="15" rx="3" fill="#374151" />
+                    <text x="80" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">SCHOOL BUS</text>
+                    
+                    {/* Stop sign arm */}
+                    <rect x="160" y="20" width="8" height="30" fill="#ef4444" />
+                    <rect x="162" y="22" width="4" height="26" fill="#dc2626" />
+                    <circle cx="164" cy="35" r="3" fill="white" />
+                  </g>
+
+                  {/* Students waiting for bus */}
+                  <g transform="translate(50, 240)">
+                    {/* Student 1 */}
+                    <circle cx="0" cy="0" r="8" fill="#fbbf24" />
+                    <rect x="-3" y="8" width="6" height="12" fill="#3b82f6" />
+                    <rect x="-6" y="8" width="12" height="4" fill="#1e40af" />
+                    
+                    {/* Student 2 */}
+                    <circle cx="25" cy="0" r="8" fill="#fbbf24" />
+                    <rect x="22" y="8" width="6" height="12" fill="#ec4899" />
+                    <rect x="19" y="8" width="12" height="4" fill="#be185d" />
+                    
+                    {/* Student 3 */}
+                    <circle cx="50" cy="0" r="8" fill="#fbbf24" />
+                    <rect x="47" y="8" width="6" height="12" fill="#10b981" />
+                    <rect x="44" y="8" width="12" height="4" fill="#047857" />
+                    
+                    {/* Student 4 */}
+                    <circle cx="75" cy="0" r="8" fill="#fbbf24" />
+                    <rect x="72" y="8" width="6" height="12" fill="#8b5cf6" />
+                    <rect x="69" y="8" width="12" height="4" fill="#7c3aed" />
+                  </g>
+
+                  {/* Students getting on bus */}
+                  <g transform="translate(120, 240)">
+                    {/* Student getting on */}
+                    <circle cx="0" cy="0" r="8" fill="#fbbf24" />
+                    <rect x="-3" y="8" width="6" height="12" fill="#f59e0b" />
+                    <rect x="-6" y="8" width="12" height="4" fill="#d97706" />
+                    
+                    {/* Student in bus window */}
+                    <circle cx="25" cy="-10" r="6" fill="#fbbf24" />
+                  </g>
+
+                  {/* Route path with arrows */}
+                  <path
+                    d="M 240 250 Q 280 230 320 250 Q 360 270 400 250"
+                    stroke="#10b981"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeDasharray="8,8"
+                    opacity="0.8"
+                  />
+                  
+                  {/* Direction arrows */}
+                  <polygon points="320,250 315,245 315,255" fill="#10b981" />
+                  <polygon points="360,270 355,265 355,275" fill="#10b981" />
+
+                  {/* GPS tracking signal */}
+                  <g transform="translate(450, 80)">
+                    <circle cx="0" cy="0" r="20" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.6" />
+                    <circle cx="0" cy="0" r="15" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.8" />
+                    <circle cx="0" cy="0" r="10" fill="none" stroke="#10b981" strokeWidth="2" opacity="1" />
+                    <circle cx="0" cy="0" r="5" fill="#10b981" />
+                  </g>
+
+                  {/* Trees */}
+                  <g transform="translate(20, 180)">
+                    <circle cx="0" cy="0" r="15" fill="#22c55e" />
+                    <circle cx="10" cy="-10" r="12" fill="#16a34a" />
+                    <circle cx="-10" cy="-10" r="12" fill="#16a34a" />
+                    <rect x="-3" y="10" width="6" height="15" fill="#92400e" />
+                  </g>
+                  
+                  <g transform="translate(480, 180)">
+                    <circle cx="0" cy="0" r="15" fill="#22c55e" />
+                    <circle cx="10" cy="-10" r="12" fill="#16a34a" />
+                    <circle cx="-10" cy="-10" r="12" fill="#16a34a" />
+                    <rect x="-3" y="10" width="6" height="15" fill="#92400e" />
+                  </g>
+
+                  {/* Traffic light */}
+                  <g transform="translate(200, 150)">
+                    <rect x="0" y="0" width="8" height="25" fill="#374151" />
+                    <circle cx="4" cy="5" r="3" fill="#ef4444" />
+                    <circle cx="4" cy="12" r="3" fill="#fbbf24" />
+                    <circle cx="4" cy="19" r="3" fill="#22c55e" />
+                  </g>
+
+                  {/* Bus stop sign */}
+                  <g transform="translate(60, 150)">
+                    <rect x="0" y="0" width="6" height="40" fill="#374151" />
+                    <rect x="-8" y="0" width="22" height="15" fill="#ef4444" />
+                    <text x="3" y="10" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold">BUS</text>
+                  </g>
+                </svg>
               </div>
 
-              <div className="absolute -bottom-4 -left-4 bg-white/95 backdrop-blur-sm p-4 md:p-6 rounded-2xl shadow-xl border border-white/20">
-                <div className="text-center">
-                  <div className="text-2xl text-green-700 md:text-3xl font-bold text-emerald-600 mb-1">
-                    500+
+              {/* Floating Elements */}
+              <div className="absolute -top-6 -right-6 bg-white rounded-xl p-4 shadow-lg border border-emerald-100">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <Shield className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <div className="text-xs md:text-sm text-slate-700 font-medium">
-                    Schools Trust Us
+                  <div>
+                    <div className="text-xs font-semibold text-slate-900">
+                      Safety First
+                  </div>
+                    <div className="text-xs text-slate-500">
+                      Real-time monitoring
+                </div>
+              </div>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-lg border border-emerald-100">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <Zap className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-900">
+                      Smart Routes
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      AI optimization
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Background decorative circles */}
+              <div className="absolute top-1/4 right-1/4 w-24 h-24 bg-emerald-200 rounded-full opacity-20 blur-lg"></div>
+              <div className="absolute bottom-1/4 left-1/4 w-20 h-20 bg-emerald-300 rounded-full opacity-20 blur-lg"></div>
             </div>
           </div>
         </div>
@@ -895,8 +1203,13 @@ const Landing = () => {
                         ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105"
                         : "bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white hover:scale-105"
                     }`}
+                    onClick={() => navigate(isAuthenticated ? "/" : "/login")}
                   >
-                    Get Started
+                    {isAuthenticated
+                      ? "Dashboard"
+                      : isExistingUser
+                      ? "Login"
+                      : "Get Started"}
                   </Button>
                 </CardContent>
               </Card>
@@ -1136,10 +1449,14 @@ const Landing = () => {
             <Button
               size="lg"
               className="text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl font-semibold"
-              onClick={() => navigate("/register")}
+              onClick={() => navigate(isAuthenticated ? "/" : "/login")}
             >
               <Play className="h-5 w-5 mr-3" />
-              Get Started
+              {isAuthenticated
+                ? "Dashboard"
+                : isExistingUser
+                ? "Login"
+                : "Get Started"}
             </Button>
             <Button
               variant="outline"

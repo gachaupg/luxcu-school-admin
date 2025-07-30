@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from "axios";
+import axios, { AxiosInstance } from "axios";
 import { API_BASE_URL } from "@/utils/api";
 import { handleApiError } from "@/utils/errorHandler";
 
@@ -160,7 +160,18 @@ api.interceptors.response.use(
       // Clear auth data from localStorage
       localStorage.removeItem("persist:auth");
       localStorage.removeItem("schoolId");
-      // Redirect to login page
+      localStorage.removeItem("token");
+      // Redirect to login page instead of home
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    // Handle other authentication errors
+    if (error.response?.status === 403) {
+      console.log("Access forbidden, logging out user");
+      localStorage.removeItem("persist:auth");
+      localStorage.removeItem("schoolId");
+      localStorage.removeItem("token");
       window.location.href = "/login";
       return Promise.reject(error);
     }
