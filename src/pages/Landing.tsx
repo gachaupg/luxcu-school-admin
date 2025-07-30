@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import TestAccountModal from "@/components/TestAccountModal";
+import DemoRequestModal from "@/components/DemoRequestModal";
 import { useAppSelector } from "@/redux/hooks";
 import {
   Card,
@@ -55,7 +55,7 @@ import {
 const Landing = () => {
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [showTestAccountModal, setShowTestAccountModal] = useState(false);
+  const [showDemoRequestModal, setShowDemoRequestModal] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -280,34 +280,34 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-white from-slate-50 via-white to-emerald-50">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm transition-all duration-300 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-emerald-600">LuxCub</span>
+              <span className="text-xl font-bold text-white">LuxCub</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a
                 href="#features"
-                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white hover:text-emerald-300 transition-colors font-medium"
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white hover:text-emerald-300 transition-colors font-medium"
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="text-slate-700 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white hover:text-emerald-300 transition-colors font-medium"
               >
                 Contact
               </a>
             </div>
             <Button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105"
               onClick={() => navigate(isAuthenticated ? "/" : "/login")}
             >
               {isAuthenticated
@@ -323,50 +323,80 @@ const Landing = () => {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-100"
+        className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900 pt-16"
       >
-        {/* Background decorative elements */}
+        {/* Enhanced Background decorative elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-emerald-200 rounded-full opacity-20 blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-300 rounded-full opacity-20 blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-100 rounded-full opacity-10 blur-3xl"></div>
+          {/* Animated gradient waves */}
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-emerald-500 via-cyan-500 to-teal-400 rounded-full opacity-40 blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 left-20 w-80 h-80 bg-gradient-to-tr from-cyan-500 via-emerald-500 to-teal-400 rounded-full opacity-30 blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-400 via-teal-500 to-cyan-400 rounded-full opacity-25 blur-3xl animate-pulse delay-2000"></div>
+
+          {/* Enhanced floating particles */}
+          <div className="absolute inset-0">
+            <div className="absolute top-20 left-1/4 w-1 h-4 bg-gradient-to-b from-emerald-400 to-transparent opacity-80 animate-bounce"></div>
+            <div className="absolute top-40 right-1/3 w-1 h-3 bg-gradient-to-b from-cyan-400 to-transparent opacity-80 animate-bounce delay-300"></div>
+            <div className="absolute top-60 left-1/2 w-1 h-5 bg-gradient-to-b from-teal-400 to-transparent opacity-80 animate-bounce delay-600"></div>
+            <div className="absolute top-80 right-1/4 w-1 h-4 bg-gradient-to-b from-emerald-400 to-transparent opacity-80 animate-bounce delay-900"></div>
+            <div className="absolute top-32 left-3/4 w-1 h-3 bg-gradient-to-b from-cyan-400 to-transparent opacity-80 animate-bounce delay-1200"></div>
+          </div>
+
+          {/* Floating orbs with enhanced styling */}
+          <div className="absolute top-1/4 left-1/3 w-32 h-32 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full opacity-30 blur-xl animate-pulse"></div>
+          <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-gradient-to-r from-cyan-600 to-teal-600 rounded-full opacity-25 blur-xl animate-pulse delay-1000"></div>
+          <div className="absolute bottom-1/3 left-1/4 w-20 h-20 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-full opacity-20 blur-xl animate-pulse delay-2000"></div>
+
+          {/* Geometric shapes */}
+          <div className="absolute top-1/3 left-1/6 w-16 h-16 border border-emerald-400/30 rotate-45 animate-spin-slow"></div>
+          <div className="absolute bottom-1/4 right-1/6 w-12 h-12 border border-cyan-400/30 -rotate-45 animate-spin-slow-reverse"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
             {/* Left Content */}
-            <div className="text-left space-y-8">
-              {/* Badge */}
+            <div className="text-left space-y-6">
+              {/* Enhanced Badge */}
               <Badge
                 variant="secondary"
-                className={`inline-flex items-center bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full transition-all duration-1000 ${
+                className={`inline-flex items-center bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border-emerald-400/40 px-3 py-1.5 rounded-full transition-all duration-1000 backdrop-blur-sm ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
-                } hover:scale-105 transition-transform`}
+                } hover:scale-105 transition-transform shadow-lg`}
               >
-                <Star className="h-4 w-4 mr-2 text-emerald-600" />
+                <Star className="h-3 w-3 mr-2 text-emerald-300 animate-pulse" />
                 Trusted by 500+ Schools Nationwide
               </Badge>
-              {/* Main Headline */}
+
+              {/* Enhanced Main Headline */}
               <div className="space-y-3">
-              <h1
-                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight transition-all duration-1000 delay-200 ${
-                  isVisible
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-              >
-                Modern School
-                  <span className="text-emerald-600 block">Transportation</span>
-                  <span className="text-xl md:text-2xl lg:text-3xl font-normal text-slate-600 block mt-2">
-                  Made Simple
-                </span>
-              </h1>
+                <h1
+                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight transition-all duration-1000 delay-200 ${
+                    isVisible
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-4"
+                  }`}
+                >
+                  Modern School
+                  <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent block">
+                    Transportation
+                  </span>
+                  <span className="text-lg md:text-xl lg:text-2xl font-normal text-white/80 block mt-1">
+                    Made Simple
+                  </span>
+                </h1>
               </div>
-              {/* Description */}
+
+              {/* Enhanced Separator line */}
+              <div
+                className={`w-24 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-1000 delay-300 ${
+                  isVisible ? "opacity-100" : "opacity-0"
+                }`}
+              ></div>
+
+              {/* Enhanced Description */}
               <p
-                className={`text-base md:text-lg text-slate-600 leading-relaxed max-w-xl transition-all duration-1000 delay-400 ${
+                className={`text-base text-white/90 leading-relaxed max-w-lg transition-all duration-1000 delay-400 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
@@ -377,26 +407,9 @@ const Landing = () => {
                 transparency for parents, drivers, and administrators.
               </p>
 
-              {/* Stats Card */}
+              {/* Enhanced Call to Action Buttons */}
               <div
-                className={`inline-flex items-center bg-white rounded-xl p-3 shadow-md border border-emerald-100 transition-all duration-1000 delay-500 ${
-                  isVisible
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
-                }`}
-              >
-                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mr-3">
-                  <Users className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500 font-medium">
-                    Total Schools
-                  </div>
-                  <div className="text-lg font-bold text-slate-900">500+</div>
-                </div>
-              </div>
-              <div
-                className={`flex flex-col sm:flex-row gap-4 transition-all duration-1000 delay-600 ${
+                className={`flex flex-col sm:flex-row gap-3 transition-all duration-1000 delay-900 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
@@ -404,304 +417,226 @@ const Landing = () => {
               >
                 <Button
                   size="lg"
-                  className="text-base px-6 py-4 bg-emerald-600 hover:bg-emerald-700 text-white border-0 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-lg font-semibold"
-                  onClick={() => setShowTestAccountModal(true)}
+                  className="text-sm px-6 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white border-0 hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl rounded-xl font-semibold"
+                  onClick={() => setShowDemoRequestModal(true)}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Test Account
+                  Request Demo
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-base px-6 py-4 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 rounded-lg font-semibold"
+                  className="text-sm px-6 py-3 border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400/10 hover:scale-105 transition-all duration-300 rounded-xl font-semibold backdrop-blur-sm"
                 >
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Learn More
                 </Button>
               </div>
             </div>
-            {/* Right Visual Content */}
-            <div className="relative">
-              {/* Main SVG Illustration */}
-              <div className="relative z-10">
-                <svg
-                  viewBox="0 0 500 350"
-                  className="w-full h-auto max-h-[450px] hover:scale-105 transition-transform duration-500"
-                >
-                  {/* Background gradients */}
+
+            {/* Enhanced Animated Centerpiece with Moving Car */}
+            <div className="relative flex items-center justify-center">
+              {/* Main animated circle */}
+              <div className="relative w-80 h-80">
+                {/* Outer rotating ring with enhanced glow */}
+                <div className="absolute inset-0 border-2 border-emerald-400/40 rounded-full animate-spin-slow shadow-lg shadow-emerald-400/20"></div>
+
+                {/* Middle ring with enhanced glow */}
+                <div className="absolute inset-4 border-2 border-cyan-400/50 rounded-full animate-spin-slow-reverse shadow-lg shadow-cyan-400/20"></div>
+
+                {/* Inner ring with enhanced glow */}
+                <div className="absolute inset-8 border-2 border-teal-400/60 rounded-full animate-spin-slow shadow-lg shadow-teal-400/20"></div>
+
+                {/* Central hub with enhanced styling */}
+                <div className="absolute inset-12 bg-gradient-to-br from-emerald-500 via-cyan-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl">
+                  <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
+                    <Bus className="h-10 w-10 text-white animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Moving car around the circle */}
+                <div className="absolute inset-0 animate-spin-slow">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center shadow-lg">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Second moving car in opposite direction */}
+                <div className="absolute inset-0 animate-spin-slow-reverse">
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full flex items-center justify-center shadow-lg">
+                      <div className="w-3 h-3 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced floating elements around the circle */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <div className="w-5 h-5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-bounce shadow-lg"></div>
+                </div>
+                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
+                  <div className="w-5 h-5 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-bounce delay-300 shadow-lg"></div>
+                </div>
+                <div className="absolute top-1/2 -left-3 transform -translate-y-1/2">
+                  <div className="w-5 h-5 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full animate-bounce delay-600 shadow-lg"></div>
+                </div>
+                <div className="absolute top-1/2 -right-3 transform -translate-y-1/2">
+                  <div className="w-5 h-5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-bounce delay-900 shadow-lg"></div>
+                </div>
+
+                {/* Enhanced diagonal floating elements */}
+                <div className="absolute top-6 left-6">
+                  <div className="w-4 h-4 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-pulse shadow-md"></div>
+                </div>
+                <div className="absolute top-6 right-6">
+                  <div className="w-4 h-4 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full animate-pulse delay-200 shadow-md"></div>
+                </div>
+                <div className="absolute bottom-6 left-6">
+                  <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-pulse delay-400 shadow-md"></div>
+                </div>
+                <div className="absolute bottom-6 right-6">
+                  <div className="w-4 h-4 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-pulse delay-600 shadow-md"></div>
+                </div>
+
+                {/* Additional small particles */}
+                <div className="absolute top-12 left-12">
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse delay-100"></div>
+                </div>
+                <div className="absolute top-12 right-12">
+                  <div className="w-2 h-2 bg-cyan-300 rounded-full animate-pulse delay-300"></div>
+                </div>
+                <div className="absolute bottom-12 left-12">
+                  <div className="w-2 h-2 bg-teal-300 rounded-full animate-pulse delay-500"></div>
+                </div>
+                <div className="absolute bottom-12 right-12">
+                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse delay-700"></div>
+                </div>
+              </div>
+
+              {/* Enhanced glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-cyan-400/30 blur-3xl -z-10 animate-pulse"></div>
+
+              {/* Enhanced data flow lines */}
+              <div className="absolute inset-0">
+                <svg className="w-full h-full" viewBox="0 0 320 320">
                   <defs>
-                    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: "#87ceeb", stopOpacity: 0.8 }} />
-                      <stop offset="100%" style={{ stopColor: "#e0f6ff", stopOpacity: 0.4 }} />
+                    <linearGradient
+                      id="dataFlow"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        style={{ stopColor: "#10b981", stopOpacity: 0.8 }}
+                      />
+                      <stop
+                        offset="100%"
+                        style={{ stopColor: "#06b6d4", stopOpacity: 0.8 }}
+                      />
                     </linearGradient>
-                    <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" style={{ stopColor: "#374151" }} />
-                      <stop offset="20%" style={{ stopColor: "#6b7280" }} />
-                      <stop offset="80%" style={{ stopColor: "#6b7280" }} />
-                      <stop offset="100%" style={{ stopColor: "#374151" }} />
-                    </linearGradient>
-                    <linearGradient id="busGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: "#fbbf24" }} />
-                      <stop offset="100%" style={{ stopColor: "#f59e0b" }} />
-                    </linearGradient>
-                    <linearGradient id="schoolGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: "#10b981" }} />
-                      <stop offset="100%" style={{ stopColor: "#059669" }} />
-                    </linearGradient>
-                    <linearGradient id="grassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: "#22c55e" }} />
-                      <stop offset="100%" style={{ stopColor: "#16a34a" }} />
+                    <linearGradient
+                      id="dataFlow2"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        style={{ stopColor: "#06b6d4", stopOpacity: 0.6 }}
+                      />
+                      <stop
+                        offset="100%"
+                        style={{ stopColor: "#0d9488", stopOpacity: 0.6 }}
+                      />
                     </linearGradient>
                   </defs>
-
-                  {/* Sky background */}
-                  <rect x="0" y="0" width="500" height="200" fill="url(#skyGradient)" />
-
-                  {/* Clouds */}
-                  <g opacity="0.8">
-                    <circle cx="80" cy="40" r="15" fill="white" />
-                    <circle cx="95" cy="40" r="20" fill="white" />
-                    <circle cx="110" cy="40" r="15" fill="white" />
-                    <circle cx="95" cy="25" r="12" fill="white" />
-                    
-                    <circle cx="350" cy="60" r="12" fill="white" />
-                    <circle cx="365" cy="60" r="18" fill="white" />
-                    <circle cx="380" cy="60" r="12" fill="white" />
-                    <circle cx="365" cy="45" r="10" fill="white" />
-                  </g>
-
-                  {/* Sun */}
-                  <circle cx="420" cy="50" r="25" fill="#fbbf24" />
-                  <g opacity="0.3">
-                    <line x1="420" y1="15" x2="420" y2="25" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="420" y1="75" x2="420" y2="85" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="395" y1="40" x2="385" y2="40" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="455" y1="40" x2="445" y2="40" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="405" y1="15" x2="415" y2="25" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="435" y1="15" x2="425" y2="25" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="405" y1="65" x2="415" y2="55" stroke="#fbbf24" strokeWidth="3" />
-                    <line x1="435" y1="65" x2="425" y2="55" stroke="#fbbf24" strokeWidth="3" />
-                  </g>
-
-                  {/* Ground */}
-                  <rect x="0" y="200" width="500" height="150" fill="url(#grassGradient)" />
-
-                  {/* Road */}
-                  <rect x="0" y="280" width="500" height="40" fill="url(#roadGradient)" />
-                  <rect x="0" y="295" width="500" height="4" fill="#fbbf24" />
-                  <rect x="0" y="301" width="500" height="4" fill="#fbbf24" />
-                  <rect x="100" y="295" width="80" height="4" fill="white" />
-                  <rect x="100" y="301" width="80" height="4" fill="white" />
-                  <rect x="320" y="295" width="80" height="4" fill="white" />
-                  <rect x="320" y="301" width="80" height="4" fill="white" />
-
-                  {/* School Building */}
-                  <g transform="translate(350, 120)">
-                    {/* Main building */}
-                    <rect x="0" y="0" width="120" height="80" rx="8" fill="url(#schoolGradient)" stroke="#047857" strokeWidth="2" />
-                    
-                    {/* Roof */}
-                    <polygon points="0,0 60,-15 120,0" fill="#047857" />
-                    
-                    {/* Windows */}
-                    <rect x="15" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
-                    <rect x="45" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
-                    <rect x="75" y="15" width="20" height="20" rx="3" fill="#fef3c7" />
-                    <rect x="15" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
-                    <rect x="45" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
-                    <rect x="75" y="45" width="20" height="20" rx="3" fill="#fef3c7" />
-                    
-                    {/* Door */}
-                    <rect x="55" y="55" width="10" height="25" rx="2" fill="#fbbf24" />
-                    <circle cx="60" cy="67" r="1" fill="#374151" />
-                    
-                    {/* Flag */}
-                    <rect x="110" y="5" width="3" height="25" fill="#374151" />
-                    <rect x="113" y="5" width="12" height="8" fill="#ef4444" />
-                    <rect x="113" y="13" width="12" height="8" fill="white" />
-                    <rect x="113" y="21" width="12" height="8" fill="#ef4444" />
-                  </g>
-
-                  {/* School Bus - More detailed */}
-                  <g transform="translate(80, 200)">
-                    {/* Bus body */}
-                    <rect x="0" y="0" width="160" height="70" rx="10" fill="url(#busGradient)" stroke="#d97706" strokeWidth="3" />
-                    
-                    {/* Bus front (driver area) */}
-                    <rect x="0" y="0" width="40" height="70" rx="10" fill="url(#busGradient)" stroke="#d97706" strokeWidth="3" />
-                    
-                    {/* Driver window */}
-                    <rect x="5" y="10" width="30" height="25" rx="4" fill="#87ceeb" />
-                    <rect x="8" y="13" width="24" height="19" rx="2" fill="#e0f6ff" />
-                    
-                    {/* Passenger windows */}
-                    <rect x="50" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
-                    <rect x="85" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
-                    <rect x="120" y="10" width="25" height="25" rx="4" fill="#87ceeb" />
-                    
-                    {/* Emergency door */}
-                    <rect x="155" y="15" width="5" height="40" rx="2" fill="#ef4444" />
-                    <rect x="156" y="20" width="3" height="30" fill="#dc2626" />
-                    
-                    {/* Wheels */}
-                    <circle cx="30" cy="70" r="15" fill="#374151" />
-                    <circle cx="30" cy="70" r="10" fill="#6b7280" />
-                    <circle cx="30" cy="70" r="5" fill="#374151" />
-                    
-                    <circle cx="130" cy="70" r="15" fill="#374151" />
-                    <circle cx="130" cy="70" r="10" fill="#6b7280" />
-                    <circle cx="130" cy="70" r="5" fill="#374151" />
-                    
-                    {/* Headlights */}
-                    <circle cx="5" cy="25" r="4" fill="#fef3c7" />
-                    <circle cx="5" cy="45" r="4" fill="#fef3c7" />
-                    
-                    {/* Taillights */}
-                    <circle cx="155" cy="25" r="3" fill="#ef4444" />
-                    <circle cx="155" cy="45" r="3" fill="#ef4444" />
-                    
-                    {/* School bus sign */}
-                    <rect x="45" y="5" width="70" height="15" rx="3" fill="#374151" />
-                    <text x="80" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">SCHOOL BUS</text>
-                    
-                    {/* Stop sign arm */}
-                    <rect x="160" y="20" width="8" height="30" fill="#ef4444" />
-                    <rect x="162" y="22" width="4" height="26" fill="#dc2626" />
-                    <circle cx="164" cy="35" r="3" fill="white" />
-                  </g>
-
-                  {/* Students waiting for bus */}
-                  <g transform="translate(50, 240)">
-                    {/* Student 1 */}
-                    <circle cx="0" cy="0" r="8" fill="#fbbf24" />
-                    <rect x="-3" y="8" width="6" height="12" fill="#3b82f6" />
-                    <rect x="-6" y="8" width="12" height="4" fill="#1e40af" />
-                    
-                    {/* Student 2 */}
-                    <circle cx="25" cy="0" r="8" fill="#fbbf24" />
-                    <rect x="22" y="8" width="6" height="12" fill="#ec4899" />
-                    <rect x="19" y="8" width="12" height="4" fill="#be185d" />
-                    
-                    {/* Student 3 */}
-                    <circle cx="50" cy="0" r="8" fill="#fbbf24" />
-                    <rect x="47" y="8" width="6" height="12" fill="#10b981" />
-                    <rect x="44" y="8" width="12" height="4" fill="#047857" />
-                    
-                    {/* Student 4 */}
-                    <circle cx="75" cy="0" r="8" fill="#fbbf24" />
-                    <rect x="72" y="8" width="6" height="12" fill="#8b5cf6" />
-                    <rect x="69" y="8" width="12" height="4" fill="#7c3aed" />
-                  </g>
-
-                  {/* Students getting on bus */}
-                  <g transform="translate(120, 240)">
-                    {/* Student getting on */}
-                    <circle cx="0" cy="0" r="8" fill="#fbbf24" />
-                    <rect x="-3" y="8" width="6" height="12" fill="#f59e0b" />
-                    <rect x="-6" y="8" width="12" height="4" fill="#d97706" />
-                    
-                    {/* Student in bus window */}
-                    <circle cx="25" cy="-10" r="6" fill="#fbbf24" />
-                  </g>
-
-                  {/* Route path with arrows */}
-                  <path
-                    d="M 240 250 Q 280 230 320 250 Q 360 270 400 250"
-                    stroke="#10b981"
-                    strokeWidth="4"
+                  <circle
+                    cx="160"
+                    cy="160"
+                    r="150"
                     fill="none"
+                    stroke="url(#dataFlow)"
+                    strokeWidth="2"
                     strokeDasharray="8,8"
-                    opacity="0.8"
+                    className="animate-spin-slow"
                   />
-                  
-                  {/* Direction arrows */}
-                  <polygon points="320,250 315,245 315,255" fill="#10b981" />
-                  <polygon points="360,270 355,265 355,275" fill="#10b981" />
-
-                  {/* GPS tracking signal */}
-                  <g transform="translate(450, 80)">
-                    <circle cx="0" cy="0" r="20" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.6" />
-                    <circle cx="0" cy="0" r="15" fill="none" stroke="#10b981" strokeWidth="2" opacity="0.8" />
-                    <circle cx="0" cy="0" r="10" fill="none" stroke="#10b981" strokeWidth="2" opacity="1" />
-                    <circle cx="0" cy="0" r="5" fill="#10b981" />
-                  </g>
-
-                  {/* Trees */}
-                  <g transform="translate(20, 180)">
-                    <circle cx="0" cy="0" r="15" fill="#22c55e" />
-                    <circle cx="10" cy="-10" r="12" fill="#16a34a" />
-                    <circle cx="-10" cy="-10" r="12" fill="#16a34a" />
-                    <rect x="-3" y="10" width="6" height="15" fill="#92400e" />
-                  </g>
-                  
-                  <g transform="translate(480, 180)">
-                    <circle cx="0" cy="0" r="15" fill="#22c55e" />
-                    <circle cx="10" cy="-10" r="12" fill="#16a34a" />
-                    <circle cx="-10" cy="-10" r="12" fill="#16a34a" />
-                    <rect x="-3" y="10" width="6" height="15" fill="#92400e" />
-                  </g>
-
-                  {/* Traffic light */}
-                  <g transform="translate(200, 150)">
-                    <rect x="0" y="0" width="8" height="25" fill="#374151" />
-                    <circle cx="4" cy="5" r="3" fill="#ef4444" />
-                    <circle cx="4" cy="12" r="3" fill="#fbbf24" />
-                    <circle cx="4" cy="19" r="3" fill="#22c55e" />
-                  </g>
-
-                  {/* Bus stop sign */}
-                  <g transform="translate(60, 150)">
-                    <rect x="0" y="0" width="6" height="40" fill="#374151" />
-                    <rect x="-8" y="0" width="22" height="15" fill="#ef4444" />
-                    <text x="3" y="10" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold">BUS</text>
-                  </g>
+                  <circle
+                    cx="160"
+                    cy="160"
+                    r="130"
+                    fill="none"
+                    stroke="url(#dataFlow2)"
+                    strokeWidth="1.5"
+                    strokeDasharray="5,5"
+                    className="animate-spin-slow-reverse"
+                  />
+                  <circle
+                    cx="160"
+                    cy="160"
+                    r="110"
+                    fill="none"
+                    stroke="url(#dataFlow)"
+                    strokeWidth="1"
+                    strokeDasharray="3,3"
+                    className="animate-spin-slow"
+                  />
                 </svg>
               </div>
 
-              {/* Floating Elements */}
-              <div className="absolute -top-6 -right-6 bg-white rounded-xl p-4 shadow-lg border border-emerald-100">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <Shield className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-900">
-                      Safety First
-                  </div>
-                    <div className="text-xs text-slate-500">
-                      Real-time monitoring
-                </div>
+              {/* Connection lines between elements */}
+              <div className="absolute inset-0">
+                <svg className="w-full h-full" viewBox="0 0 320 320">
+                  <line
+                    x1="160"
+                    y1="10"
+                    x2="160"
+                    y2="310"
+                    stroke="url(#dataFlow)"
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+                  <line
+                    x1="10"
+                    y1="160"
+                    x2="310"
+                    y2="160"
+                    stroke="url(#dataFlow2)"
+                    strokeWidth="1"
+                    opacity="0.3"
+                  />
+                  <line
+                    x1="30"
+                    y1="30"
+                    x2="290"
+                    y2="290"
+                    stroke="url(#dataFlow)"
+                    strokeWidth="1"
+                    opacity="0.2"
+                  />
+                  <line
+                    x1="290"
+                    y1="30"
+                    x2="30"
+                    y2="290"
+                    stroke="url(#dataFlow2)"
+                    strokeWidth="1"
+                    opacity="0.2"
+                  />
+                </svg>
               </div>
-                </div>
-              </div>
-
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl p-4 shadow-lg border border-emerald-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <Zap className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-900">
-                      Smart Routes
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      AI optimization
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Background decorative circles */}
-              <div className="absolute top-1/4 right-1/4 w-24 h-24 bg-emerald-200 rounded-full opacity-20 blur-lg"></div>
-              <div className="absolute bottom-1/4 left-1/4 w-20 h-20 bg-emerald-300 rounded-full opacity-20 blur-lg"></div>
             </div>
           </div>
         </div>
 
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-56 h-56 md:w-80 md:h-80 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-56 h-56 md:w-80 md:h-80 bg-white/3 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
       </section>
 
@@ -1449,24 +1384,12 @@ const Landing = () => {
             <Button
               size="lg"
               className="text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl font-semibold"
-              onClick={() => navigate(isAuthenticated ? "/" : "/login")}
+                  onClick={() => setShowDemoRequestModal(true)}
             >
               <Play className="h-5 w-5 mr-3" />
-              {isAuthenticated
-                ? "Dashboard"
-                : isExistingUser
-                ? "Login"
-                : "Get Started"}
+             Request a Demo
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-emerald-600 hover:scale-105 transition-all duration-200 rounded-xl font-semibold"
-              onClick={() => setShowTestAccountModal(true)}
-            >
-              <ArrowRight className="h-5 w-5 mr-3" />
-              Try Demo Account
-            </Button>
+           
           </div>
         </div>
       </section>
@@ -1590,10 +1513,10 @@ const Landing = () => {
         </div>
       </footer>
 
-      {/* Test Account Modal */}
-      <TestAccountModal
-        isOpen={showTestAccountModal}
-        onClose={() => setShowTestAccountModal(false)}
+      {/* Demo Request Modal */}
+      <DemoRequestModal
+        isOpen={showDemoRequestModal}
+        onClose={() => setShowDemoRequestModal(false)}
       />
     </div>
   );
