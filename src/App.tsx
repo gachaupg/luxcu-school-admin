@@ -8,6 +8,8 @@ import { ReduxProvider } from "./redux/provider";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
+import SchoolRegistration from "./pages/SchoolRegistration";
+import Verification from "./pages/Verification";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
 import {
   checkTokenExpiration,
@@ -136,6 +138,8 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<Landing />} />
+      <Route path="/register" element={<SchoolRegistration />} />
+      <Route path="/verification" element={<Verification />} />
       <Route
         path="/"
         element={token ? <Index /> : <Navigate to="/home" replace />}

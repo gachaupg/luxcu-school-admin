@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import TestAccountModal from "@/components/TestAccountModal";
 import {
   Card,
   CardContent,
@@ -53,7 +54,9 @@ import {
 const Landing = () => {
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [showTestAccountModal, setShowTestAccountModal] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsVisible(true);
@@ -258,40 +261,40 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-white from-slate-50 via-white to-emerald-50">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400 backdrop-blur-md border-b border-emerald-300/50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-             
-              <span className="text-xl font-bold text-slate-900">LuxCub</span>
+              <span className="text-xl font-bold text-white">LuxCub</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a
                 href="#features"
-                className="text-slate-600 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white/90 hover:text-white transition-colors font-medium"
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-slate-600 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white/90 hover:text-white transition-colors font-medium"
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="text-slate-600 hover:text-emerald-600 transition-colors font-medium"
+                className="text-white/90 hover:text-white transition-colors font-medium"
               >
                 Contact
               </a>
             </div>
-            <Link to="/login">
-              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105">
-                Get Started
-              </Button>
-            </Link>
+            <Button
+              className="bg-white/20 hover:bg-white/30 text-white border border-white/30 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105 backdrop-blur-sm"
+              onClick={() => navigate("/register")}
+            >
+              Get Started
+            </Button>
           </div>
         </div>
       </nav>
@@ -299,37 +302,37 @@ const Landing = () => {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="relative min-h-screen flex items-center pt-16 pb-8 overflow-hidden"
+        className="relative min-h-screen flex items-center  overflow-hidden  bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-400"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="text-left">
               <Badge
                 variant="secondary"
-                className={`mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full transition-all duration-1000 ${
+                className={`mb-4 bg-white/20 text-white border-white/30 px-4 py-2 rounded-full transition-all duration-1000 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
-                } hover:scale-105 transition-transform`}
+                } hover:scale-105 transition-transform backdrop-blur-sm`}
               >
-                <Star className="h-4 w-4 mr-2 text-emerald-600" />
+                <Star className="h-4 w-4 mr-2 text-white" />
                 Trusted by 500+ Schools Nationwide
               </Badge>
               <h1
-                className={`text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight transition-all duration-1000 delay-200 ${
+                className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight transition-all duration-1000 delay-200 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
                 }`}
               >
                 Modern School
-                <span className="text-emerald-600 block">Transportation</span>
-                <span className="text-2xl md:text-3xl lg:text-4xl font-normal text-slate-600 block mt-3">
+                <span className="text-white/90 block">Transportation</span>
+                <span className="text-2xl md:text-3xl lg:text-4xl font-normal text-white/80 block mt-3">
                   Made Simple
                 </span>
               </h1>
               <p
-                className={`text-lg md:text-xl text-slate-600 mb-8 leading-relaxed transition-all duration-1000 delay-400 ${
+                className={`text-lg md:text-xl text-white/90 mb-8 leading-relaxed transition-all duration-1000 delay-400 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
@@ -346,21 +349,20 @@ const Landing = () => {
                     : "opacity-0 translate-y-4"
                 }`}
               >
-                <Link to="/login">
-                  <Button
-                    size="lg"
-                    className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl"
-                  >
-                    <Play className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
-                    Watch Demo
-                  </Button>
-                </Link>
+                <Button
+                  size="lg"
+                  className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 bg-white/20 hover:bg-white/30 text-white border border-white/30 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl backdrop-blur-sm"
+                  onClick={() => setShowTestAccountModal(true)}
+                >
+                  <Play className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
+                  Test Account
+                </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 border-2 border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-emerald-600 hover:text-emerald-600 hover:scale-105 transition-all duration-200 rounded-xl"
+                  className="text-base md:text-lg px-6 md:px-8 py-4 text-green-700 md:py-6 border-2 border-white/30  hover:bg-white/20 hover:scale-105 transition-all duration-200 rounded-xl backdrop-blur-sm"
                 >
-                  <ArrowRight className="h-4 w-4 md:h-5 md:w-5 mr-2 md:mr-3" />
+                  <ArrowRight className="h-4 w-4 text-green-700 md:h-5 md:w-5 mr-2 md:mr-3" />
                   Learn More
                 </Button>
               </div>
@@ -368,18 +370,18 @@ const Landing = () => {
             <div className="relative">
               <div className="relative z-10">
                 <img
-                  src="https://res.cloudinary.com/pitz/image/upload/v1748882948/Screenshot_2025-06-02_194706-removebg-preview_cj3gmw.png"
+                  src="https://res.cloudinary.com/pitz/image/upload/v1753866768/images__1_-removebg-preview_gkn47i.png"
                   alt="School Bus Transportation"
                   className="w-full h-auto max-h-[500px] object-contain rounded-3xl hover:scale-105 transition-transform duration-500"
                 />
               </div>
-             
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-slate-200">
+
+              <div className="absolute -bottom-4 -left-4 bg-white/95 backdrop-blur-sm p-4 md:p-6 rounded-2xl shadow-xl border border-white/20">
                 <div className="text-center">
-                  <div className="text-2xl md:text-3xl font-bold text-emerald-600 mb-1">
+                  <div className="text-2xl text-green-700 md:text-3xl font-bold text-emerald-600 mb-1">
                     500+
                   </div>
-                  <div className="text-xs md:text-sm text-slate-600">
+                  <div className="text-xs md:text-sm text-slate-700 font-medium">
                     Schools Trust Us
                   </div>
                 </div>
@@ -390,13 +392,13 @@ const Landing = () => {
 
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-emerald-100 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-56 h-56 md:w-80 md:h-80 bg-emerald-50 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-56 h-56 md:w-80 md:h-80 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white border-y border-slate-200">
+      <section className="py-16 bg-white border-y border-slate-200 ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -419,7 +421,7 @@ const Landing = () => {
       {/* Features Section */}
       <section
         id="features"
-        className="py-20 bg-gradient-to-b from-white to-slate-50"
+        className="py-20 bg-gradient-to-b from-white to-slate-50 ml-10 mr-10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -464,7 +466,7 @@ const Landing = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -499,7 +501,7 @@ const Landing = () => {
             </div>
             <div className="relative">
               <img
-                src="https://res.cloudinary.com/pitz/image/upload/v1748882948/Screenshot_2025-06-02_194706-removebg-preview_cj3gmw.png"
+                src="https://res.cloudinary.com/pitz/image/upload/v1753866768/images__1_-removebg-preview_gkn47i.png"
                 alt="School Bus Fleet"
                 className="w-full h-auto rounded-3xl"
               />
@@ -528,7 +530,7 @@ const Landing = () => {
       </section>
 
       {/* School Bus Fleet Section */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+      <section className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -771,7 +773,7 @@ const Landing = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -829,7 +831,7 @@ const Landing = () => {
       {/* Pricing Section */}
       <section
         id="pricing"
-        className="py-20 bg-gradient-to-b from-slate-50 to-white"
+        className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -904,7 +906,7 @@ const Landing = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white ml-10 mr-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -957,7 +959,7 @@ const Landing = () => {
       {/* Contact Section */}
       <section
         id="contact"
-        className="py-20 bg-gradient-to-b from-slate-50 to-white"
+        className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -1119,7 +1121,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700">
+      <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 ml-10 mr-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your
@@ -1131,22 +1133,22 @@ const Landing = () => {
             difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link to="/login">
-              <Button
-                size="lg"
-                className="text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl font-semibold"
-              >
-                <Play className="h-5 w-5 mr-3" />
-                Start Free Trial
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl font-semibold"
+              onClick={() => navigate("/register")}
+            >
+              <Play className="h-5 w-5 mr-3" />
+              Get Started
+            </Button>
             <Button
               variant="outline"
               size="lg"
               className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-emerald-600 hover:scale-105 transition-all duration-200 rounded-xl font-semibold"
+              onClick={() => setShowTestAccountModal(true)}
             >
               <ArrowRight className="h-5 w-5 mr-3" />
-              Schedule Demo
+              Try Demo Account
             </Button>
           </div>
         </div>
@@ -1270,6 +1272,12 @@ const Landing = () => {
           </div>
         </div>
       </footer>
+
+      {/* Test Account Modal */}
+      <TestAccountModal
+        isOpen={showTestAccountModal}
+        onClose={() => setShowTestAccountModal(false)}
+      />
     </div>
   );
 };
