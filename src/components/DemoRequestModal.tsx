@@ -19,6 +19,8 @@ import {
   Shield,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAppDispatch } from "@/redux/hooks";
+import { createContactMessage } from "@/redux/slices/contactMessagesSlice";
 
 interface DemoRequestModalProps {
   isOpen: boolean;
@@ -27,11 +29,16 @@ interface DemoRequestModalProps {
 
 const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    school: "",
+    first_name: "",
+    last_name: "",
+    email_address: "",
+    phone_number: "",
+    school_name: "",
+    position: "",
+    student_count: "",
+    bus_count: "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,22 +57,91 @@ const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Validate required fields
+      const requiredFields = {
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email_address: formData.email_address.trim(),
+        school_name: formData.school_name.trim(),
+        message: formData.message.trim(),
+      };
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+
+      if (missingFields.length > 0) {
+        toast({
+          title: "Error",
+          description: `Please fill in all required fields: ${missingFields.join(
+            ", "
+          )}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Build message with additional context
+      const additionalInfo = [];
+      if (formData.position)
+        additionalInfo.push(`Position: ${formData.position}`);
+      if (formData.student_count)
+        additionalInfo.push(`Students: ${formData.student_count}`);
+      if (formData.bus_count)
+        additionalInfo.push(`Buses: ${formData.bus_count}`);
+      if (formData.phone_number)
+        additionalInfo.push(`Phone: ${formData.phone_number}`);
+
+      const fullMessage =
+        formData.message +
+        (additionalInfo.length > 0
+          ? `\n\nAdditional Information:\n${additionalInfo.join("\n")}`
+          : "");
+
+      const messageData = {
+        first_name: requiredFields.first_name,
+        last_name: requiredFields.last_name,
+        email_address: requiredFields.email_address,
+        school_name: requiredFields.school_name,
+        message: fullMessage,
+        message_type: "demo_request" as const,
+      };
+
+      console.log("Submitting demo request with data:", messageData);
+
+      await dispatch(createContactMessage(messageData)).unwrap();
+
       toast({
         title: "Demo Request Sent!",
         description: "We'll contact you within 24 hours to schedule your demo.",
       });
+
       setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        school: "",
+        first_name: "",
+        last_name: "",
+        email_address: "",
+        phone_number: "",
+        school_name: "",
+        position: "",
+        student_count: "",
+        bus_count: "",
         message: "",
       });
       onClose();
-    }, 2000);
+    } catch (error) {
+      console.error("Error submitting demo request:", error);
+      toast({
+        title: "Error",
+        description:
+          typeof error === "string"
+            ? error
+            : "Failed to send demo request. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -82,83 +158,158 @@ const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name Field */}
+          {/* Name Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="first_name"
+                className="text-sm font-medium text-slate-700"
+              >
+                First Name *
+              </Label>
+              <Input
+                id="first_name"
+                name="first_name"
+                type="text"
+                value={formData.first_name}
+                onChange={handleInputChange}
+                placeholder="John"
+                required
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="last_name"
+                className="text-sm font-medium text-slate-700"
+              >
+                Last Name *
+              </Label>
+              <Input
+                id="last_name"
+                name="last_name"
+                type="text"
+                value={formData.last_name}
+                onChange={handleInputChange}
+                placeholder="Doe"
+                required
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+          </div>
+
+          {/* Contact Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="email_address"
+                className="text-sm font-medium text-slate-700"
+              >
+                Email Address *
+              </Label>
+              <Input
+                id="email_address"
+                name="email_address"
+                type="email"
+                value={formData.email_address}
+                onChange={handleInputChange}
+                placeholder="john@school.edu"
+                required
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="phone_number"
+                className="text-sm font-medium text-slate-700"
+              >
+                Phone Number
+              </Label>
+              <Input
+                id="phone_number"
+                name="phone_number"
+                type="tel"
+                value={formData.phone_number}
+                onChange={handleInputChange}
+                placeholder="+1 (555) 123-4567"
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+          </div>
+
+          {/* School Information */}
           <div className="space-y-2">
             <Label
-              htmlFor="name"
+              htmlFor="school_name"
               className="text-sm font-medium text-slate-700"
             >
-              Full Name *
+              School/District Name *
             </Label>
             <Input
-              id="name"
-              name="name"
+              id="school_name"
+              name="school_name"
               type="text"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="John Doe"
-              required
-              className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
-            />
-          </div>
-
-          {/* Email Field */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="email"
-              className="text-sm font-medium text-slate-700"
-            >
-              Email Address *
-            </Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="john@school.edu"
-              required
-              className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
-            />
-          </div>
-
-          {/* Phone Field */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="phone"
-              className="text-sm font-medium text-slate-700"
-            >
-              Phone Number *
-            </Label>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={handleInputChange}
-              placeholder="+1 (555) 123-4567"
-              required
-              className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
-            />
-          </div>
-
-          {/* School Field */}
-          <div className="space-y-2">
-            <Label
-              htmlFor="school"
-              className="text-sm font-medium text-slate-700"
-            >
-              School/District Name
-            </Label>
-            <Input
-              id="school"
-              name="school"
-              type="text"
-              value={formData.school}
+              value={formData.school_name}
               onChange={handleInputChange}
               placeholder="Your School District"
+              required
               className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
             />
+          </div>
+
+          {/* Position and Scale */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label
+                htmlFor="position"
+                className="text-sm font-medium text-slate-700"
+              >
+                Your Position
+              </Label>
+              <Input
+                id="position"
+                name="position"
+                type="text"
+                value={formData.position}
+                onChange={handleInputChange}
+                placeholder="Principal, Admin, etc."
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="student_count"
+                className="text-sm font-medium text-slate-700"
+              >
+                Number of Students
+              </Label>
+              <Input
+                id="student_count"
+                name="student_count"
+                type="number"
+                value={formData.student_count}
+                onChange={handleInputChange}
+                placeholder="500"
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="bus_count"
+                className="text-sm font-medium text-slate-700"
+              >
+                Number of Buses
+              </Label>
+              <Input
+                id="bus_count"
+                name="bus_count"
+                type="number"
+                value={formData.bus_count}
+                onChange={handleInputChange}
+                placeholder="10"
+                className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600"
+              />
+            </div>
           </div>
 
           {/* Message Field */}
@@ -174,8 +325,8 @@ const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
               name="message"
               value={formData.message}
               onChange={handleInputChange}
-              placeholder="Tell us about your transportation needs..."
-              rows={3}
+              placeholder="Tell us about your transportation needs, specific requirements, or any questions you have..."
+              rows={4}
               className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 resize-none"
             />
           </div>

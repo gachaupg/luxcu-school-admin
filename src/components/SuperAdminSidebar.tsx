@@ -1,41 +1,55 @@
 import {
   Users,
-  Map,
-  Settings,
-  FileText,
-  Car,
-  Home,
-  CreditCard,
-  Bell,
   Building2,
+  CreditCard,
+  Settings,
+  Home,
+  BarChart3,
+  Shield,
+  Activity,
+  AlertCircle,
+  CheckCircle,
+  TrendingUp,
+  DollarSign,
+  MessageSquare,
+  FileText,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
-const menu = [
-  { label: "Overview", icon: Home, href: "/" },
-  { label: "Parents", icon: Users, href: "/parents" },
-  { label: "Students", icon: Users, href: "/students" },
-  { label: "Drivers", icon: Users, href: "/drivers" },
-  { label: "Vehicles", icon: Car, href: "/vehicles" },
-  { label: "Routes", icon: Map, href: "/routes" },
-  { label: "Trips", icon: Car, href: "/trips" },
-  { label: "Staff", icon: Users, href: "/staff" },
-  { label: "Reports", icon: FileText, href: "/reports" },
-  { label: "Notifications", icon: Bell, href: "/notifications" },
-  { label: "Subscription", icon: CreditCard, href: "/subscription" },
+const superAdminMenu = [
+  { label: "Dashboard", icon: Home, href: "/super-admin" },
+  { label: "Users", icon: Users, href: "/super-admin/users" },
+  { label: "Schools", icon: Building2, href: "/super-admin/schools" },
+  {
+    label: "Subscriptions",
+    icon: CreditCard,
+    href: "/super-admin/subscriptions",
+  },
   {
     label: "School Subscriptions",
-    icon: Building2,
-    href: "/admin/school-subscription",
+    icon: CreditCard,
+    href: "/super-admin/school-subscriptions",
   },
+  {
+    label: "Invoices",
+    icon: FileText,
+    href: "/super-admin/invoices",
+  },
+  {
+    label: "Customer Support",
+    icon: MessageSquare,
+    href: "/super-admin/support",
+  },
+  { label: "Analytics", icon: BarChart3, href: "/super-admin/analytics" },
+  { label: "Settings", icon: Settings, href: "/super-admin/settings" },
 ];
 
-export function AppSidebar() {
+export function SuperAdminSidebar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    if (path === "/") {
-      return location.pathname === "/";
+    if (path === "/super-admin") {
+      return location.pathname === "/super-admin";
     }
     return location.pathname.startsWith(path);
   };
@@ -43,23 +57,14 @@ export function AppSidebar() {
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <Link to="/home">
+      <Link to="/super-admin">
         <div className="p-6 flex items-center gap-2">
-          <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
-            <svg width="28" height="28" fill="none">
-              <circle cx="14" cy="14" r="13" stroke="#22c55e" strokeWidth="2" />
-              <path
-                d="M14 9v7"
-                stroke="#22c55e"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <circle cx="14" cy="17.5" r="1.5" fill="#22c55e" />
-            </svg>
+          <div className="rounded-full bg-purple-100 dark:bg-purple-900/20 p-2">
+            <Shield className="h-6 w-6 text-purple-600" />
           </div>
           <span className="font-extrabold text-lg">
-            <span className="text-black dark:text-white">Lux</span>
-            <span className="text-green-500">Cab</span>
+            <span className="text-black dark:text-white">Super</span>
+            <span className="text-purple-500">Admin</span>
           </span>
         </div>
       </Link>
@@ -67,7 +72,7 @@ export function AppSidebar() {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto px-4">
         <nav className="space-y-1">
-          {menu.map((item) => {
+          {superAdminMenu.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
@@ -75,7 +80,7 @@ export function AppSidebar() {
                 to={item.href}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                   active
-                    ? "bg-green-500/90 text-white"
+                    ? "bg-purple-500/90 text-white"
                     : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
@@ -92,18 +97,23 @@ export function AppSidebar() {
         </nav>
       </div>
 
+      {/* Quick Stats */}
+     
+
       {/* Settings at the bottom */}
       <div className="p-4">
         <Link
-          to="/settings"
+          to="/super-admin/settings"
           className={`flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 w-full ${
-            isActive("/settings") ? "bg-green-500/90 text-white" : ""
+            isActive("/super-admin/settings")
+              ? "bg-purple-500/90 text-white"
+              : ""
           }`}
         >
           <Settings
             size={20}
             className={
-              isActive("/settings")
+              isActive("/super-admin/settings")
                 ? "text-white"
                 : "text-gray-700 dark:text-gray-300"
             }

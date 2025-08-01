@@ -1,5 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { registerSchool } from "@/redux/slices/schoolsSlice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +15,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Building2, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Building2, User, Package, Check, MapPin } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const SchoolRegistration = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { registrationLoading, registrationError, registrationSuccess } =
+    useSelector((state: RootState) => state.schools);
+
   const [formData, setFormData] = useState({
     schoolName: "",
     schoolType: "",
@@ -28,12 +36,423 @@ const SchoolRegistration = () => {
     website: "",
     principalName: "",
     principalPhone: "",
-    principalEmail: "",
+    principalEmail: "", // This field now stores admin email
     description: "",
+    longitude: "",
+    latitude: "",
+    operatingHoursStart: "06:30",
+    operatingHoursEnd: "18:00",
+    estimatedStudents: "",
+    estimatedBuses: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [addressSearch, setAddressSearch] = useState("");
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  // Get selected plan from localStorage or route state
+  useEffect(() => {
+    const storedPlan = localStorage.getItem("selectedSubscriptionPlan");
+    const routeState = location.state?.selectedPlan;
+
+    if (routeState) {
+      setSelectedPlan(routeState);
+    } else if (storedPlan) {
+      setSelectedPlan(JSON.parse(storedPlan));
+    } else {
+      // Redirect to subscription selection if no plan is selected
+      toast({
+        title: "No Plan Selected",
+        description: "Please select a subscription plan first.",
+      });
+      navigate("/subscription-selection");
+    }
+  }, [location.state, navigate, toast]);
+
+  // Handle registration success and error states
+  useEffect(() => {
+    if (registrationSuccess) {
+      toast({
+        title: "Registration Successful",
+        description: "Your school has been registered successfully!",
+      });
+    }
+  }, [registrationSuccess, toast]);
+
+  useEffect(() => {
+    if (registrationError) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: registrationError,
+      });
+    }
+  }, [registrationError, toast]);
+
+  // Validation functions
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone: string): boolean => {
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, "");
+
+    // Check for Kenyan phone number patterns
+    // 07XXXXXXXX (9 digits starting with 0)
+    // 254XXXXXXXX (12 digits starting with 254)
+    // +254XXXXXXXX (13 characters starting with +254)
+    // 7XXXXXXXX (9 digits starting with 7)
+
+    if (cleaned.startsWith("0") && cleaned.length === 10) {
+      return true; // 07XXXXXXXX format
+    }
+
+    if (cleaned.startsWith("254") && cleaned.length === 12) {
+      return true; // 254XXXXXXXX format
+    }
+
+    if (cleaned.startsWith("7") && cleaned.length === 9) {
+      return true; // 7XXXXXXXX format (without leading 0)
+    }
+
+    // Check if it's already in international format
+    if (phone.startsWith("+254") && phone.length === 13) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const formatPhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, "");
+
+    // If it starts with 0, replace with +254
+    if (cleaned.startsWith("0")) {
+      return "+254" + cleaned.substring(1);
+    }
+
+    // If it starts with 254, add +
+    if (cleaned.startsWith("254")) {
+      return "+" + cleaned;
+    }
+
+    // If it already starts with +, return as is
+    if (phone.startsWith("+")) {
+      return phone;
+    }
+
+    // If it's 9 digits and doesn't start with 0, assume it's a local number
+    if (cleaned.length === 9) {
+      return "+254" + cleaned;
+    }
+
+    // Otherwise, return as is
+    return phone;
+  };
+
+  const validateRequired = (value: string, fieldName: string): string => {
+    if (!value || value.trim() === "") {
+      return `${fieldName} is required`;
+    }
+    return "";
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields validation
+    const requiredFields = {
+      schoolName: "School Name",
+      address: "Address",
+      city: "City",
+      state: "State/Province",
+      phone: "School Phone",
+      email: "School Email",
+      principalName: "Principal Name",
+      principalPhone: "Principal Phone",
+      principalEmail: "Admin Email",
+      estimatedStudents: "Estimated Number of Students",
+      estimatedBuses: "Estimated Number of Buses",
+    };
+
+    Object.entries(requiredFields).forEach(([field, label]) => {
+      const error = validateRequired(
+        formData[field as keyof typeof formData],
+        label
+      );
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+
+    // Email validation
+    if (formData.email && !validateEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Phone validation
+    if (formData.phone && !validatePhone(formData.phone)) {
+      newErrors.phone = "Please enter a valid phone number";
+    }
+
+    if (formData.principalPhone && !validatePhone(formData.principalPhone)) {
+      newErrors.principalPhone = "Please enter a valid phone number";
+    }
+
+    if (formData.principalEmail && !validateEmail(formData.principalEmail)) {
+      newErrors.principalEmail = "Please enter a valid admin email address";
+    }
+
+    // Website validation (optional but if provided, should be valid)
+    if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
+      newErrors.website =
+        "Please enter a valid website URL (include http:// or https://)";
+    }
+
+    // Number validation
+    if (
+      formData.estimatedStudents &&
+      (isNaN(Number(formData.estimatedStudents)) ||
+        Number(formData.estimatedStudents) <= 0)
+    ) {
+      newErrors.estimatedStudents = "Please enter a valid number of students";
+    }
+
+    if (
+      formData.estimatedBuses &&
+      (isNaN(Number(formData.estimatedBuses)) ||
+        Number(formData.estimatedBuses) <= 0)
+    ) {
+      newErrors.estimatedBuses = "Please enter a valid number of buses";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Google Maps Places API integration
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest(".address-search-container")) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Debounced search function
+  const debouncedSearch = (query: string) => {
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    const timeout = setTimeout(() => {
+      if (query.length > 2) {
+        searchLocation(query);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    setSearchTimeout(timeout);
+  };
+
+  const searchLocation = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearchingLocation(true);
+    try {
+      // Use Google Places API directly with a different CORS proxy
+      const response = await fetch(
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+            query
+          )}&types=establishment&components=country:ke&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.predictions && data.predictions.length > 0) {
+        setSearchResults(data.predictions);
+        setShowSearchResults(true);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    } catch (error) {
+      console.error("Error searching location:", error);
+      // Try alternative proxy if first one fails
+      try {
+        const altResponse = await fetch(
+          `https://corsproxy.io/?${encodeURIComponent(
+            `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+              query
+            )}&types=establishment&components=country:ke&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+          )}`
+        );
+
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          if (altData.predictions && altData.predictions.length > 0) {
+            setSearchResults(altData.predictions);
+            setShowSearchResults(true);
+            return;
+          }
+        }
+      } catch (altError) {
+        console.error("Alternative proxy also failed:", altError);
+      }
+
+      // If all proxies fail, show error message
+      setSearchResults([]);
+      setShowSearchResults(false);
+      toast({
+        variant: "destructive",
+        title: "Search Error",
+        description:
+          "Could not search for locations. Please try again or enter coordinates manually.",
+      });
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
+
+  const selectLocation = async (placeId: string, description: string) => {
+    try {
+      // Use Google Places Details API with CORS proxy
+      const response = await fetch(
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (
+        data.result &&
+        data.result.geometry &&
+        data.result.geometry.location
+      ) {
+        const { lat, lng } = data.result.geometry.location;
+
+        setFormData((prev) => ({
+          ...prev,
+          longitude: lng.toString(),
+          latitude: lat.toString(),
+          address: data.result.formatted_address || description,
+        }));
+
+        setSearchResults([]);
+        setShowSearchResults(false);
+
+        toast({
+          title: "Location Selected",
+          description:
+            "Coordinates have been set based on the selected location.",
+        });
+      } else {
+        throw new Error("No location data found");
+      }
+    } catch (error) {
+      console.error("Error getting place details:", error);
+      // Try alternative proxy
+      try {
+        const altResponse = await fetch(
+          `https://corsproxy.io/?${encodeURIComponent(
+            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+          )}`
+        );
+
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          if (
+            altData.result &&
+            altData.result.geometry &&
+            altData.result.geometry.location
+          ) {
+            const { lat, lng } = altData.result.geometry.location;
+
+            setFormData((prev) => ({
+              ...prev,
+              longitude: lng.toString(),
+              latitude: lat.toString(),
+              address: altData.result.formatted_address || description,
+            }));
+
+            setSearchResults([]);
+            setShowSearchResults(false);
+
+            toast({
+              title: "Location Selected",
+              description:
+                "Coordinates have been set based on the selected location.",
+            });
+            return;
+          }
+        }
+      } catch (altError) {
+        console.error("Alternative proxy also failed:", altError);
+      }
+
+      // If all proxies fail, show error and set default
+      setFormData((prev) => ({
+        ...prev,
+        longitude: "36.689",
+        latitude: "-1.3197",
+        address: description,
+      }));
+
+      setSearchResults([]);
+      setShowSearchResults(false);
+
+      toast({
+        variant: "destructive",
+        title: "Location Error",
+        description:
+          "Could not get location coordinates. Using default coordinates.",
+      });
+    }
+  };
+
+  const formatPrice = (price: string) => {
+    return parseFloat(price).toLocaleString("en-US", {
+      style: "currency",
+      currency: "KES",
+      minimumFractionDigits: 2,
+    });
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -47,11 +466,51 @@ const SchoolRegistration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+
+    // Validate form before submission
+    if (!validateForm()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fix the errors in the form before submitting.",
+      });
+      return;
+    }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Prepare the registration payload
+      const registrationPayload = {
+        school_name: formData.schoolName,
+        school_location: `${formData.address}, ${formData.city}, ${formData.state}`,
+        school_description: formData.description,
+        school_contact_number: formatPhoneNumber(formData.phone),
+        school_email: formData.email,
+        longitude: parseFloat(formData.longitude) || 36.689,
+        latitude: parseFloat(formData.latitude) || -1.3197,
+        operating_hours_start: formData.operatingHoursStart,
+        operating_hours_end: formData.operatingHoursEnd,
+        admin_first_name:
+          formData.principalName.split(" ")[0] || formData.principalName,
+        admin_last_name:
+          formData.principalName.split(" ").slice(1).join(" ") ||
+          formData.principalName,
+        admin_phone_number: formatPhoneNumber(formData.principalPhone),
+        admin_email: formData.principalEmail, // Changed from admin_number to admin_email
+        admin_password: "AdminPass456@", // This should be generated or user-provided
+        selected_plan_id: selectedPlan?.id || "1",
+        billing_cycle: selectedPlan?.default_billing_cycle || "monthly",
+        estimated_students: parseInt(formData.estimatedStudents) || 400,
+        estimated_buses: parseInt(formData.estimatedBuses) || 4,
+      };
+
+      console.log("Registration payload:", registrationPayload);
+
+      // Dispatch the registration action
+      const result = await dispatch(
+        registerSchool(registrationPayload)
+      ).unwrap();
+
+      console.log("Registration response:", result);
 
       toast({
         title: "Registration Submitted",
@@ -59,16 +518,21 @@ const SchoolRegistration = () => {
           "Your school registration has been submitted successfully. You will be notified once verified.",
       });
 
+      // Clear stored plan
+      localStorage.removeItem("selectedSubscriptionPlan");
+
       // Navigate to verification page
       navigate("/verification");
     } catch (error) {
+      console.error("Registration error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to submit registration. Please try again.",
+        title: "Registration Failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit registration. Please try again.",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -104,7 +568,11 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="Enter school name"
                     required
+                    className={errors.schoolName ? "border-red-500" : ""}
                   />
+                  {errors.schoolName && (
+                    <p className="text-sm text-red-500">{errors.schoolName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -116,20 +584,64 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="Primary, Secondary, etc."
                     required
+                    className={errors.schoolType ? "border-red-500" : ""}
                   />
+                  {errors.schoolType && (
+                    <p className="text-sm text-red-500">{errors.schoolType}</p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="address">Address *</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="Street address"
-                  required
-                />
+                <div className="relative address-search-container">
+                  <div className="flex gap-2">
+                    <Input
+                      id="address"
+                      name="address"
+                      value={formData.address}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        debouncedSearch(e.target.value);
+                      }}
+                      placeholder="Search for school location..."
+                      required
+                      className={errors.address ? "border-red-500" : ""}
+                    />
+                    {isSearchingLocation && (
+                      <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Search Results Dropdown */}
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map((result, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                          onClick={() =>
+                            selectLocation(result.place_id, result.description)
+                          }
+                        >
+                          <div className="font-medium text-sm">
+                            {result.structured_formatting?.main_text ||
+                              result.description}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {result.structured_formatting?.secondary_text || ""}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {errors.address && (
+                  <p className="text-sm text-red-500">{errors.address}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -142,7 +654,11 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="City"
                     required
+                    className={errors.city ? "border-red-500" : ""}
                   />
+                  {errors.city && (
+                    <p className="text-sm text-red-500">{errors.city}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -154,7 +670,11 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="State"
                     required
+                    className={errors.state ? "border-red-500" : ""}
                   />
+                  {errors.state && (
+                    <p className="text-sm text-red-500">{errors.state}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -178,9 +698,13 @@ const SchoolRegistration = () => {
                     type="tel"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    placeholder="Phone number"
+                    placeholder="e.g., 0723456789"
                     required
+                    className={errors.phone ? "border-red-500" : ""}
                   />
+                  {errors.phone && (
+                    <p className="text-sm text-red-500">{errors.phone}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -193,7 +717,11 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="Email address"
                     required
+                    className={errors.email ? "border-red-500" : ""}
                   />
+                  {errors.email && (
+                    <p className="text-sm text-red-500">{errors.email}</p>
+                  )}
                 </div>
               </div>
 
@@ -206,9 +734,59 @@ const SchoolRegistration = () => {
                   value={formData.website}
                   onChange={handleInputChange}
                   placeholder="https://www.school.edu"
+                  className={errors.website ? "border-red-500" : ""}
                 />
+                {errors.website && (
+                  <p className="text-sm text-red-500">{errors.website}</p>
+                )}
               </div>
             </div>
+
+            {selectedPlan && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                  <Package className="h-5 w-5 mr-2 text-emerald-600" />
+                  Selected Subscription Plan
+                </h3>
+                <Card className="border-emerald-200 bg-emerald-50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-emerald-800">
+                        {selectedPlan.name
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </h4>
+                      <Badge className="bg-emerald-600 text-white">
+                        {formatPrice(selectedPlan.base_price)}/month
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-emerald-700 mb-3">
+                      {selectedPlan.description}
+                    </p>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-emerald-600">
+                          {selectedPlan.features_json.max_students}
+                        </div>
+                        <div className="text-emerald-600 text-xs">Students</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-emerald-600">
+                          {selectedPlan.features_json.max_buses}
+                        </div>
+                        <div className="text-emerald-600 text-xs">Buses</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-emerald-600">
+                          {selectedPlan.default_billing_cycle}
+                        </div>
+                        <div className="text-emerald-600 text-xs">Billing</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center">
@@ -226,7 +804,13 @@ const SchoolRegistration = () => {
                     onChange={handleInputChange}
                     placeholder="Principal's full name"
                     required
+                    className={errors.principalName ? "border-red-500" : ""}
                   />
+                  {errors.principalName && (
+                    <p className="text-sm text-red-500">
+                      {errors.principalName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -237,23 +821,35 @@ const SchoolRegistration = () => {
                     type="tel"
                     value={formData.principalPhone}
                     onChange={handleInputChange}
-                    placeholder="Phone number"
+                    placeholder="e.g., 0723456789"
                     required
+                    className={errors.principalPhone ? "border-red-500" : ""}
                   />
+                  {errors.principalPhone && (
+                    <p className="text-sm text-red-500">
+                      {errors.principalPhone}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="principalEmail">Principal Email *</Label>
+                <Label htmlFor="principalEmail">Admin Email *</Label>
                 <Input
                   id="principalEmail"
                   name="principalEmail"
                   type="email"
                   value={formData.principalEmail}
                   onChange={handleInputChange}
-                  placeholder="Email address"
+                  placeholder="admin@schoolname.com"
                   required
+                  className={errors.principalEmail ? "border-red-500" : ""}
                 />
+                {errors.principalEmail && (
+                  <p className="text-sm text-red-500">
+                    {errors.principalEmail}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -272,6 +868,76 @@ const SchoolRegistration = () => {
                   placeholder="Tell us about your school, number of students, transportation needs, etc."
                   rows={4}
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedStudents">
+                    Estimated Number of Students *
+                  </Label>
+                  <Input
+                    id="estimatedStudents"
+                    name="estimatedStudents"
+                    type="number"
+                    value={formData.estimatedStudents}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 400"
+                    required
+                    className={errors.estimatedStudents ? "border-red-500" : ""}
+                  />
+                  {errors.estimatedStudents && (
+                    <p className="text-sm text-red-500">
+                      {errors.estimatedStudents}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedBuses">
+                    Estimated Number of Buses *
+                  </Label>
+                  <Input
+                    id="estimatedBuses"
+                    name="estimatedBuses"
+                    type="number"
+                    value={formData.estimatedBuses}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 4"
+                    required
+                    className={errors.estimatedBuses ? "border-red-500" : ""}
+                  />
+                  {errors.estimatedBuses && (
+                    <p className="text-sm text-red-500">
+                      {errors.estimatedBuses}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="operatingHoursStart">
+                    Operating Hours Start
+                  </Label>
+                  <Input
+                    id="operatingHoursStart"
+                    name="operatingHoursStart"
+                    type="time"
+                    value={formData.operatingHoursStart}
+                    onChange={handleInputChange}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="operatingHoursEnd">Operating Hours End</Label>
+                  <Input
+                    id="operatingHoursEnd"
+                    name="operatingHoursEnd"
+                    type="time"
+                    value={formData.operatingHoursEnd}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
             </div>
 
@@ -295,9 +961,9 @@ const SchoolRegistration = () => {
               <Button
                 type="submit"
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                disabled={loading}
+                disabled={registrationLoading}
               >
-                {loading ? (
+                {registrationLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Submitting...

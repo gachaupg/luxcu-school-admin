@@ -18,6 +18,10 @@ import gradesReducer from "./slices/gradesSlice";
 import preferencesReducer from "./slices/preferencesSlice";
 import notificationsReducer from "./slices/notificationsSlice";
 import reportsReducer from "./slices/reportsSlice";
+import subscriptionReducer from "./slices/subscriptionSlice";
+import contactMessagesReducer from "./slices/contactMessagesSlice";
+import schoolSubscriptionsReducer from "./slices/schoolSubscriptionsSlice";
+import invoicesReducer from "./slices/invoicesSlice";
 
 // Configure persistence for auth slice
 const authPersistConfig = {
@@ -57,6 +61,10 @@ const rootReducer = {
   preferences: preferencesReducer,
   notifications: notificationsReducer,
   reports: reportsReducer,
+  subscription: subscriptionReducer,
+  contactMessages: contactMessagesReducer,
+  schoolSubscriptions: schoolSubscriptionsReducer,
+  invoices: invoicesReducer,
 };
 
 // Create store with explicit configuration

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import DemoRequestModal from "@/components/DemoRequestModal";
+import ContactForm from "@/components/ContactForm";
 import { useAppSelector } from "@/redux/hooks";
 import {
   Card,
@@ -51,6 +52,8 @@ import {
   Lock,
   BarChart3,
 } from "lucide-react";
+import SubscriptionPlansDisplay from "@/components/SubscriptionPlansDisplay";
+import { isTokenExpired } from "@/utils/auth";
 
 const Landing = () => {
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
@@ -65,12 +68,28 @@ const Landing = () => {
 
   // Check if user has logged in before (has login history)
   const hasLoginHistory = () => {
-    // Check if there's any auth data in localStorage
-    const persistData = localStorage.getItem("persist:auth");
-    const tokenData = localStorage.getItem("token");
-    const profileData = localStorage.getItem("profile");
+    try {
+      // Check for valid token in direct storage
+      const directToken = localStorage.getItem("token");
+      if (directToken && !isTokenExpired(directToken)) {
+        return true;
+      }
 
-    return !!(persistData || tokenData || profileData);
+      // Check for valid token in Redux Persist storage
+      const persistAuth = localStorage.getItem("persist:auth");
+      if (persistAuth) {
+        const parsed = JSON.parse(persistAuth);
+        const authState = JSON.parse(parsed.token || "null");
+        if (authState && !isTokenExpired(authState)) {
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Error checking login history:", error);
+      return false;
+    }
   };
 
   const isExistingUser = hasLoginHistory();
@@ -174,53 +193,6 @@ const Landing = () => {
     },
   ];
 
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "$299",
-      period: "/month",
-      description: "Perfect for small schools",
-      features: [
-        "Up to 10 buses",
-        "Real-time GPS tracking",
-        "Parent mobile app",
-        "Basic reporting",
-        "Email support",
-      ],
-      popular: false,
-    },
-    {
-      name: "Professional",
-      price: "$599",
-      period: "/month",
-      description: "Ideal for medium-sized districts",
-      features: [
-        "Up to 50 buses",
-        "Advanced safety features",
-        "AI route optimization",
-        "Comprehensive analytics",
-        "Priority support",
-        "Custom integrations",
-      ],
-      popular: true,
-    },
-    {
-      name: "Enterprise",
-      price: "$999",
-      period: "/month",
-      description: "For large school districts",
-      features: [
-        "Unlimited buses",
-        "All features included",
-        "Custom development",
-        "Dedicated support",
-        "White-label options",
-        "API access",
-      ],
-      popular: false,
-    },
-  ];
-
   const faqs = [
     {
       question: "How does the GPS tracking work?",
@@ -308,7 +280,15 @@ const Landing = () => {
             </div>
             <Button
               className="bg-emerald-600 hover:bg-emerald-700 text-white border-0 px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-105"
-              onClick={() => navigate(isAuthenticated ? "/" : "/login")}
+              onClick={() => {
+                if (isAuthenticated) {
+                  navigate("/");
+                } else if (isExistingUser) {
+                  navigate("/login");
+                } else {
+                  navigate("/subscription-selection");
+                }
+              }}
             >
               {isAuthenticated
                 ? "Dashboard"
@@ -1071,87 +1051,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section
-        id="pricing"
-        className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
-              Pricing
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-              Simple, Transparent
-              <span className="text-emerald-600 block">Pricing</span>
-            </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-              Choose the plan that fits your school's needs. All plans include
-              our core features with no hidden fees.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <Card
-                key={index}
-                className={`border-2 transition-all duration-300 hover:-translate-y-2 rounded-2xl overflow-hidden ${
-                  plan.popular
-                    ? "border-emerald-600 shadow-xl scale-105"
-                    : "border-slate-200 shadow-lg hover:shadow-xl"
-                } bg-white`}
-              >
-                {plan.popular && (
-                  <div className="bg-emerald-600 text-white text-center py-2 text-sm font-medium">
-                    Most Popular
-                  </div>
-                )}
-                <CardHeader className="text-center pb-6">
-                  <CardTitle className="text-2xl font-bold text-slate-900 mb-2">
-                    {plan.name}
-                  </CardTitle>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-slate-900">
-                      {plan.price}
-                    </span>
-                    <span className="text-slate-600">{plan.period}</span>
-                  </div>
-                  <CardDescription className="text-slate-600">
-                    {plan.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pb-8">
-                  <ul className="space-y-4">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li
-                        key={featureIndex}
-                        className="flex items-center space-x-3"
-                      >
-                        <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                        <span className="text-slate-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className={`w-full mt-8 py-3 rounded-xl font-medium transition-all duration-200 ${
-                      plan.popular
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105"
-                        : "bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white hover:scale-105"
-                    }`}
-                    onClick={() => navigate(isAuthenticated ? "/" : "/login")}
-                  >
-                    {isAuthenticated
-                      ? "Dashboard"
-                      : isExistingUser
-                      ? "Login"
-                      : "Get Started"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Subscription Plans Section */}
+      <SubscriptionPlansDisplay />
 
       {/* FAQ Section */}
       <section className="py-20 bg-white ml-10 mr-10">
@@ -1287,81 +1188,7 @@ const Landing = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-8">
-                <form className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="firstName"
-                        className="text-slate-700 font-medium"
-                      >
-                        First Name
-                      </Label>
-                      <Input
-                        id="firstName"
-                        placeholder="John"
-                        className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="lastName"
-                        className="text-slate-700 font-medium"
-                      >
-                        Last Name
-                      </Label>
-                      <Input
-                        id="lastName"
-                        placeholder="Doe"
-                        className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="email"
-                      className="text-slate-700 font-medium"
-                    >
-                      Email Address
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="john@school.edu"
-                      className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="school"
-                      className="text-slate-700 font-medium"
-                    >
-                      School/District Name
-                    </Label>
-                    <Input
-                      id="school"
-                      placeholder="Your School District"
-                      className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="message"
-                      className="text-slate-700 font-medium"
-                    >
-                      Message
-                    </Label>
-                    <Textarea
-                      id="message"
-                      placeholder="Tell us about your transportation needs and how we can help..."
-                      rows={4}
-                      className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors resize-none"
-                    />
-                  </div>
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105">
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Message
-                  </Button>
-                </form>
+                <ContactForm />
               </CardContent>
             </Card>
           </div>
@@ -1384,12 +1211,11 @@ const Landing = () => {
             <Button
               size="lg"
               className="text-lg px-8 py-6 bg-white text-emerald-600 hover:bg-emerald-50 hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl rounded-xl font-semibold"
-                  onClick={() => setShowDemoRequestModal(true)}
+              onClick={() => setShowDemoRequestModal(true)}
             >
               <Play className="h-5 w-5 mr-3" />
-             Request a Demo
+              Request a Demo
             </Button>
-           
           </div>
         </div>
       </section>

@@ -48,16 +48,43 @@ interface School {
   allow_parent_tracking: boolean;
 }
 
+interface SchoolRegistrationPayload {
+  school_name: string;
+  school_location: string;
+  school_description: string;
+  school_contact_number: string;
+  school_email: string;
+  longitude: number;
+  latitude: number;
+  operating_hours_start: string;
+  operating_hours_end: string;
+  admin_first_name: string;
+  admin_last_name: string;
+  admin_phone_number: string;
+  admin_email: string;
+  admin_password: string;
+  selected_plan_id: string;
+  billing_cycle: string;
+  estimated_students: number;
+  estimated_buses: number;
+}
+
 interface SchoolsState {
   schools: School[];
   loading: boolean;
   error: string | null;
+  registrationLoading: boolean;
+  registrationError: string | null;
+  registrationSuccess: boolean;
 }
 
 const initialState: SchoolsState = {
   schools: [],
   loading: false,
   error: null,
+  registrationLoading: false,
+  registrationError: null,
+  registrationSuccess: false,
 };
 
 export const fetchSchools = createAsyncThunk<
@@ -91,6 +118,34 @@ export const fetchSchools = createAsyncThunk<
   }
 });
 
+export const registerSchool = createAsyncThunk<
+  { success: boolean; message?: string },
+  SchoolRegistrationPayload,
+  { rejectValue: string }
+>("schools/registerSchool", async (registrationData, { rejectWithValue }) => {
+  try {
+    console.log("Registering school with payload:", registrationData);
+    const response = await api.post(
+      API_ENDPOINTS.SCHOOL_REGISTRATION,
+      registrationData
+    );
+    console.log("School registration response:", response.data);
+    return response.data;
+  } catch (error: unknown) {
+    const apiError = error as {
+      response?: { data?: { message?: string }; status?: number };
+    };
+    console.error("School registration error:", {
+      error,
+      response: apiError.response?.data,
+      status: apiError.response?.status,
+    });
+    return rejectWithValue(
+      apiError.response?.data?.message || "Failed to register school"
+    );
+  }
+});
+
 const schoolsSlice = createSlice({
   name: "schools",
   initialState,
@@ -98,9 +153,16 @@ const schoolsSlice = createSlice({
     clearSchoolsError: (state) => {
       state.error = null;
     },
+    clearRegistrationError: (state) => {
+      state.registrationError = null;
+    },
+    clearRegistrationSuccess: (state) => {
+      state.registrationSuccess = false;
+    },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch Schools
       .addCase(fetchSchools.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -112,9 +174,27 @@ const schoolsSlice = createSlice({
       .addCase(fetchSchools.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Failed to fetch schools";
+      })
+      // Register School
+      .addCase(registerSchool.pending, (state) => {
+        state.registrationLoading = true;
+        state.registrationError = null;
+        state.registrationSuccess = false;
+      })
+      .addCase(registerSchool.fulfilled, (state) => {
+        state.registrationLoading = false;
+        state.registrationSuccess = true;
+      })
+      .addCase(registerSchool.rejected, (state, action) => {
+        state.registrationLoading = false;
+        state.registrationError = action.payload || "Failed to register school";
       });
   },
 });
 
-export const { clearSchoolsError } = schoolsSlice.actions;
+export const {
+  clearSchoolsError,
+  clearRegistrationError,
+  clearRegistrationSuccess,
+} = schoolsSlice.actions;
 export default schoolsSlice.reducer;

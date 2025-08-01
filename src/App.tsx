@@ -9,13 +9,10 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
 import SchoolRegistration from "./pages/SchoolRegistration";
+import SubscriptionSelection from "./pages/SubscriptionSelection";
 import Verification from "./pages/Verification";
 import { useAppSelector, useAppDispatch } from "./redux/hooks";
-import {
-  checkTokenExpiration,
-  initializeAuth,
-  logout,
-} from "./redux/slices/authSlice";
+import { checkTokenExpiration, initializeAuth } from "./redux/slices/authSlice";
 import { fetchSchools, clearSchoolsError } from "./redux/slices/schoolsSlice";
 import Index from "./pages/Index";
 import Overview from "./pages/Overview";
@@ -30,15 +27,28 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Subscription from "./pages/Subscription";
+import AdminSubscription from "./pages/admin/subscription.tsx";
+import SchoolSubscriptionPage from "./pages/admin/schoolsubscription.tsx";
 import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
+// Super Admin imports
+import SuperAdminLayout from "./pages/super-damin/SuperAdminLayout";
+import SuperAdminDashboard from "./pages/super-damin/Dashboard";
+import SuperAdminUsers from "./pages/super-damin/Users";
+import SuperAdminSchools from "./pages/super-damin/Schools";
+import SuperAdminSchoolDetails from "./pages/super-damin/SchoolDetails";
+import SuperAdminSubscriptions from "./pages/super-damin/Subscriptions";
+import SuperAdminSchoolSubscriptions from "./pages/super-damin/SchoolSubscriptions";
+import SuperAdminInvoices from "./pages/super-damin/Invoices";
+import SuperAdminCustomerSupport from "./pages/super-damin/CustomerSupport";
+import SuperAdminAnalytics from "./pages/super-damin/Analytics";
+import SuperAdminSettings from "./pages/super-damin/Settings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "react-error-boundary";
 import React, { useEffect } from "react";
-import { RootState } from "./redux/store";
-import { useSelector } from "react-redux";
+import Dashboard from "./pages/super-damin/Dashboard.tsx";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +95,34 @@ const AppRoutes = () => {
     schoolsLoading: loading,
     schoolsError: error,
   });
+
+  // Debug localStorage
+  console.log("localStorage debug:", {
+    persistAuth: localStorage.getItem("persist:auth"),
+    directToken: localStorage.getItem("token"),
+  });
+
+  // Additional debugging
+  useEffect(() => {
+    console.log("=== AUTH DEBUG ===");
+    console.log("localStorage keys:", Object.keys(localStorage));
+    console.log("persist:auth raw:", localStorage.getItem("persist:auth"));
+    console.log("token raw:", localStorage.getItem("token"));
+
+    try {
+      const persistAuth = localStorage.getItem("persist:auth");
+      if (persistAuth) {
+        const parsed = JSON.parse(persistAuth);
+        console.log("parsed persist:auth:", parsed);
+        if (parsed.token) {
+          const tokenData = JSON.parse(parsed.token);
+          console.log("parsed token:", tokenData);
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing persist:auth:", error);
+    }
+  }, []);
 
   // Initialize auth state
   useEffect(() => {
@@ -138,11 +176,15 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<Landing />} />
+      <Route
+        path="/subscription-selection"
+        element={<SubscriptionSelection />}
+      />
       <Route path="/register" element={<SchoolRegistration />} />
       <Route path="/verification" element={<Verification />} />
       <Route
         path="/"
-        element={token ? <Index /> : <Navigate to="/login" replace />}
+        element={token ? <Index /> : <Navigate to="/home" replace />}
       >
         <Route index element={<Overview />} />
         <Route path="trips" element={<Trips />} />
@@ -154,9 +196,36 @@ const AppRoutes = () => {
         <Route path="vehicles" element={<Vehicles />} />
         <Route path="reports" element={<Reports />} />
         <Route path="subscription" element={<Subscription />} />
+        <Route path="admin/subscription" element={<AdminSubscription />} />
+        <Route
+          path="admin/school-subscription"
+          element={<SchoolSubscriptionPage />}
+        />
         <Route path="notifications" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
+      </Route>
+
+      {/* Super Admin Routes */}
+      <Route
+        path="/super-admin"
+        element={
+          token ? <SuperAdminLayout /> : <Navigate to="/login" replace />
+        }
+      >
+        <Route index element={<SuperAdminDashboard />} />
+        <Route path="users" element={<SuperAdminUsers />} />
+        <Route path="schools" element={<SuperAdminSchools />} />
+        <Route path="schools/:id" element={<SuperAdminSchoolDetails />} />
+        <Route path="subscriptions" element={<SuperAdminSubscriptions />} />
+        <Route
+          path="school-subscriptions"
+          element={<SuperAdminSchoolSubscriptions />}
+        />
+        <Route path="invoices" element={<SuperAdminInvoices />} />
+        <Route path="support" element={<SuperAdminCustomerSupport />} />
+        <Route path="analytics" element={<SuperAdminAnalytics />} />
+        <Route path="settings" element={<SuperAdminSettings />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

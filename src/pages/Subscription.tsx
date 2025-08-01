@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { fetchSubscriptionPlans, SubscriptionPlan as ApiSubscriptionPlan } from "@/redux/slices/subscriptionSlice";
 import {
   Check,
   Star,
@@ -184,16 +187,22 @@ const subscriptionPlans: SubscriptionPlan[] = [
 ];
 
 export default function Subscription() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { plans, loading, error } = useSelector((state: RootState) => state.subscription);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"month" | "year">("month");
   const { toast } = useToast();
+
+  useEffect(() => {
+    dispatch(fetchSubscriptionPlans());
+  }, [dispatch]);
 
   const handleSubscribe = (planId: string) => {
     setSelectedPlan(planId);
     toast({
       title: "Subscription Selected",
       description: `You've selected the ${
-        subscriptionPlans.find((p) => p.id === planId)?.name
+        displayPlans.find((p) => p.id === planId)?.name
       } plan. Redirecting to payment...`,
     });
     // Here you would typically redirect to a payment processor
@@ -214,6 +223,80 @@ export default function Subscription() {
     }
     return `KSH ${plan.price.toLocaleString()}/${plan.billingCycle}`;
   };
+
+  // Transform API data to match the component's expected format
+  const transformApiPlan = (apiPlan: ApiSubscriptionPlan): SubscriptionPlan => {
+    const basePrice = parseFloat(apiPlan.base_price);
+    const pricePerStudent = parseFloat(apiPlan.price_per_student);
+    const pricePerBus = parseFloat(apiPlan.price_per_bus);
+    
+    // Calculate total price based on features
+    const totalPrice = basePrice + (apiPlan.features_json.max_students * pricePerStudent) + (apiPlan.features_json.max_buses * pricePerBus);
+    
+    return {
+      id: apiPlan.name,
+      name: apiPlan.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: apiPlan.description,
+      price: totalPrice,
+      billingCycle: apiPlan.default_billing_cycle === 'annually' ? 'year' : 'month',
+      icon: Car, // Default icon
+      color: "bg-blue-500", // Default color
+      maxStudents: apiPlan.features_json.max_students,
+      maxDrivers: apiPlan.features_json.max_buses, // Using buses as drivers
+      maxVehicles: apiPlan.features_json.max_buses,
+      features: [
+        `Up to ${apiPlan.features_json.max_students} students`,
+        `${apiPlan.features_json.max_buses} buses`,
+        apiPlan.features_json.sms_notifications ? "SMS notifications" : null,
+        apiPlan.features_json.whatsapp_integration ? "WhatsApp integration" : null,
+        apiPlan.features_json.realtime_tracking ? "Real-time tracking" : null,
+        apiPlan.features_json.parent_app_access ? "Parent app access" : null,
+        apiPlan.features_json.basic_reports ? "Basic reports" : null,
+        apiPlan.features_json.driver_management ? "Driver management" : null,
+        apiPlan.features_json.route_optimization ? "Route optimization" : null,
+        apiPlan.features_json.advanced_analytics ? "Advanced analytics" : null,
+        apiPlan.features_json.api_access ? "API access" : null,
+      ].filter(Boolean) as string[],
+    };
+  };
+
+  // Use API data if available, otherwise fall back to hardcoded data
+  const displayPlans = plans.length > 0 ? plans.map(transformApiPlan) : subscriptionPlans;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <h3 className="text-lg font-medium mb-2">Loading Subscription Plans</h3>
+              <p>Please wait while we fetch the latest plans...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h2 className="text-red-800 font-semibold">Error Loading Subscription Plans</h2>
+            <p className="text-red-600">{error}</p>
+            <Button 
+              onClick={() => dispatch(fetchSubscriptionPlans())}
+              className="mt-2"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
@@ -258,7 +341,7 @@ export default function Subscription() {
 
         {/* Subscription Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {subscriptionPlans.map((plan) => (
+          {displayPlans.map((plan) => (
             <Card
               key={plan.id}
               className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105 flex flex-col h-full ${

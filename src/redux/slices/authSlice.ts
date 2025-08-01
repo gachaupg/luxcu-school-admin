@@ -50,14 +50,25 @@ interface ApiError {
 // Helper function to initialize token from localStorage
 const getInitialToken = (): string | null => {
   try {
-    const token = localStorage.getItem("persist:auth");
-    if (token) {
-      const parsed = JSON.parse(token);
+    // First try direct token storage (simpler and more reliable)
+    const directToken = localStorage.getItem("token");
+    if (directToken && !isTokenExpired(directToken)) {
+      console.log("Found valid token in direct storage");
+      return directToken;
+    }
+
+    // Fallback to Redux Persist storage
+    const persistAuth = localStorage.getItem("persist:auth");
+    if (persistAuth) {
+      const parsed = JSON.parse(persistAuth);
       const authState = JSON.parse(parsed.token || "null");
       if (authState && !isTokenExpired(authState)) {
+        console.log("Found valid token in Redux Persist storage");
         return authState;
       }
     }
+
+    console.log("No valid token found in localStorage");
   } catch (error) {
     console.error("Error parsing persisted token:", error);
   }
@@ -80,8 +91,8 @@ const getInitialUser = (): User | null => {
 };
 
 const initialState: AuthState = {
-  user: getInitialUser(),
-  token: getInitialToken(),
+  user: null,
+  token: null,
   loading: false,
   error: null,
   userId: null,
@@ -219,11 +230,51 @@ const authSlice = createSlice({
       }
     },
     initializeAuth: (state) => {
+      // Check if we have valid persisted data
+      const persistedToken = getInitialToken();
+      const persistedUser = getInitialUser();
+
+      console.log("initializeAuth debug:", {
+        persistedToken: persistedToken ? "exists" : "null",
+        persistedUser: persistedUser ? "exists" : "null",
+        currentStateToken: state.token ? "exists" : "null",
+        currentStateUser: state.user ? "exists" : "null",
+      });
+
+      if (persistedToken && persistedUser) {
+        state.token = persistedToken;
+        state.user = persistedUser;
+        console.log("Restored auth state from localStorage");
+      }
+
       state.isInitialized = true;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Handle Redux Persist rehydration
+      .addCase("persist/REHYDRATE", (state, action: any) => {
+        console.log("REHYDRATE debug:", {
+          hasPayload: !!action.payload,
+          hasAuth: !!action.payload?.auth,
+          token: action.payload?.auth?.token ? "exists" : "null",
+          user: action.payload?.auth?.user ? "exists" : "null",
+        });
+
+        if (action.payload?.auth) {
+          const { token, user } = action.payload.auth;
+          if (token && user && !isTokenExpired(token)) {
+            state.token = token;
+            state.user = user;
+            console.log("Restored auth state from Redux Persist");
+          } else {
+            console.log("Token expired or invalid, clearing auth state");
+            state.token = null;
+            state.user = null;
+          }
+        }
+        state.isInitialized = true;
+      })
       // Login
       .addCase(login.pending, (state) => {
         state.loading = true;

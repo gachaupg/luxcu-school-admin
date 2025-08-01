@@ -1,13 +1,12 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { SidebarProvider } from "../components/ui/sidebar";
-import { AppSidebar } from "../components/AppSidebar";
-import AppNavbar from "../components/AppNavbar";
-import { useSidebar } from "../components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { SuperAdminSidebar } from "@/components/SuperAdminSidebar";
+import AppNavbar from "@/components/AppNavbar";
+import { useSidebar } from "@/components/ui/sidebar";
 import { useState, useEffect, useRef } from "react";
 
-const Index = () => {
+const SuperAdminLayout = () => {
   const location = useLocation();
-  const isHomePage = location.pathname === "/";
   const { openMobile, setOpenMobile, toggleSidebar } = useSidebar();
   const [isScrolled, setIsScrolled] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -45,7 +44,7 @@ const Index = () => {
           }`}
         >
           <div className="h-full bg-card border-r">
-            <AppSidebar />
+            <SuperAdminSidebar />
           </div>
         </div>
 
@@ -65,12 +64,12 @@ const Index = () => {
   );
 };
 
-const IndexWithProvider = () => {
+const SuperAdminLayoutWithProvider = () => {
   return (
     <SidebarProvider>
-      <Index />
+      <SuperAdminLayout />
     </SidebarProvider>
   );
 };
 
-export default IndexWithProvider;
+export default SuperAdminLayoutWithProvider; 
