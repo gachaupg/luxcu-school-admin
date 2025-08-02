@@ -92,6 +92,7 @@ export const subscriptionPlanService = {
   },
 
   // Get a single subscription plan
+  
   async getSubscriptionPlan(id: string): Promise<SubscriptionPlan> {
     try {
       const response = await api.get(`/subscription-plans/${id}/`);
