@@ -131,7 +131,6 @@ export default function SettingsPage() {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      console.log("Google Maps script loaded successfully");
       setIsMapLoaded(true);
       initializeAutocomplete();
     };
@@ -204,7 +203,6 @@ export default function SettingsPage() {
 
     // Setup location autocomplete
     if (locationInputRef.current) {
-      console.log("Setting up location autocomplete");
       const locationAutocomplete = new google.maps.places.Autocomplete(
         locationInputRef.current,
         {
@@ -238,7 +236,6 @@ export default function SettingsPage() {
 
     // Setup school location autocomplete
     if (schoolLocationInputRef.current) {
-      console.log("Setting up school location autocomplete");
       const schoolLocationAutocomplete = new google.maps.places.Autocomplete(
         schoolLocationInputRef.current,
         {
@@ -272,13 +269,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (currentSchool) {
-      console.log("Current school data:", currentSchool);
-      console.log("School coordinates:", {
-        longitude_point: currentSchool.longitude_point,
-        latitude_point: currentSchool.latitude_point,
-        school_longitude: currentSchool.school_longitude,
-        school_latitude: currentSchool.school_latitude,
-      });
+    
 
       setSchoolFormData({
         name: currentSchool.name || "",
@@ -321,7 +312,6 @@ export default function SettingsPage() {
 
       // Refresh schools data
       dispatch(fetchSchools()).catch((error) => {
-        console.error("Failed to fetch schools:", error);
         // The API interceptor should handle token expiration automatically
       });
 
@@ -330,7 +320,6 @@ export default function SettingsPage() {
         description: "School details updated successfully",
       });
     } catch (error: unknown) {
-      console.error("Error updating school:", error);
       const errorMessage =
         error instanceof Error
           ? error.message

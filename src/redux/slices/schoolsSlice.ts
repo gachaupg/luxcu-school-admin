@@ -93,12 +93,9 @@ export const fetchSchools = createAsyncThunk<
   { rejectValue: string }
 >("schools/fetchSchools", async (_, { rejectWithValue }) => {
   try {
-    console.log("Fetching schools from:", API_ENDPOINTS.SCHOOLS);
     const response = await api.get(API_ENDPOINTS.SCHOOLS);
-    console.log("Schools API response:", response.data);
 
     if (!response.data || !Array.isArray(response.data)) {
-      console.error("Invalid schools response format:", response.data);
       return rejectWithValue("Invalid response format from server");
     }
 
@@ -107,11 +104,6 @@ export const fetchSchools = createAsyncThunk<
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
-    console.error("Schools fetch error:", {
-      error,
-      response: apiError.response?.data,
-      status: apiError.response?.status,
-    });
     return rejectWithValue(
       apiError.response?.data?.message || "Failed to fetch schools"
     );
@@ -124,22 +116,15 @@ export const registerSchool = createAsyncThunk<
   { rejectValue: string }
 >("schools/registerSchool", async (registrationData, { rejectWithValue }) => {
   try {
-    console.log("Registering school with payload:", registrationData);
     const response = await api.post(
       API_ENDPOINTS.SCHOOL_REGISTRATION,
       registrationData
     );
-    console.log("School registration response:", response.data);
     return response.data;
   } catch (error: unknown) {
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
-    console.error("School registration error:", {
-      error,
-      response: apiError.response?.data,
-      status: apiError.response?.status,
-    });
     return rejectWithValue(
       apiError.response?.data?.message || "Failed to register school"
     );

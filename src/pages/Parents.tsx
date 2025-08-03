@@ -217,20 +217,16 @@ export default function Parents() {
   // Force fetch on every mount - this is the key fix
   useEffect(() => {
     const schoolId = localStorage.getItem("schoolId");
-    console.log("🔄 FORCE FETCHING PARENTS - Component mounted");
-    console.log("SchoolId:", schoolId);
+    
 
     if (schoolId) {
-      console.log("🚀 Dispatching fetchParents with schoolId:", schoolId);
       dispatch(fetchParents({ schoolId: parseInt(schoolId) }))
         .then((result) => {
-          console.log("✅ Fetch successful:", result);
         })
         .catch((error) => {
-          console.error("❌ Fetch failed:", error);
         });
     } else {
-      console.log("⚠️ No schoolId found in localStorage");
+      // console.log("⚠️ No schoolId found in localStorage");
     }
   }, []); // Empty dependency array - only run on mount
 
@@ -240,7 +236,6 @@ export default function Parents() {
       const timeoutId = setTimeout(() => {
         const schoolId = localStorage.getItem("schoolId");
         if (schoolId) {
-          console.log("🔄 Retrying fetch after timeout...");
           dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
         }
       }, 2000);
@@ -372,43 +367,35 @@ export default function Parents() {
   };
 
   const convertToInternationalFormat = (phoneNumber: string): string => {
-    console.log("🔄 Converting phone number:", phoneNumber);
 
     if (!phoneNumber || !phoneNumber.trim()) {
-      console.log("⚠️ Empty phone number, generating unique number");
       return generateUniquePhoneNumber();
     }
 
     // Remove all non-digit characters
     const cleaned = phoneNumber.replace(/\D/g, "");
-    console.log("🔄 Cleaned phone number:", cleaned, "Length:", cleaned.length);
 
     // Validate the cleaned number
     if (cleaned.length === 0) {
-      console.log(
-        "⚠️ Empty phone number after cleaning, generating unique number"
-      );
+    
       return generateUniquePhoneNumber();
     }
 
     // If it's already in international format (starts with 254), return as is
     if (cleaned.startsWith("254") && cleaned.length === 12) {
       const result = `+${cleaned}`;
-      console.log("✅ Already international format:", result);
       return result;
     }
 
     // If it starts with 0, replace with 254
     if (cleaned.startsWith("0") && cleaned.length === 10) {
       const result = `+254${cleaned.slice(1)}`;
-      console.log("✅ Converted from 0 format:", result);
       return result;
     }
 
     // If it's 9 digits (without country code), add 254
     if (cleaned.length === 9) {
       const result = `+254${cleaned}`;
-      console.log("✅ Converted from 9 digits:", result);
       return result;
     }
 
@@ -428,7 +415,6 @@ export default function Parents() {
     }
 
     // If the number is too short or invalid, generate a unique one
-    console.log("⚠️ Invalid phone number format, generating unique number");
     return generateUniquePhoneNumber();
   };
 
@@ -472,7 +458,6 @@ export default function Parents() {
   // Multiple upload handlers - Updated to use CSV upload service
   const handleMultipleUpload = async (files: File[]) => {
     try {
-      console.log("🚀 Starting CSV upload of", files.length, "files");
 
       const schoolId = localStorage.getItem("schoolId");
       if (!schoolId) {
@@ -486,14 +471,12 @@ export default function Parents() {
       // Process each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        console.log(`📝 Processing file ${i + 1}/${files.length}:`, file.name);
 
         try {
           // Upload file to CSV upload endpoint
           const response = await uploadCSVFile(file, "parents");
 
           if (response.success) {
-            console.log(`✅ File ${i + 1} uploaded successfully`);
             totalSuccess += response.created_count || 0;
             totalFailed += response.skipped_count || 0;
 
@@ -517,18 +500,16 @@ export default function Parents() {
 
             // Log created users for debugging
             if (response.created_users && response.created_users.length > 0) {
-              console.log(
-                `📝 Created users from file ${file.name}:`,
-                response.created_users
-              );
+              // console.log(
+              //   `📝 Created users from file ${file.name}:`,
+              //   response.created_users
+              // );
             }
           } else {
-            console.error(`❌ File ${i + 1} upload failed:`, response.message);
             totalFailed += 1;
             allErrors.push(`File "${file.name}": ${response.message}`);
           }
         } catch (error: unknown) {
-          console.error(`❌ Failed to upload file ${i + 1}:`, error);
           totalFailed += 1;
 
           const errorMessage =
@@ -555,13 +536,11 @@ export default function Parents() {
         });
 
         // Log all errors for debugging
-        console.error("❌ Upload errors:", allErrors);
       }
 
       // Refresh parents list
       dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
     } catch (error: unknown) {
-      console.error("❌ CSV upload failed:", error);
       toast({
         title: "CSV upload failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -588,14 +567,7 @@ export default function Parents() {
 
   // Generate parent data with automatic field generation
   const generateParentData = (record: ParsedData, schoolId: string) => {
-    // Debug: Log the incoming record to see what fields are available
-    console.log("🔍 Processing record:", record);
-    console.log("🔍 Available fields:", Object.keys(record));
-    console.log("🔍 Preferred contact method fields:", {
-      preferred_contact_method: record.preferred_contact_method,
-      "Preferred Contact Method": record["Preferred Contact Method"],
-      Preferred_Contact_Method: record["Preferred_Contact_Method"],
-    });
+    
 
     // Extract and clean data from the record with proper CSV column mapping
     // Try multiple variations of name fields
@@ -628,13 +600,7 @@ export default function Parents() {
     const firstName = nameParts.length > 0 ? nameParts[0] : "";
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-    // Debug: Log extracted name parts
-    console.log("📝 Extracted name parts:", {
-      originalName: name,
-      firstName,
-      lastName,
-      nameParts,
-    });
+  
 
     // Handle email with validation
     const rawEmail = record.email || record["Email"];
@@ -645,30 +611,22 @@ export default function Parents() {
       const cleanedEmail = String(rawEmail)
         .replace(/^["']|["']$/g, "")
         .trim();
-      console.log("📧 Raw email:", rawEmail);
-      console.log("📧 Cleaned email:", cleanedEmail);
+     
 
       if (isValidEmail(cleanedEmail)) {
         email = cleanedEmail;
-        console.log("✅ Using provided email:", email);
       } else {
-        console.log("⚠️ Invalid email format, generating new email");
         email = generateEmail(firstName, lastName);
-        console.log("🔄 Generated email:", email);
       }
     } else {
-      console.log("📧 No email provided, generating new email");
       email = generateEmail(firstName, lastName);
-      console.log("🔄 Generated email:", email);
     }
 
     // Final email validation
     if (!isValidEmail(email)) {
-      console.error("❌ Failed to generate valid email for record:", record);
       throw new Error("Failed to generate valid email address");
     }
 
-    console.log("📧 Final email:", email);
 
     // Try multiple variations of phone fields
     const rawPhoneNumber = String(
@@ -698,34 +656,24 @@ export default function Parents() {
     // Remove quotes and clean the phone number
     const phoneNumber = rawPhoneNumber.replace(/^["']|["']$/g, "").trim();
 
-    console.log("📱 Raw phone number:", phoneNumber);
 
     // Convert to international format
     const formattedPhone = convertToInternationalFormat(phoneNumber);
-    console.log("📱 Raw phone number:", phoneNumber);
-    console.log("📱 Formatted phone number:", formattedPhone);
-    console.log("📱 Formatted phone length:", formattedPhone?.length);
+  
 
     // Validate phone number format
     if (!formattedPhone) {
-      console.error("❌ Phone number is empty");
       throw new Error("Phone number is required");
     }
 
     if (!formattedPhone.startsWith("+254")) {
-      console.error("❌ Phone number must start with +254:", formattedPhone);
       throw new Error(
         "Phone number must be in international format (+254XXXXXXXXX)"
       );
     }
 
     if (formattedPhone.length !== 13) {
-      console.error(
-        "❌ Phone number must be exactly 13 characters:",
-        formattedPhone,
-        "Length:",
-        formattedPhone.length
-      );
+     
       throw new Error(
         "Phone number must be exactly 13 characters (+254XXXXXXXXX)"
       );
@@ -782,16 +730,11 @@ export default function Parents() {
       ) {
         preferredContactMethod = "sms";
       } else {
-        console.log(
-          "⚠️ Invalid preferred contact method:",
-          rawPreferredContactMethod,
-          "using default: phone"
-        );
+       
         preferredContactMethod = "phone";
       }
     }
 
-    console.log("📞 Final preferred contact method:", preferredContactMethod);
     const authorizedPickupPersons =
       record.authorized_pickup_persons ||
       record.authorizedPickupPersons ||
@@ -813,23 +756,16 @@ export default function Parents() {
 
     // Email and address are optional - generate if missing
     if (!email.trim() || !isValidEmail(email)) {
-      console.log("⚠️ Invalid or missing email, generating one");
+      // console.log("⚠️ Invalid or missing email, generating one");
     }
 
     if (!address.trim()) {
-      console.log("⚠️ Missing address, using default");
+      // console.log("⚠️ Missing address, using default");
     }
 
     // If there are validation errors, throw them
     if (errors.length > 0) {
-      console.error("❌ Validation errors:", errors);
-      console.error("❌ Record data:", record);
-      console.error("❌ Extracted values:", {
-        name,
-        email,
-        phoneNumber,
-        address,
-      });
+      
       throw new Error(`Validation failed: ${errors.join(", ")}`);
     }
 
@@ -1012,7 +948,6 @@ export default function Parents() {
       };
 
       const result = await dispatch(registerParent(apiData)).unwrap();
-      console.log("Registration successful:", result);
 
       toast({
         title: "Success",
@@ -1045,7 +980,6 @@ export default function Parents() {
       setAuthorizedPersons([{ name: "", relation: "", phone: "" }]);
       setFormErrors({});
     } catch (error) {
-      console.error("Parent registration error:", error);
       toast({
         title: "Registration Failed",
         description: "Failed to register parent. Please try again.",
@@ -1069,7 +1003,6 @@ export default function Parents() {
         dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
       }
     } catch (error) {
-      console.error("Parent update error:", error);
       toast({
         title: "Update Failed",
         description: "Failed to update parent. Please try again.",
@@ -1090,7 +1023,6 @@ export default function Parents() {
       setIsDeleteDialogOpen(false);
       setSelectedParent(null);
     } catch (error) {
-      console.error("Parent delete error:", error);
       toast({
         title: "Delete Failed",
         description: "Failed to delete parent. Please try again.",
@@ -1188,18 +1120,16 @@ export default function Parents() {
   // Manual refresh function for debugging
   const handleManualRefresh = () => {
     const schoolId = localStorage.getItem("schoolId");
-    console.log("🔄 Manual refresh triggered, schoolId:", schoolId);
     if (schoolId) {
-      console.log("🚀 Dispatching manual fetch...");
       dispatch(fetchParents({ schoolId: parseInt(schoolId) }))
         .then((result) => {
-          console.log("✅ Manual fetch successful:", result);
+          // console.log("✅ Manual fetch successful:", result);
         })
         .catch((error) => {
-          console.error("❌ Manual fetch failed:", error);
+          // console.error("❌ Manual fetch failed:", error);
         });
     } else {
-      console.log("⚠️ No schoolId found for manual refresh");
+      // console.log("⚠️ No schoolId found for manual refresh");
     }
   };
 
@@ -1829,10 +1759,7 @@ export default function Parents() {
                               parent.phone_number ||
                               "";
 
-                            // Debug: Log the phone number for each parent
-                            console.log(
-                              `📞 Export - Parent: ${parent.user_full_name}, Phone: ${phoneNumber}`
-                            );
+                          
 
                             return {
                               name: `${

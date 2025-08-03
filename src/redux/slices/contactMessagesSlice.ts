@@ -61,16 +61,12 @@ export const fetchContactMessages = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log("Contact messages API response:", data);
 
       // Handle different response structures
       let messagesData = data.data || data;
 
       if (!Array.isArray(messagesData)) {
-        console.error(
-          "Invalid contact messages response - not an array:",
-          messagesData
-        );
+       
         // Return mock data for testing until API is ready
         return [
           {
@@ -143,7 +139,6 @@ export const fetchContactMessages = createAsyncThunk(
 
       return messagesData;
     } catch (error) {
-      console.error("Error fetching contact messages:", error);
       // Return mock data for testing until API is ready
       return [
         {
@@ -233,7 +228,6 @@ export const createContactMessage = createAsyncThunk(
       );
 
       if (missingFields.length > 0) {
-        console.error("Missing required fields:", missingFields);
         return rejectWithValue(
           `Missing required fields: ${missingFields.join(", ")}`
         );
@@ -249,20 +243,14 @@ export const createContactMessage = createAsyncThunk(
         message: messageFields.message.trim(),
       };
 
-      console.log("Original messageData:", messageData);
-      console.log("Cleaned data:", cleanedData);
-      console.log("Message type:", message_type);
 
       // Check if we have a token
       const token = localStorage.getItem("token");
-      console.log("Token available:", !!token);
 
       // Try the simplest format first - just the cleaned data
       const requestBody = cleanedData;
 
-      console.log("Sending request body:", requestBody);
-      console.log("API Endpoint:", `${API_ENDPOINTS.CONTACT_MESSAGES}`);
-
+   
       // Try without authentication first to see if that's the issue
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -273,7 +261,6 @@ export const createContactMessage = createAsyncThunk(
         headers.Authorization = `Bearer ${token}`;
       }
 
-      console.log("Request headers:", headers);
 
       const response = await fetch(`${API_ENDPOINTS.CONTACT_MESSAGES}`, {
         method: "POST",
@@ -282,15 +269,12 @@ export const createContactMessage = createAsyncThunk(
       });
 
       const responseData = await response.json();
-      console.log("API Response Status:", response.status);
-      console.log("API Response Data:", responseData);
+      
 
       if (!response.ok) {
-        console.error("API Error Response:", responseData);
 
         // If it's an authentication error, try without auth
         if (response.status === 401 && token) {
-          console.log("Trying without authentication...");
           const responseWithoutAuth = await fetch(
             `${API_ENDPOINTS.CONTACT_MESSAGES}`,
             {
@@ -303,7 +287,6 @@ export const createContactMessage = createAsyncThunk(
           );
 
           const responseDataWithoutAuth = await responseWithoutAuth.json();
-          console.log("API Response without auth:", responseDataWithoutAuth);
 
           if (!responseWithoutAuth.ok) {
             return rejectWithValue(
@@ -322,7 +305,6 @@ export const createContactMessage = createAsyncThunk(
 
       return responseData.data || responseData;
     } catch (error) {
-      console.error("Error creating contact message:", error);
       return rejectWithValue("Failed to create contact message");
     }
   }
@@ -351,7 +333,6 @@ export const updateContactMessage = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error updating contact message:", error);
       return rejectWithValue("Failed to update contact message");
     }
   }
@@ -375,7 +356,6 @@ export const markContactMessageAsRead = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log("Mark as read API response:", data);
 
       // If API call succeeds, return the updated message
       if (data.data || data) {
@@ -398,7 +378,6 @@ export const markContactMessageAsRead = createAsyncThunk(
 
       throw new Error("Message not found");
     } catch (error) {
-      console.error("Error marking contact message as read:", error);
       // Update locally even if API fails
       const state = getState() as any;
       const message = state.contactMessages.messages.find(
@@ -437,7 +416,6 @@ export const fetchContactMessageById = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching contact message:", error);
       return rejectWithValue("Failed to fetch contact message");
     }
   }

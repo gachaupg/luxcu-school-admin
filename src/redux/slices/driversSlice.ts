@@ -104,12 +104,9 @@ export const addDriver = createAsyncThunk<
   { rejectValue: string }
 >("drivers/addDriver", async (driverData, { rejectWithValue }) => {
   try {
-    console.log("Sending driver data:", driverData);
     const response = await api.post(API_ENDPOINTS.DRIVERS, driverData);
-    console.log("Add driver response:", response.data);
     return response.data.data;
   } catch (error) {
-    console.error("Add driver error:", error);
     const axiosError = error as AxiosError<{ message: string }>;
     // Return the original error data structure to preserve field-specific errors
     return rejectWithValue(
@@ -127,22 +124,16 @@ export const fetchDrivers = createAsyncThunk<
 >("drivers/fetchDrivers", async (_, { rejectWithValue }) => {
   try {
     const response = await api.get(API_ENDPOINTS.DRIVERS);
-    console.log("API Response:", response.data);
-    console.log("Response data type:", typeof response.data);
-    console.log("Is array:", Array.isArray(response.data));
+ 
 
     if (Array.isArray(response.data)) {
-      console.log("Returning array directly:", response.data);
       return response.data;
     } else if (response.data.data && Array.isArray(response.data.data)) {
-      console.log("Returning data.data array:", response.data.data);
       return response.data.data;
     } else {
-      console.error("Invalid response format:", response.data);
       throw new Error("Invalid response format");
     }
   } catch (error) {
-    console.error("Error fetching drivers:", error);
     const axiosError = error as AxiosError<{ message: string }>;
     return rejectWithValue(
       axiosError.response?.data?.message || "Failed to fetch drivers"
@@ -156,12 +147,9 @@ export const deleteDriver = createAsyncThunk<
   { rejectValue: string }
 >("drivers/deleteDriver", async (id, { rejectWithValue }) => {
   try {
-    console.log(`Deleting driver ${id}`);
     await api.delete(`${API_ENDPOINTS.DRIVERS}${id}/`);
-    console.log("Driver deleted successfully");
     return id;
   } catch (error) {
-    console.error("Error deleting driver:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete driver"
@@ -177,12 +165,9 @@ export const updateDriver = createAsyncThunk<
   { rejectValue: string }
 >("drivers/updateDriver", async ({ id, data }, { rejectWithValue }) => {
   try {
-    console.log(`Updating driver ${id} with data:`, data);
     const response = await api.put(`${API_ENDPOINTS.DRIVERS}${id}/`, data);
-    console.log("Update driver response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
-    console.error("Error updating driver:", error);
     const axiosError = error as AxiosError<{ message: string }>;
     // Return the original error data structure to preserve field-specific errors
     return rejectWithValue(

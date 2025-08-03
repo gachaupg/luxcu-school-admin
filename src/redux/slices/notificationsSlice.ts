@@ -61,10 +61,8 @@ export const createNotification = createAsyncThunk<
   "notifications/createNotification",
   async (notificationData, { rejectWithValue }) => {
     try {
-      console.log("Creating notification with data:", notificationData);
 
       // Debug token availability
-      console.log("Auth token available:", !!localStorage.getItem("token"));
       let token = localStorage.getItem("token");
 
       if (!token) {
@@ -75,22 +73,20 @@ export const createNotification = createAsyncThunk<
             const authData = JSON.parse(persistAuth);
             const userData = JSON.parse(authData.user || "{}");
             token = userData.token;
-            console.log("Token from persist:auth:", !!token);
           } catch (e) {
-            console.log("Error parsing persist:auth:", e);
+            // console.log("Error parsing persist:auth:", e);
           }
         }
       }
 
       if (token) {
-        console.log("Token preview:", token.substring(0, 20) + "...");
         // Handle double-stringified token from Redux Persist
         if (token.startsWith('"') && token.endsWith('"')) {
           token = JSON.parse(token);
         }
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       } else {
-        console.log("No token found, request will be made without auth");
+        // console.log("No token found, request will be made without auth");
       }
 
       // Ensure school ID is included
@@ -109,7 +105,6 @@ export const createNotification = createAsyncThunk<
         is_read: false,
       };
 
-      console.log("Notification data with school:", notificationDataWithSchool);
 
       // Create request config with auth header
       const requestConfig = {
@@ -140,7 +135,6 @@ export const fetchNotifications = createAsyncThunk<
 >("notifications/fetchNotifications", async (params, { rejectWithValue }) => {
   try {
     // Debug token availability
-    console.log("Auth token available:", !!localStorage.getItem("token"));
     let token = localStorage.getItem("token");
 
     if (!token) {
@@ -151,22 +145,20 @@ export const fetchNotifications = createAsyncThunk<
           const authData = JSON.parse(persistAuth);
           const userData = JSON.parse(authData.user || "{}");
           token = userData.token;
-          console.log("Token from persist:auth:", !!token);
         } catch (e) {
-          console.log("Error parsing persist:auth:", e);
+          // console.log("Error parsing persist:auth:", e);
         }
       }
     }
 
     if (token) {
-      console.log("Token preview:", token.substring(0, 20) + "...");
       // Handle double-stringified token from Redux Persist
       if (token.startsWith('"') && token.endsWith('"')) {
         token = JSON.parse(token);
       }
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      console.log("No token found, request will be made without auth");
+      // console.log("No token found, request will be made without auth");
     }
 
     const schoolId = typeof params === "object" ? params.schoolId : undefined;
@@ -182,7 +174,6 @@ export const fetchNotifications = createAsyncThunk<
     };
 
     const response = await api.get(url, requestConfig);
-    console.log("Raw notifications response:", response.data);
 
     // Handle paginated response structure
     let notificationsData;
@@ -203,7 +194,6 @@ export const fetchNotifications = createAsyncThunk<
       notificationsData = [];
     }
 
-    console.log("Final notifications data to return:", notificationsData);
     return notificationsData;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -244,7 +234,6 @@ const notificationsSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
-        console.log("fetchNotifications.fulfilled - payload:", action.payload);
         state.loading = false;
         state.notifications = Array.isArray(action.payload)
           ? action.payload

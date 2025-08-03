@@ -41,14 +41,11 @@ export const fetchRoles = createAsyncThunk<Role[], number>(
   "roles/fetchRoles",
   async (schoolId: number, { rejectWithValue }) => {
     try {
-      console.log("Fetching roles for school:", schoolId);
       const response = await api.get(
         `${API_ENDPOINTS.SCHOOLS_ROLES}?school=${schoolId}`
       );
-      console.log("Roles response:", response.data);
       return response.data.data || response.data;
     } catch (error) {
-      console.error("Error fetching roles:", error);
       if (error instanceof AxiosError) {
         return rejectWithValue(
           error.response?.data?.message || "Failed to fetch roles"
@@ -64,12 +61,9 @@ export const fetchRoleById = createAsyncThunk<
   { schoolId: number; roleId: number }
 >("roles/fetchRoleById", async ({ schoolId, roleId }, { rejectWithValue }) => {
   try {
-    console.log(`Fetching role ${roleId} for school ${schoolId}`);
     const response = await api.get(`${API_ENDPOINTS.SCHOOLS_ROLES}/${roleId}/`);
-    console.log("Role response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
-    console.error("Error fetching role:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch role"
@@ -83,15 +77,12 @@ export const createRole = createAsyncThunk<Role, CreateRoleData>(
   "roles/createRole",
   async (roleData, { rejectWithValue }) => {
     try {
-      console.log("Creating role with data:", roleData);
       const response = await api.post(
         `${API_ENDPOINTS.SCHOOLS_ROLES}/`,
         roleData
       );
-      console.log("Create role response:", response.data);
       return response.data.data || response.data;
     } catch (error) {
-      console.error("Error creating role:", error);
       if (error instanceof AxiosError) {
         return rejectWithValue(
           error.response?.data?.message || "Failed to create role"
@@ -107,15 +98,12 @@ export const updateRole = createAsyncThunk<
   { id: number; data: Partial<CreateRoleData> }
 >("roles/updateRole", async ({ id, data }, { rejectWithValue }) => {
   try {
-    console.log(`Updating role ${id} with data:`, data);
     const response = await api.put(
       `${API_ENDPOINTS.SCHOOLS_ROLES}/${id}/`,
       data
     );
-    console.log("Update role response:", response.data);
     return response.data.data || response.data;
   } catch (error) {
-    console.error("Error updating role:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to update role"
@@ -129,11 +117,8 @@ export const deleteRole = createAsyncThunk<void, number>(
   "roles/deleteRole",
   async (id, { rejectWithValue }) => {
     try {
-      console.log(`Deleting role ${id}`);
       await api.delete(`${API_ENDPOINTS.SCHOOLS_ROLES}/${id}/`);
-      console.log("Role deleted successfully");
     } catch (error) {
-      console.error("Error deleting role:", error);
       if (error instanceof AxiosError) {
         return rejectWithValue(
           error.response?.data?.message || "Failed to delete role"
@@ -148,7 +133,6 @@ export const createDefaultRoles = createAsyncThunk<Role[], number>(
   "roles/createDefaultRoles",
   async (schoolId: number, { rejectWithValue }) => {
     try {
-      console.log("Creating default roles for school:", schoolId);
       const defaultRoles = getDefaultRoles(schoolId);
       const createdRoles: Role[] = [];
 
@@ -160,15 +144,12 @@ export const createDefaultRoles = createAsyncThunk<Role[], number>(
           );
           createdRoles.push(response.data.data || response.data);
         } catch (error) {
-          console.warn(`Failed to create role ${roleData.name}:`, error);
           // Continue with other roles even if one fails
         }
       }
 
-      console.log("Default roles created:", createdRoles);
       return createdRoles;
     } catch (error) {
-      console.error("Error creating default roles:", error);
       if (error instanceof AxiosError) {
         return rejectWithValue(
           error.response?.data?.message || "Failed to create default roles"

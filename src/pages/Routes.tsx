@@ -140,18 +140,7 @@ export default function RoutesPage() {
   const { schools } = useAppSelector((state) => state.schools);
   const { toast } = useToast();
 
-  // Debug logging for hot reload issues
-  console.log(
-    "RoutesPage render - routes:",
-    routes?.length,
-    "loading:",
-    loading,
-    "error:",
-    error
-  );
-  console.log("Routes data:", routes);
-  console.log("SchoolId from localStorage:", localStorage.getItem("schoolId"));
-  console.log("User data:", user);
+ 
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [startPlace, setStartPlace] = useState("");
   const [endPlace, setEndPlace] = useState("");
@@ -219,7 +208,6 @@ export default function RoutesPage() {
   const filteredSchools =
     schools?.filter((school) => school && school.admin === user?.id) || [];
   const schoolId = localStorage.getItem("schoolId");
-  console.log("school", user, schoolId);
 
   // Filter students for the current school
   const filteredStudents =
@@ -295,18 +283,14 @@ export default function RoutesPage() {
   // Function to decode route path coordinates to location names
   const decodeRouteStops = async (route: Route) => {
     if (!route.path) {
-      console.log("No path data found for route:", route.name);
       return [];
     }
 
     try {
       setIsLoadingStops(true);
-      console.log("Route path object:", route.path);
       const coordinates = route.path.coordinates || [];
-      console.log("Found coordinates:", coordinates);
 
       if (coordinates.length === 0) {
-        console.log("No coordinates found in path");
         return [];
       }
 
@@ -315,7 +299,6 @@ export default function RoutesPage() {
 
       for (let i = 0; i < coordinates.length; i++) {
         const [lng, lat] = coordinates[i];
-        console.log(`Geocoding coordinate ${i + 1}:`, { lat, lng });
 
         try {
           const result = await new Promise<google.maps.GeocoderResult[]>(
@@ -324,16 +307,10 @@ export default function RoutesPage() {
                 { location: { lat, lng } },
                 (results, status) => {
                   if (status === "OK" && results) {
-                    console.log(
-                      `Geocoding successful for coordinate ${i + 1}:`,
-                      results[0]?.formatted_address
-                    );
+                   
                     resolve(results);
                   } else {
-                    console.error(
-                      `Geocoding failed for coordinate ${i + 1}:`,
-                      status
-                    );
+                   
                     reject(
                       new Error(`Geocoding failed for coordinate ${i + 1}`)
                     );
@@ -344,7 +321,6 @@ export default function RoutesPage() {
           );
 
           const locationName = result[0]?.formatted_address || `Stop ${i + 1}`;
-          console.log(`Adding stop ${i + 1}:`, locationName);
           stops.push({
             id: i + 1,
             name: locationName,
@@ -353,7 +329,6 @@ export default function RoutesPage() {
             sequence: i + 1,
           });
         } catch (error) {
-          console.error(`Error geocoding coordinate ${i + 1}:`, error);
           stops.push({
             id: i + 1,
             name: `Stop ${i + 1}`,
@@ -366,7 +341,6 @@ export default function RoutesPage() {
 
       return stops;
     } catch (error) {
-      console.error("Error decoding route stops:", error);
       return [];
     } finally {
       setIsLoadingStops(false);
@@ -377,11 +351,9 @@ export default function RoutesPage() {
   const handleRouteSelection = async (routeId: number) => {
     const selectedRoute = routes?.find((route) => route.id === routeId);
     if (selectedRoute) {
-      console.log("Selected route:", selectedRoute);
       try {
         // Fetch route stops from API instead of decoding from path
         const response = await dispatch(fetchRouteStops(routeId)).unwrap();
-        console.log("Fetched route stops from API:", response);
         setSelectedRouteStops(
           response.map((stop, index) => ({
             id: stop.id || index + 1,
@@ -394,7 +366,6 @@ export default function RoutesPage() {
           }))
         );
       } catch (error) {
-        console.error("Error fetching route stops:", error);
         setSelectedRouteStops([]);
         toast({
           title: "Error",
@@ -415,9 +386,7 @@ export default function RoutesPage() {
       : "Unknown Driver";
   };
 
-  // Debug logging
-  console.log("All drivers:", drivers);
-  console.log("Filtered drivers for school", schoolId, ":", filteredDrivers);
+
 
   // Filter and search logic
   const filteredAndSearchedRoutes =
@@ -524,7 +493,6 @@ export default function RoutesPage() {
         [routeId]: response.length,
       }));
     } catch (error) {
-      console.error(`Error fetching stops count for route ${routeId}:`, error);
       setRouteStopsCount((prev) => ({
         ...prev,
         [routeId]: 0,
@@ -533,18 +501,15 @@ export default function RoutesPage() {
   };
 
   const handleAddStop = (name: string, lat: number, lng: number) => {
-    console.log("Adding stop:", { name, lat, lng });
     const newStop = {
       name,
       lat,
       lng,
       sequence: routeStops.length + 1,
     };
-    console.log("New stop object:", newStop);
-    console.log("Current routeStops before adding:", routeStops);
+    
     setRouteStops((prevStops) => {
       const updatedStops = [...prevStops, newStop];
-      console.log("Updated routeStops:", updatedStops);
       return updatedStops;
     });
     setStopSearchTerm("");
@@ -596,7 +561,6 @@ export default function RoutesPage() {
       setIsDeleteDialogOpen(false);
       setSelectedRoute(null);
     } catch (err) {
-      console.error("Delete route error:", err);
       let errorMessage = "Failed to delete route";
 
       if (err instanceof Error) {
@@ -653,10 +617,8 @@ export default function RoutesPage() {
   // Always fetch data on component mount, regardless of existing state
   useEffect(() => {
     const schoolId = localStorage.getItem("schoolId");
-    console.log("Routes useEffect - schoolId:", schoolId);
 
     if (schoolId) {
-      console.log("Dispatching fetchRoutes with schoolId:", parseInt(schoolId));
       // Only fetch routes if they don't already exist
       if (!routes || routes.length === 0) {
         dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
@@ -666,7 +628,7 @@ export default function RoutesPage() {
       dispatch(fetchRouteAssignments({ schoolId: parseInt(schoolId) }));
       dispatch(fetchGrades({ schoolId: parseInt(schoolId) }));
     } else {
-      console.log("No schoolId found in localStorage");
+      // console.log("No schoolId found in localStorage");
     }
 
     // Test toast to verify notifications are working
@@ -906,14 +868,11 @@ export default function RoutesPage() {
           );
 
           stopAutocomplete.addListener("place_changed", () => {
-            console.log("Autocomplete place_changed event triggered");
             const place = stopAutocomplete.getPlace();
-            console.log("Selected place:", place);
             if (place.geometry) {
               const lat = place.geometry.location?.lat() || 0;
               const lng = place.geometry.location?.lng() || 0;
               const name = place.name || place.formatted_address || "";
-              console.log("Setting stopSearchTerm to:", name);
               // Only update the search term, don't add to stops list
               setStopSearchTerm(name);
               // Clear the autocomplete to prevent it from interfering
@@ -927,7 +886,7 @@ export default function RoutesPage() {
                 }
               }, 100);
             } else {
-              console.log("No geometry found for selected place");
+              // console.log("No geometry found for selected place");
             }
           });
         }
@@ -1036,7 +995,6 @@ export default function RoutesPage() {
       setRouteStops([]);
       setStopSearchTerm("");
     } catch (err) {
-      console.error("Route creation error:", err);
 
       // Show the actual database error response
       let errorMessage = "Failed to add route";
@@ -1150,7 +1108,6 @@ export default function RoutesPage() {
       setRouteStops([]);
       setStopSearchTerm("");
     } catch (err) {
-      console.error("Route update error:", err);
 
       let errorMessage = "Failed to update route";
 
@@ -1199,7 +1156,6 @@ export default function RoutesPage() {
       assignmentForm.reset();
       setSelectedRouteStops([]);
     } catch (err) {
-      console.error("Route assignment error:", err);
 
       let errorMessage = "Failed to assign route to student";
 
@@ -1229,7 +1185,6 @@ export default function RoutesPage() {
   const handleRefresh = () => {
     const schoolId = localStorage.getItem("schoolId");
     if (schoolId) {
-      console.log("Manual refresh triggered");
       dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
       dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
       dispatch(fetchDrivers());
@@ -2786,39 +2741,24 @@ export default function RoutesPage() {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        console.log(
-                          "Add button clicked (edit modal), stopSearchTerm:",
-                          stopSearchTerm
-                        );
+                       
                         if (stopSearchTerm.trim()) {
                           // Get coordinates from the search input
                           const geocoder = new google.maps.Geocoder();
-                          console.log(
-                            "Geocoding address (edit modal):",
-                            stopSearchTerm
-                          );
+                          
                           geocoder.geocode(
                             { address: stopSearchTerm },
                             (results, status) => {
-                              console.log("Geocoding results (edit modal):", {
-                                results,
-                                status,
-                              });
+                              
                               if (status === "OK" && results?.[0]) {
                                 const lat =
                                   results[0].geometry.location?.lat() || 0;
                                 const lng =
                                   results[0].geometry.location?.lng() || 0;
-                                console.log("Found coordinates (edit modal):", {
-                                  lat,
-                                  lng,
-                                });
+                                
                                 handleAddStop(stopSearchTerm, lat, lng);
                               } else {
-                                console.log(
-                                  "Geocoding failed (edit modal):",
-                                  status
-                                );
+                                
                                 toast({
                                   title: "Error",
                                   description:
@@ -2829,9 +2769,9 @@ export default function RoutesPage() {
                             }
                           );
                         } else {
-                          console.log(
-                            "stopSearchTerm is empty or whitespace (edit modal)"
-                          );
+                          // console.log(
+                          //   "stopSearchTerm is empty or whitespace (edit modal)"
+                          // );
                         }
                       }}
                       disabled={!stopSearchTerm.trim()}

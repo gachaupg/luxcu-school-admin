@@ -423,12 +423,12 @@ export default function Vehicles() {
 
   // Debug logging for vehicles state
   useEffect(() => {
-    console.log("Vehicles state updated:", {
-      count: vehicles.length,
-      vehicles: vehicles,
-      loading: loading,
-      error: error,
-    });
+    // console.log("Vehicles state updated:", {
+    //   count: vehicles.length,
+    //   vehicles: vehicles,
+    //   loading: loading,
+    //   error: error,
+    // });
   }, [vehicles, loading, error]);
   const { user } = useSelector((state: RootState) => state.auth);
   const { schools } = useAppSelector((state) => state.schools);
@@ -454,7 +454,6 @@ export default function Vehicles() {
 
   // Get the first school's ID (assuming admin has one school)
   const schoolId = filteredSchools[0]?.id;
-  console.log("schoolId", schoolId);
   // Filter drivers for the school
   const filteredDrivers =
     drivers?.filter((driver) => driver?.school === schoolId) || [];
@@ -462,38 +461,20 @@ export default function Vehicles() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        console.log("Loading vehicles data for schoolId:", schoolId);
         if (schoolId) {
           const result = await dispatch(fetchVehicles({ schoolId }));
-          console.log("Fetch vehicles result:", result);
+          // console.log("Fetch vehicles result:", result);
         }
         await dispatch(fetchDrivers());
       } catch (err) {
-        console.error("Failed to load data:", err);
+        // console.error("Failed to load data:", err);
       }
     };
     loadData();
   }, [dispatch, schoolId]);
 
   useEffect(() => {
-    console.log("Debug data:", {
-      user: {
-        id: user?.id,
-        type: user?.user_type,
-      },
-      schoolId,
-      schools: {
-        all: schools,
-        filtered: filteredSchools,
-        count: schools?.length,
-      },
-      drivers: {
-        all: drivers,
-        filtered: filteredDrivers,
-        count: drivers?.length,
-        loading: driversLoading,
-      },
-    });
+   
   }, [
     user,
     schoolId,
@@ -584,18 +565,15 @@ export default function Vehicles() {
   };
 
   const handleDelete = (vehicle: Vehicle) => {
-    console.log("handleDelete called with vehicle:", vehicle);
     setSelectedVehicle(vehicle);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDelete = async () => {
     try {
-      console.log("confirmDelete called");
-      console.log("selectedVehicle:", selectedVehicle);
+    
 
       if (!selectedVehicle) {
-        console.log("No vehicle selected");
         toast({
           title: "Error",
           description: "No vehicle selected for deletion",
@@ -605,7 +583,6 @@ export default function Vehicles() {
       }
 
       if (!selectedVehicle.id) {
-        console.log("Vehicle ID is undefined");
         toast({
           title: "Error",
           description: "Vehicle ID is missing",
@@ -614,19 +591,14 @@ export default function Vehicles() {
         return;
       }
 
-      console.log("Attempting to delete vehicle with ID:", selectedVehicle.id);
-      console.log("Vehicle ID type:", typeof selectedVehicle.id);
-
       // Ensure ID is a number
       const vehicleId =
         typeof selectedVehicle.id === "string"
           ? parseInt(selectedVehicle.id)
           : selectedVehicle.id;
-      console.log("Converted vehicle ID:", vehicleId);
 
       await dispatch(deleteVehicle(vehicleId)).unwrap();
 
-      console.log("Vehicle deleted successfully");
       toast({
         title: "Success",
         description: "Vehicle deleted successfully",
@@ -634,7 +606,6 @@ export default function Vehicles() {
       setIsDeleteDialogOpen(false);
       setSelectedVehicle(null);
     } catch (err) {
-      console.error("Delete vehicle error:", err);
       let errorMessage = "Failed to delete vehicle";
 
       if (err instanceof Error) {
@@ -716,7 +687,6 @@ export default function Vehicles() {
         has_emergency_button: true,
       });
     } catch (error) {
-      console.error("Vehicle creation error:", error);
 
       // Show the actual database error response
       let errorMessage = "Failed to add vehicle";
@@ -998,7 +968,6 @@ export default function Vehicles() {
                     </tr>
                   ) : (
                     paginatedVehicles.map((vehicle) => {
-                      console.log("Rendering vehicle:", vehicle);
                       if (!vehicle) return null;
 
                       const driver = filteredDrivers.find(

@@ -152,10 +152,8 @@ export const fetchReports = createAsyncThunk<
     const url = `${API_ENDPOINTS.REPORTS}?${params.toString()}`;
     const response = await api.get(url);
 
-    console.log("Raw reports response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching reports:", error);
     const errorMessage =
       error instanceof AxiosError
         ? error.response?.data?.message || error.message

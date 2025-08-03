@@ -83,44 +83,22 @@ const AppRoutes = () => {
 
   const schoolId = schools.find((school) => school.admin === user?.id)?.id;
 
-  // Debug logging
-  console.log("App state:", {
-    token: token ? "exists" : "null",
-    isInitialized,
-    user: user
-      ? { id: user.id, name: `${user.first_name} ${user.last_name}` }
-      : "null",
-    schoolsCount: schools.length,
-    schoolId,
-    schoolsLoading: loading,
-    schoolsError: error,
-  });
+ 
 
-  // Debug localStorage
-  console.log("localStorage debug:", {
-    persistAuth: localStorage.getItem("persist:auth"),
-    directToken: localStorage.getItem("token"),
-  });
 
   // Additional debugging
   useEffect(() => {
-    console.log("=== AUTH DEBUG ===");
-    console.log("localStorage keys:", Object.keys(localStorage));
-    console.log("persist:auth raw:", localStorage.getItem("persist:auth"));
-    console.log("token raw:", localStorage.getItem("token"));
-
+    
     try {
       const persistAuth = localStorage.getItem("persist:auth");
       if (persistAuth) {
         const parsed = JSON.parse(persistAuth);
-        console.log("parsed persist:auth:", parsed);
         if (parsed.token) {
           const tokenData = JSON.parse(parsed.token);
-          console.log("parsed token:", tokenData);
         }
       }
     } catch (error) {
-      console.error("Error parsing persist:auth:", error);
+      // console.error("Error parsing persist:auth:", error);
     }
   }, []);
 
@@ -147,12 +125,8 @@ const AppRoutes = () => {
   // Fetch schools when component mounts and token is available
   React.useEffect(() => {
     if (token && isInitialized) {
-      console.log(
-        "Fetching schools with token:",
-        token.substring(0, 20) + "..."
-      );
+     
       dispatch(fetchSchools()).catch((error) => {
-        console.error("Failed to fetch schools:", error);
         // The API interceptor should handle token expiration automatically
       });
     }
@@ -161,7 +135,7 @@ const AppRoutes = () => {
   // Log schools data
   React.useEffect(() => {
     if (schools && schools.length > 0) {
-      console.log("Schools data:", schools);
+      // console.log("Schools data:", schools);
     }
   }, [schools]);
 

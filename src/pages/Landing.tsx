@@ -105,8 +105,12 @@ const Landing = () => {
       if (nav) {
         if (scrolled > 10) {
           nav.classList.add("shadow-lg", "bg-white/95");
+          nav.classList.add("text-slate-900");
+          nav.classList.remove("text-white");
         } else {
           nav.classList.remove("shadow-lg", "bg-white/95");
+          nav.classList.remove("text-slate-900");
+          nav.classList.add("text-white");
         }
       }
     };
@@ -256,24 +260,26 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-white">LuxCub</span>
+              <span className="text-xl font-bold transition-colors duration-300">
+                LuxCub
+              </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a
                 href="#features"
-                className="text-white hover:text-emerald-300 transition-colors font-medium"
+                className="transition-colors font-medium hover:text-emerald-600"
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-white hover:text-emerald-300 transition-colors font-medium"
+                className="transition-colors font-medium hover:text-emerald-600"
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="text-white hover:text-emerald-300 transition-colors font-medium"
+                className="transition-colors font-medium hover:text-emerald-600"
               >
                 Contact
               </a>

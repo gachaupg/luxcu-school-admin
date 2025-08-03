@@ -24,7 +24,7 @@ import {
   FileText,
 } from "lucide-react";
 import { schoolsService, DashboardStats } from "@/services/schoolsService";
-import { useToast } from "@/components/ui/use-toast";
+import { toast, useToast } from "@/components/ui/use-toast";
 import { generateTablePDF, downloadPDF } from "@/utils/pdfGenerator";
 
 const Dashboard = () => {
@@ -97,16 +97,9 @@ const Dashboard = () => {
           inactiveUsers: 0,
         };
 
-        console.log(
-          "Dashboard: Real stats calculated from API data:",
-          realStats
-        );
-        console.log("Invoices data:", invoices);
-        console.log("Subscriptions data:", subscriptions);
 
         setStats(realStats);
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
         // Fallback to mock data if API fails
         setStats({
           totalUsers: 1247,
@@ -207,7 +200,7 @@ const Dashboard = () => {
         description: "Dashboard report has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating dashboard PDF:", error);
+      // console.error("Error generating dashboard PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate dashboard PDF. Please try again.",
@@ -531,3 +524,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+function toast(arg0: { title: string; description: string; variant: "destructive"; }) {
+  throw new Error("Function not implemented.");
+}
+

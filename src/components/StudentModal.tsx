@@ -48,14 +48,7 @@ export function StudentModal({
   editMode = false,
   student = null,
 }: StudentModalProps) {
-  console.log(
-    "StudentModal render - isOpen:",
-    isOpen,
-    "editMode:",
-    editMode,
-    "student:",
-    student
-  );
+
   const { parents } = useSelector((state: RootState) => state.parents);
   const { grades } = useSelector((state: RootState) => state.grades);
   const schoolId1 = localStorage.getItem("schoolId");
@@ -67,10 +60,6 @@ export function StudentModal({
   const filteredGrades = (grades || []).filter(
     (grade) => grade.school === Number(schoolId)
   );
-
-  console.log(schoolId1);
-  console.log(parentsId);
-  console.log("Available grades for school:", filteredGrades);
 
   const [formData, setFormData] = useState<Omit<Student, "id">>({
     first_name: "",
@@ -90,14 +79,8 @@ export function StudentModal({
 
   // Initialize form data when editing
   useEffect(() => {
-    console.log(
-      "Form data initialization effect - editMode:",
-      editMode,
-      "student:",
-      student
-    );
+
     if (editMode && student) {
-      console.log("Initializing form with student data:", student);
       const newFormData = {
         first_name: student.first_name || "",
         middle_name: student.middle_name || "",
@@ -115,7 +98,6 @@ export function StudentModal({
         ],
         transport_enabled: student.transport_enabled ?? true,
       };
-      console.log("Setting form data to:", newFormData);
       setFormData(newFormData);
       setParentsId(student.parent || 0);
     } else {
@@ -135,7 +117,6 @@ export function StudentModal({
         emergency_contacts: [{ name: "", phone: "" }],
         transport_enabled: true,
       };
-      console.log("Resetting form data to:", resetFormData);
       setFormData(resetFormData);
       setParentsId(0);
     }
@@ -150,21 +131,12 @@ export function StudentModal({
 
   // Debug form data changes
   useEffect(() => {
-    console.log("Form data changed:", formData);
+    // console.log("Form data changed:", formData);
   }, [formData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting form data:", formData);
-    console.log("Edit mode:", editMode);
-    console.log("Student ID:", student?.id);
-    console.log("Grade type:", typeof formData.grade, "Value:", formData.grade);
-    console.log(
-      "Parent type:",
-      typeof formData.parent,
-      "Value:",
-      formData.parent
-    );
+   
 
     // Basic validation
     if (!formData.first_name || !formData.last_name) {
@@ -194,10 +166,10 @@ export function StudentModal({
     }
 
     if (editMode && student?.id) {
-      console.log("Submitting update for student ID:", student.id);
+      // console.log("Submitting update for student ID:", student.id);
       onSubmit({ id: student.id, data: formData });
     } else {
-      console.log("Submitting create request");
+      // console.log("Submitting create request");
       onSubmit(formData);
     }
   };
@@ -213,9 +185,7 @@ export function StudentModal({
     );
     const convertedValue =
       name === "grade" || name === "parent" ? Number(value) : value;
-    console.log(
-      `Converted value: ${convertedValue}, type: ${typeof convertedValue}`
-    );
+   
     setFormData((prev) => ({
       ...prev,
       [name]: convertedValue,

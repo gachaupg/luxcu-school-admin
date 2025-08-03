@@ -200,7 +200,6 @@ const Drivers = () => {
       setIsDeleteDialogOpen(false);
       setSelectedDriver(null);
     } catch (err) {
-      console.error("Delete driver error:", err);
       let errorMessage = "Failed to delete driver";
 
       if (err instanceof Error) {
@@ -220,7 +219,6 @@ const Drivers = () => {
   // Bulk upload handlers
   const handleMultipleUpload = async (files: File[]) => {
     try {
-      console.log("🚀 Starting CSV upload of", files.length, "files");
 
       const schoolId = localStorage.getItem("schoolId");
       if (!schoolId) {
@@ -234,14 +232,12 @@ const Drivers = () => {
       // Process each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        console.log(`📝 Processing file ${i + 1}/${files.length}:`, file.name);
 
         try {
           // Upload file to CSV upload endpoint
           const response = await uploadCSVFile(file, "drivers");
 
           if (response.success) {
-            console.log(`✅ File ${i + 1} uploaded successfully`);
             totalSuccess += response.created_count || 0;
             totalFailed += response.skipped_count || 0;
 
@@ -265,18 +261,16 @@ const Drivers = () => {
 
             // Log created users for debugging
             if (response.created_users && response.created_users.length > 0) {
-              console.log(
-                `📝 Created users from file ${file.name}:`,
-                response.created_users
-              );
+              // console.log(
+              //   `📝 Created users from file ${file.name}:`,
+              //   response.created_users
+              // );
             }
           } else {
-            console.error(`❌ File ${i + 1} upload failed:`, response.message);
             totalFailed += 1;
             allErrors.push(`File "${file.name}": ${response.message}`);
           }
         } catch (error: unknown) {
-          console.error(`❌ Failed to upload file ${i + 1}:`, error);
           totalFailed += 1;
 
           const errorMessage =
@@ -303,13 +297,12 @@ const Drivers = () => {
         });
 
         // Log all errors for debugging
-        console.error("❌ Upload errors:", allErrors);
+        // console.error("❌ Upload errors:", allErrors);
       }
 
       // Refresh drivers list
       dispatch(fetchDrivers());
     } catch (error: unknown) {
-      console.error("❌ CSV upload failed:", error);
       toast({
         title: "CSV upload failed",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -331,17 +324,17 @@ const Drivers = () => {
         try {
           const schoolsResult = await dispatch(fetchSchools()).unwrap();
           if (!Array.isArray(schoolsResult)) {
-            console.error("Invalid schools data format:", schoolsResult);
+            // console.error("Invalid schools data format:", schoolsResult);
           }
         } catch (schoolsError) {
-          console.error("Failed to fetch schools:", {
-            error: schoolsError,
-            message: schoolsError?.message,
-            response: schoolsError?.response?.data,
-          });
+          // console.error("Failed to fetch schools:", {
+          //   error: schoolsError,
+          //   message: schoolsError?.message,
+          //   response: schoolsError?.response?.data,
+          // });
         }
       } catch (err) {
-        console.error("Failed to load data:", err);
+        // console.error("Failed to load data:", err);
       }
     };
     loadData();
@@ -349,7 +342,7 @@ const Drivers = () => {
 
   useEffect(() => {
     if (schoolsError) {
-      console.error("Error loading schools:", schoolsError);
+      // console.error("Error loading schools:", schoolsError);
     }
   }, [schoolsError]);
 
@@ -553,7 +546,6 @@ const Drivers = () => {
       // Refresh the drivers list
       dispatch(fetchDrivers());
     } catch (err) {
-      console.error("Driver creation error:", err);
 
       // Show the actual database error response
       let errorMessage = "Failed to add driver";
@@ -743,7 +735,6 @@ const Drivers = () => {
         // Refresh the drivers list
         dispatch(fetchDrivers());
       } catch (err) {
-        console.error("Driver creation error:", err);
         let errorMessage = "Failed to add driver";
 
         if (err instanceof Error) {
@@ -1271,7 +1262,6 @@ const Drivers = () => {
         setSelectedDriver(null);
         dispatch(fetchDrivers());
       } catch (err) {
-        console.error("Driver update error:", err);
         let errorMessage = "Failed to update driver";
 
         if (err instanceof Error) {

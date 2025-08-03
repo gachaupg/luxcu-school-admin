@@ -44,6 +44,7 @@ const SchoolRegistration = () => {
     operatingHoursEnd: "18:00",
     estimatedStudents: "",
     estimatedBuses: "",
+    estimatedParents: "",
   });
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -179,6 +180,7 @@ const SchoolRegistration = () => {
       principalEmail: "Admin Email",
       estimatedStudents: "Estimated Number of Students",
       estimatedBuses: "Estimated Number of Buses",
+      estimatedParents: "Estimated Number of Parents",
     };
 
     Object.entries(requiredFields).forEach(([field, label]) => {
@@ -230,6 +232,14 @@ const SchoolRegistration = () => {
         Number(formData.estimatedBuses) <= 0)
     ) {
       newErrors.estimatedBuses = "Please enter a valid number of buses";
+    }
+
+    if (
+      formData.estimatedParents &&
+      (isNaN(Number(formData.estimatedParents)) ||
+        Number(formData.estimatedParents) <= 0)
+    ) {
+      newErrors.estimatedParents = "Please enter a valid number of parents";
     }
 
     setErrors(newErrors);
@@ -308,7 +318,6 @@ const SchoolRegistration = () => {
         setShowSearchResults(false);
       }
     } catch (error) {
-      console.error("Error searching location:", error);
       // Try alternative proxy if first one fails
       try {
         const altResponse = await fetch(
@@ -328,7 +337,7 @@ const SchoolRegistration = () => {
           }
         }
       } catch (altError) {
-        console.error("Alternative proxy also failed:", altError);
+        // console.error("Alternative proxy also failed:", altError);
       }
 
       // If all proxies fail, show error message
@@ -386,7 +395,7 @@ const SchoolRegistration = () => {
         throw new Error("No location data found");
       }
     } catch (error) {
-      console.error("Error getting place details:", error);
+      // console.error("Error getting place details:", error);
       // Try alternative proxy
       try {
         const altResponse = await fetch(
@@ -423,7 +432,7 @@ const SchoolRegistration = () => {
           }
         }
       } catch (altError) {
-        console.error("Alternative proxy also failed:", altError);
+        // console.error("Alternative proxy also failed:", altError);
       }
 
       // If all proxies fail, show error and set default
@@ -501,16 +510,15 @@ const SchoolRegistration = () => {
         billing_cycle: selectedPlan?.default_billing_cycle || "monthly",
         estimated_students: parseInt(formData.estimatedStudents) || 400,
         estimated_buses: parseInt(formData.estimatedBuses) || 4,
+        estimated_parents: parseInt(formData.estimatedParents) || 800,
       };
 
-      console.log("Registration payload:", registrationPayload);
 
       // Dispatch the registration action
       const result = await dispatch(
         registerSchool(registrationPayload)
       ).unwrap();
 
-      console.log("Registration response:", result);
 
       toast({
         title: "Registration Submitted",
@@ -524,7 +532,6 @@ const SchoolRegistration = () => {
       // Navigate to verification page
       navigate("/verification");
     } catch (error) {
-      console.error("Registration error:", error);
       toast({
         variant: "destructive",
         title: "Registration Failed",
@@ -870,7 +877,7 @@ const SchoolRegistration = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="estimatedStudents">
                     Estimated Number of Students *
@@ -909,6 +916,27 @@ const SchoolRegistration = () => {
                   {errors.estimatedBuses && (
                     <p className="text-sm text-red-500">
                       {errors.estimatedBuses}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedParents">
+                    Estimated Number of Parents *
+                  </Label>
+                  <Input
+                    id="estimatedParents"
+                    name="estimatedParents"
+                    type="number"
+                    value={formData.estimatedParents}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 800"
+                    required
+                    className={errors.estimatedParents ? "border-red-500" : ""}
+                  />
+                  {errors.estimatedParents && (
+                    <p className="text-sm text-red-500">
+                      {errors.estimatedParents}
                     </p>
                   )}
                 </div>

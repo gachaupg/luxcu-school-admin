@@ -69,10 +69,7 @@ export default function Staff() {
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
 
-  // Debug logging
-  console.log("User profile:", user);
-  console.log("Schools from Redux:", schools);
-  console.log("User ID:", user?.id);
+ 
 
   // Filter schools for the current admin - try multiple approaches
   let filteredSchools =
@@ -80,7 +77,6 @@ export default function Staff() {
 
   // If no schools found, try alternative approaches
   if (filteredSchools.length === 0 && schools && schools.length > 0) {
-    console.log("No schools found with admin ID, trying alternatives...");
 
     // Try matching by user ID directly
     filteredSchools =
@@ -88,7 +84,6 @@ export default function Staff() {
 
     // If still no match, use the first available school (fallback)
     if (filteredSchools.length === 0) {
-      console.log("Using first available school as fallback");
       filteredSchools = [schools[0]];
     }
   }
@@ -96,19 +91,13 @@ export default function Staff() {
   // Use selected school ID if available, otherwise use the first filtered school
   const schoolId = selectedSchoolId || filteredSchools[0]?.id;
 
-  console.log("Filtered schools:", filteredSchools);
-  console.log("Selected school ID:", schoolId);
-
   useEffect(() => {
-    console.log("useEffect triggered - schoolId:", schoolId);
     if (schoolId) {
       dispatch(fetchStaff({ schoolId }));
       dispatch(fetchRoles(schoolId));
     } else {
       // Fetch schools if we don't have a schoolId yet
-      console.log("No schoolId found, fetching schools...");
       dispatch(fetchSchools()).catch((error) => {
-        console.error("Failed to fetch schools:", error);
         // The API interceptor should handle token expiration automatically
       });
     }
@@ -118,7 +107,6 @@ export default function Staff() {
   useEffect(() => {
     if (filteredSchools.length > 0 && !selectedSchoolId) {
       setSelectedSchoolId(filteredSchools[0].id);
-      console.log("Auto-selecting school:", filteredSchools[0].id);
     }
   }, [filteredSchools, selectedSchoolId]);
 
@@ -159,7 +147,6 @@ export default function Staff() {
         showToast.error("Error", errorMessage);
       }
     } catch (err) {
-      console.error("Staff creation error:", err);
 
       // Show the actual database error response
       let errorMessage = "Failed to add staff member";
@@ -195,15 +182,12 @@ export default function Staff() {
     is_system_role: boolean;
     parent_role?: number;
   }) => {
-    console.log("Creating role with data:", roleData);
-    console.log("Current schoolId:", schoolId);
-    console.log("Available schools:", schools);
+
 
     if (!schoolId) {
       const errorMsg = `No school found for the current admin. User ID: ${
         user?.id
       }, Available schools: ${JSON.stringify(schools)}`;
-      console.error(errorMsg);
       showToast.error(
         "Error",
         "No school found for the current admin. Please check your account setup."
@@ -232,19 +216,16 @@ export default function Staff() {
       }
     } catch (err) {
       showToast.error("Error", "Failed to create role");
-      console.error("Error creating role:", err);
     }
   };
 
   const handleCreateDefaultRoles = async () => {
-    console.log("Creating default roles for schoolId:", schoolId);
-    console.log("Available schools:", schools);
+   
 
     if (!schoolId) {
       const errorMsg = `No school found for the current admin. User ID: ${
         user?.id
       }, Available schools: ${JSON.stringify(schools)}`;
-      console.error(errorMsg);
       showToast.error(
         "Error",
         "No school found for the current admin. Please check your account setup."
@@ -267,7 +248,6 @@ export default function Staff() {
       }
     } catch (err) {
       showToast.error("Error", "Failed to create default roles");
-      console.error("Error creating default roles:", err);
     }
   };
 
@@ -328,7 +308,6 @@ export default function Staff() {
                     onChange={(e) => {
                       const newSchoolId = parseInt(e.target.value);
                       setSelectedSchoolId(newSchoolId);
-                      console.log("School changed to:", newSchoolId);
                     }}
                     className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   >
@@ -717,7 +696,6 @@ export default function Staff() {
       </div>
     );
   } catch (error) {
-    console.error("Error rendering Staff component:", error);
     setComponentError(
       error instanceof Error ? error.message : "An unexpected error occurred"
     );

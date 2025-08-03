@@ -78,9 +78,7 @@ export default function Trips() {
 
   // Debug logging
   useEffect(() => {
-    console.log("Trips data:", trips);
-    console.log("Filtered trips:", filteredTrips);
-    console.log("School ID:", schoolId);
+   
   }, [trips, filteredTrips, schoolId]);
 
   useEffect(() => {
@@ -93,7 +91,7 @@ export default function Trips() {
         await dispatch(fetchDrivers());
         await dispatch(fetchVehicles());
       } catch (err) {
-        console.error("Failed to load data:", err);
+        // console.error("Failed to load data:", err);
       }
     };
     loadData();
@@ -163,7 +161,6 @@ export default function Trips() {
       setIsDeleteDialogOpen(false);
       setSelectedTrip(null);
     } catch (err) {
-      console.error("Delete trip error:", err);
       let errorMessage = "Failed to delete trip";
 
       if (err instanceof Error) {

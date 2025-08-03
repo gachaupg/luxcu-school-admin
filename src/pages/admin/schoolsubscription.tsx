@@ -89,13 +89,7 @@ const SchoolSubscriptionPage = () => {
     return null;
   }, [schools, user?.id]);
 
-  console.log("loggedInSchoolId", loggedInSchoolId);
-  console.log("Debug info:", {
-    schoolsCount: schools.length,
-    user: user ? { id: user.id, name: `${user.first_name} ${user.last_name}` } : null,
-    localStorageSchoolId: localStorage.getItem("schoolId"),
-    calculatedSchoolId: schools.length > 0 && user?.id ? schools.find(s => s.admin === user.id)?.id : null
-  });
+
   // Check if user can see all schools (admin) or just their own school
   const canSeeAllSchools = () => {
     try {
@@ -105,7 +99,7 @@ const SchoolSubscriptionPage = () => {
         return user.role === "admin" || user.role === "super_admin";
       }
     } catch (error) {
-      console.error("Error parsing user data:", error);
+      // console.error("Error parsing user data:", error);
     }
     return false;
   };
@@ -120,10 +114,7 @@ const SchoolSubscriptionPage = () => {
         // Auto-filter by logged-in school if available
         if (loggedInSchoolId) {
           setSchoolIdFilter(loggedInSchoolId);
-          console.log(
-            "Auto-filtering by logged-in school ID:",
-            loggedInSchoolId
-          );
+       
         }
       } catch (error) {
         const errorMessage =
@@ -187,7 +178,6 @@ const SchoolSubscriptionPage = () => {
         description: "Subscription PDF has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating subscription PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate subscription PDF. Please try again.",
@@ -199,7 +189,6 @@ const SchoolSubscriptionPage = () => {
 const subsdata= subscriptions.filter((subscription) => {
   return subscription.school.toString() === loggedInSchoolId;
 });
-console.log("subsdata", subsdata);  
 
   const filteredSubscriptions = subsdata.filter((subscription) => {
     const matchesSearch =
@@ -216,17 +205,7 @@ console.log("subsdata", subsdata);
       schoolIdFilter === "all" ||
       subscription.school.toString() === schoolIdFilter;
 
-    // Debug logging
-    if (schoolIdFilter !== "all") {
-      console.log("Filtering debug:", {
-        subscriptionSchool: subscription.school,
-        subscriptionSchoolType: typeof subscription.school,
-        schoolIdFilter,
-        schoolIdFilterType: typeof schoolIdFilter,
-        matches: subscription.school.toString() === schoolIdFilter,
-        schoolName: subscription.school_name,
-      });
-    }
+  
 
     return (
       matchesSearch && matchesStatus && matchesBillingCycle && matchesSchoolId
@@ -288,12 +267,7 @@ console.log("subsdata", subsdata);
       name: name as string,
     }));
 
-    // Debug logging
-    console.log("Available schools for filtering:", uniqueSchools);
-    console.log(
-      "All subscriptions:",
-      subscriptions.map((s) => ({ id: s.school, name: s.school_name }))
-    );
+    
 
     return uniqueSchools;
   };

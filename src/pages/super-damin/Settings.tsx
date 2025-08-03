@@ -1,37 +1,36 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { 
-  Textarea 
-} from "@/components/ui/textarea";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { 
-  Save, 
-  Shield, 
-  Users, 
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Save,
+  Shield,
+  Users,
   Settings as SettingsIcon,
   Bell,
   Database,
   Globe,
   Key,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 
 const Settings = () => {
@@ -74,7 +73,6 @@ const Settings = () => {
 
   const handleSave = (section: string) => {
     // Handle saving settings
-    console.log(`Saving ${section} settings`);
   };
 
   return (
@@ -82,7 +80,9 @@ const Settings = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Super Admin Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Super Admin Settings
+          </h1>
           <p className="text-muted-foreground">
             Configure system-wide settings and preferences
           </p>
@@ -103,7 +103,10 @@ const Settings = () => {
             <Shield size={16} />
             Security
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger
+            value="notifications"
+            className="flex items-center gap-2"
+          >
             <Bell size={16} />
             Notifications
           </TabsTrigger>
@@ -129,7 +132,12 @@ const Settings = () => {
                   <Input
                     id="siteName"
                     value={generalSettings.siteName}
-                    onChange={(e) => setGeneralSettings(prev => ({ ...prev, siteName: e.target.value }))}
+                    onChange={(e) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        siteName: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -138,7 +146,12 @@ const Settings = () => {
                     id="contactEmail"
                     type="email"
                     value={generalSettings.contactEmail}
-                    onChange={(e) => setGeneralSettings(prev => ({ ...prev, contactEmail: e.target.value }))}
+                    onChange={(e) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        contactEmail: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -146,12 +159,25 @@ const Settings = () => {
                   <Input
                     id="supportPhone"
                     value={generalSettings.supportPhone}
-                    onChange={(e) => setGeneralSettings(prev => ({ ...prev, supportPhone: e.target.value }))}
+                    onChange={(e) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        supportPhone: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={generalSettings.timezone} onValueChange={(value) => setGeneralSettings(prev => ({ ...prev, timezone: value }))}>
+                  <Select
+                    value={generalSettings.timezone}
+                    onValueChange={(value) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        timezone: value,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -165,7 +191,15 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dateFormat">Date Format</Label>
-                  <Select value={generalSettings.dateFormat} onValueChange={(value) => setGeneralSettings(prev => ({ ...prev, dateFormat: value }))}>
+                  <Select
+                    value={generalSettings.dateFormat}
+                    onValueChange={(value) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        dateFormat: value,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -178,7 +212,15 @@ const Settings = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
-                  <Select value={generalSettings.language} onValueChange={(value) => setGeneralSettings(prev => ({ ...prev, language: value }))}>
+                  <Select
+                    value={generalSettings.language}
+                    onValueChange={(value) =>
+                      setGeneralSettings((prev) => ({
+                        ...prev,
+                        language: value,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -195,7 +237,12 @@ const Settings = () => {
                 <Textarea
                   id="siteDescription"
                   value={generalSettings.siteDescription}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
+                  onChange={(e) =>
+                    setGeneralSettings((prev) => ({
+                      ...prev,
+                      siteDescription: e.target.value,
+                    }))
+                  }
                   rows={3}
                 />
               </div>
@@ -227,7 +274,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={securitySettings.twoFactorAuth}
-                    onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, twoFactorAuth: checked }))}
+                    onCheckedChange={(checked) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        twoFactorAuth: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -239,18 +291,30 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={securitySettings.auditLogging}
-                    onCheckedChange={(checked) => setSecuritySettings(prev => ({ ...prev, auditLogging: checked }))}
+                    onCheckedChange={(checked) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        auditLogging: checked,
+                      }))
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="sessionTimeout">
+                    Session Timeout (minutes)
+                  </Label>
                   <Input
                     id="sessionTimeout"
                     type="number"
                     value={securitySettings.sessionTimeout}
-                    onChange={(e) => setSecuritySettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        sessionTimeout: parseInt(e.target.value),
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -259,12 +323,25 @@ const Settings = () => {
                     id="loginAttempts"
                     type="number"
                     value={securitySettings.loginAttempts}
-                    onChange={(e) => setSecuritySettings(prev => ({ ...prev, loginAttempts: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        loginAttempts: parseInt(e.target.value),
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="passwordPolicy">Password Policy</Label>
-                  <Select value={securitySettings.passwordPolicy} onValueChange={(value) => setSecuritySettings(prev => ({ ...prev, passwordPolicy: value }))}>
+                  <Select
+                    value={securitySettings.passwordPolicy}
+                    onValueChange={(value) =>
+                      setSecuritySettings((prev) => ({
+                        ...prev,
+                        passwordPolicy: value,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -281,7 +358,12 @@ const Settings = () => {
                 <Textarea
                   id="ipWhitelist"
                   value={securitySettings.ipWhitelist}
-                  onChange={(e) => setSecuritySettings(prev => ({ ...prev, ipWhitelist: e.target.value }))}
+                  onChange={(e) =>
+                    setSecuritySettings((prev) => ({
+                      ...prev,
+                      ipWhitelist: e.target.value,
+                    }))
+                  }
                   placeholder="Enter IP addresses, one per line"
                   rows={3}
                 />
@@ -314,7 +396,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.emailNotifications}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, emailNotifications: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        emailNotifications: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -326,7 +413,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.smsNotifications}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, smsNotifications: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        smsNotifications: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -338,7 +430,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.pushNotifications}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, pushNotifications: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        pushNotifications: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -350,7 +447,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.systemAlerts}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, systemAlerts: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        systemAlerts: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -362,7 +464,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.marketingEmails}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, marketingEmails: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        marketingEmails: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -374,7 +481,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={notificationSettings.weeklyReports}
-                    onCheckedChange={(checked) => setNotificationSettings(prev => ({ ...prev, weeklyReports: checked }))}
+                    onCheckedChange={(checked) =>
+                      setNotificationSettings((prev) => ({
+                        ...prev,
+                        weeklyReports: checked,
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -406,7 +518,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={systemSettings.maintenanceMode}
-                    onCheckedChange={(checked) => setSystemSettings(prev => ({ ...prev, maintenanceMode: checked }))}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        maintenanceMode: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -418,7 +535,12 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={systemSettings.debugMode}
-                    onCheckedChange={(checked) => setSystemSettings(prev => ({ ...prev, debugMode: checked }))}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        debugMode: checked,
+                      }))
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -430,14 +552,27 @@ const Settings = () => {
                   </div>
                   <Switch
                     checked={systemSettings.autoBackup}
-                    onCheckedChange={(checked) => setSystemSettings(prev => ({ ...prev, autoBackup: checked }))}
+                    onCheckedChange={(checked) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        autoBackup: checked,
+                      }))
+                    }
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="backupFrequency">Backup Frequency</Label>
-                  <Select value={systemSettings.backupFrequency} onValueChange={(value) => setSystemSettings(prev => ({ ...prev, backupFrequency: value }))}>
+                  <Select
+                    value={systemSettings.backupFrequency}
+                    onValueChange={(value) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        backupFrequency: value,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -454,16 +589,28 @@ const Settings = () => {
                     id="maxFileSize"
                     type="number"
                     value={systemSettings.maxFileSize}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, maxFileSize: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        maxFileSize: parseInt(e.target.value),
+                      }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="maxUsersPerSchool">Max Users per School</Label>
+                  <Label htmlFor="maxUsersPerSchool">
+                    Max Users per School
+                  </Label>
                   <Input
                     id="maxUsersPerSchool"
                     type="number"
                     value={systemSettings.maxUsersPerSchool}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, maxUsersPerSchool: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        maxUsersPerSchool: parseInt(e.target.value),
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -510,7 +657,9 @@ const Settings = () => {
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                     <span>Storage Usage</span>
                   </div>
-                  <Badge className="bg-yellow-100 text-yellow-800">75% Used</Badge>
+                  <Badge className="bg-yellow-100 text-yellow-800">
+                    75% Used
+                  </Badge>
                 </div>
               </div>
             </CardContent>
@@ -521,4 +670,4 @@ const Settings = () => {
   );
 };
 
-export default Settings; 
+export default Settings;

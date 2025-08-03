@@ -45,14 +45,12 @@ export const fetchSubscriptionPlans = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await api.get("subscription-plans/");
-      console.log("Subscription plans response:", response.data);
       // Ensure we return an array even if the API returns a different structure
       const plans = Array.isArray(response.data)
         ? response.data
         : response.data?.results || response.data?.data || [];
       return plans;
     } catch (error: unknown) {
-      console.error("Error fetching subscription plans:", error);
       const errorMessage =
         error instanceof Error
           ? error.message

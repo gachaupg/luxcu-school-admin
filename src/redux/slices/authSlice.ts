@@ -53,7 +53,6 @@ const getInitialToken = (): string | null => {
     // First try direct token storage (simpler and more reliable)
     const directToken = localStorage.getItem("token");
     if (directToken && !isTokenExpired(directToken)) {
-      console.log("Found valid token in direct storage");
       return directToken;
     }
 
@@ -63,14 +62,11 @@ const getInitialToken = (): string | null => {
       const parsed = JSON.parse(persistAuth);
       const authState = JSON.parse(parsed.token || "null");
       if (authState && !isTokenExpired(authState)) {
-        console.log("Found valid token in Redux Persist storage");
         return authState;
       }
     }
-
-    console.log("No valid token found in localStorage");
   } catch (error) {
-    console.error("Error parsing persisted token:", error);
+    // Error parsing persisted token
   }
   return null;
 };
@@ -85,7 +81,7 @@ const getInitialUser = (): User | null => {
       return userState;
     }
   } catch (error) {
-    console.error("Error parsing persisted user:", error);
+    // Error parsing persisted user
   }
   return null;
 };
@@ -234,17 +230,9 @@ const authSlice = createSlice({
       const persistedToken = getInitialToken();
       const persistedUser = getInitialUser();
 
-      console.log("initializeAuth debug:", {
-        persistedToken: persistedToken ? "exists" : "null",
-        persistedUser: persistedUser ? "exists" : "null",
-        currentStateToken: state.token ? "exists" : "null",
-        currentStateUser: state.user ? "exists" : "null",
-      });
-
       if (persistedToken && persistedUser) {
         state.token = persistedToken;
         state.user = persistedUser;
-        console.log("Restored auth state from localStorage");
       }
 
       state.isInitialized = true;
@@ -254,21 +242,12 @@ const authSlice = createSlice({
     builder
       // Handle Redux Persist rehydration
       .addCase("persist/REHYDRATE", (state, action: any) => {
-        console.log("REHYDRATE debug:", {
-          hasPayload: !!action.payload,
-          hasAuth: !!action.payload?.auth,
-          token: action.payload?.auth?.token ? "exists" : "null",
-          user: action.payload?.auth?.user ? "exists" : "null",
-        });
-
         if (action.payload?.auth) {
           const { token, user } = action.payload.auth;
           if (token && user && !isTokenExpired(token)) {
             state.token = token;
             state.user = user;
-            console.log("Restored auth state from Redux Persist");
           } else {
-            console.log("Token expired or invalid, clearing auth state");
             state.token = null;
             state.user = null;
           }

@@ -94,11 +94,9 @@ export const fetchSchoolSubscriptions = createAsyncThunk(
       }
 
       const data = await response.json();
-      console.log("School subscriptions API response:", data);
 
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching school subscriptions:", error);
       return rejectWithValue("Failed to fetch school subscriptions");
     }
   }

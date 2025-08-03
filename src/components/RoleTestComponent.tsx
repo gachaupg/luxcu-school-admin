@@ -68,7 +68,6 @@ export function RoleTestComponent() {
       addTestResult("Testing get roles...");
       const roles = await roleService.getRoles(1);
       addTestResult(`✅ Retrieved ${roles.length} roles successfully`);
-      console.log("Retrieved roles:", roles);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

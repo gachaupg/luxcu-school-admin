@@ -55,9 +55,7 @@ export const fetchGrades = createAsyncThunk<
       url += `?school=${schoolId}`;
     }
 
-    console.log("Fetching grades from:", url);
     const response = await api.get(url);
-    console.log("Grades API response:", response.data);
 
     // Handle different possible response structures
     let gradesData;
@@ -78,13 +76,10 @@ export const fetchGrades = createAsyncThunk<
       gradesData = [];
     }
 
-    console.log("Final grades data to return:", gradesData);
-    console.log("Grades data type:", typeof gradesData);
-    console.log("Grades data is array:", Array.isArray(gradesData));
+    
 
     return gradesData;
   } catch (error) {
-    console.error("Error fetching grades:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to fetch grades"
@@ -159,21 +154,10 @@ const gradesSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchGrades.fulfilled, (state, action) => {
-        console.log("fetchGrades.fulfilled - payload:", action.payload);
-        console.log(
-          "fetchGrades.fulfilled - payload type:",
-          typeof action.payload
-        );
-        console.log(
-          "fetchGrades.fulfilled - is array:",
-          Array.isArray(action.payload)
-        );
+       
         state.loading = false;
         state.grades = Array.isArray(action.payload) ? action.payload : [];
-        console.log(
-          "fetchGrades.fulfilled - state.grades after update:",
-          state.grades
-        );
+      
       })
       .addCase(fetchGrades.rejected, (state, action) => {
         state.loading = false;

@@ -61,13 +61,11 @@ const Schools = () => {
       setLoading(true);
       try {
         const schoolsData = await schoolsService.getAllSchools();
-        console.log("Schools component received data:", schoolsData);
 
         // Ensure we have valid data
         if (Array.isArray(schoolsData) && schoolsData.length > 0) {
           setSchools(schoolsData);
         } else {
-          console.warn("No valid schools data received, using fallback");
           // Fallback to mock data if API returns empty or invalid data
           setSchools([
             {
@@ -117,7 +115,6 @@ const Schools = () => {
           ]);
         }
       } catch (error) {
-        console.error("Error fetching schools:", error);
         // Fallback to mock data if API fails
         setSchools([
           {
@@ -224,7 +221,7 @@ const Schools = () => {
       const updatedSchools = await schoolsService.getAllSchools();
       setSchools(updatedSchools);
     } catch (error) {
-      console.error("Error toggling school status:", error);
+      // console.error("Error toggling school status:", error);
     }
   };
 

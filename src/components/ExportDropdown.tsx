@@ -45,7 +45,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToExcel = () => {
     try {
-      console.log("📊 Starting CSV export with data:", data);
 
       const csvContent = [
         data.headers.join(","),
@@ -62,7 +61,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
           // Debug: Log first few rows
           if (index < 3) {
-            console.log(`📊 CSV Row ${index + 1}:`, rowData);
+            // console.log(`📊 CSV Row ${index + 1}:`, rowData);
           }
 
           return rowData;
@@ -87,7 +86,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
         description: "Data exported to Excel (CSV) successfully",
       });
     } catch (error) {
-      console.error("Export error:", error);
       toast({
         title: "Export Failed",
         description: "Failed to export data",
@@ -98,7 +96,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToPDF = () => {
     try {
-      console.log("📄 Starting PDF export with data:", data);
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -139,7 +136,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                 .map((row, index) => {
                   // Debug: Log first few rows
                   if (index < 3) {
-                    console.log(`📄 PDF Row ${index + 1}:`, row);
+                    // console.log(`📄 PDF Row ${index + 1}:`, row);
                   }
 
                   return `
@@ -184,7 +181,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
           "Report exported to HTML (can be opened in browser and saved as PDF)",
       });
     } catch (error) {
-      console.error("Export error:", error);
       toast({
         title: "Export Failed",
         description: "Failed to export report",
@@ -195,7 +191,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
   const exportToWord = () => {
     try {
-      console.log("📝 Starting Word export with data:", data);
 
       const wordContent = `
         <!DOCTYPE html>
@@ -236,7 +231,7 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                 .map((row, index) => {
                   // Debug: Log first few rows
                   if (index < 3) {
-                    console.log(`📝 Word Row ${index + 1}:`, row);
+                    // console.log(`📝 Word Row ${index + 1}:`, row);
                   }
 
                   return `
@@ -280,7 +275,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
         description: "Report exported to Word document successfully",
       });
     } catch (error) {
-      console.error("Export error:", error);
       toast({
         title: "Export Failed",
         description: "Failed to export report",

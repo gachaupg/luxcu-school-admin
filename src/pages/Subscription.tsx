@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { fetchSubscriptionPlans, SubscriptionPlan as ApiSubscriptionPlan } from "@/redux/slices/subscriptionSlice";
+import {
+  fetchSubscriptionPlans,
+  SubscriptionPlan as ApiSubscriptionPlan,
+} from "@/redux/slices/subscriptionSlice";
 import {
   Check,
   Star,
@@ -188,7 +191,9 @@ const subscriptionPlans: SubscriptionPlan[] = [
 
 export default function Subscription() {
   const dispatch = useDispatch<AppDispatch>();
-  const { plans, loading, error } = useSelector((state: RootState) => state.subscription);
+  const { plans, loading, error } = useSelector(
+    (state: RootState) => state.subscription
+  );
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"month" | "year">("month");
   const { toast } = useToast();
@@ -229,16 +234,22 @@ export default function Subscription() {
     const basePrice = parseFloat(apiPlan.base_price);
     const pricePerStudent = parseFloat(apiPlan.price_per_student);
     const pricePerBus = parseFloat(apiPlan.price_per_bus);
-    
+
     // Calculate total price based on features
-    const totalPrice = basePrice + (apiPlan.features_json.max_students * pricePerStudent) + (apiPlan.features_json.max_buses * pricePerBus);
-    
+    const totalPrice =
+      basePrice +
+      apiPlan.features_json.max_students * pricePerStudent +
+      apiPlan.features_json.max_buses * pricePerBus;
+
     return {
       id: apiPlan.name,
-      name: apiPlan.name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name: apiPlan.name
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase()),
       description: apiPlan.description,
       price: totalPrice,
-      billingCycle: apiPlan.default_billing_cycle === 'annually' ? 'year' : 'month',
+      billingCycle:
+        apiPlan.default_billing_cycle === "annually" ? "year" : "month",
       icon: Car, // Default icon
       color: "bg-blue-500", // Default color
       maxStudents: apiPlan.features_json.max_students,
@@ -248,7 +259,9 @@ export default function Subscription() {
         `Up to ${apiPlan.features_json.max_students} students`,
         `${apiPlan.features_json.max_buses} buses`,
         apiPlan.features_json.sms_notifications ? "SMS notifications" : null,
-        apiPlan.features_json.whatsapp_integration ? "WhatsApp integration" : null,
+        apiPlan.features_json.whatsapp_integration
+          ? "WhatsApp integration"
+          : null,
         apiPlan.features_json.realtime_tracking ? "Real-time tracking" : null,
         apiPlan.features_json.parent_app_access ? "Parent app access" : null,
         apiPlan.features_json.basic_reports ? "Basic reports" : null,
@@ -261,7 +274,8 @@ export default function Subscription() {
   };
 
   // Use API data if available, otherwise fall back to hardcoded data
-  const displayPlans = plans.length > 0 ? plans.map(transformApiPlan) : subscriptionPlans;
+  const displayPlans =
+    plans.length > 0 ? plans.map(transformApiPlan) : subscriptionPlans;
 
   if (loading) {
     return (
@@ -270,7 +284,9 @@ export default function Subscription() {
           <div className="text-center py-12">
             <div className="text-gray-500 dark:text-gray-400">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <h3 className="text-lg font-medium mb-2">Loading Subscription Plans</h3>
+              <h3 className="text-lg font-medium mb-2">
+                Loading Subscription Plans
+              </h3>
               <p>Please wait while we fetch the latest plans...</p>
             </div>
           </div>
@@ -284,9 +300,11 @@ export default function Subscription() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h2 className="text-red-800 font-semibold">Error Loading Subscription Plans</h2>
+            <h2 className="text-red-800 font-semibold">
+              Error Loading Subscription Plans
+            </h2>
             <p className="text-red-600">{error}</p>
-            <Button 
+            <Button
               onClick={() => dispatch(fetchSubscriptionPlans())}
               className="mt-2"
             >

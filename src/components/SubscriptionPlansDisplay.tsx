@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { AppDispatch, RootState } from "@/redux/store";
 import { fetchSubscriptionPlans } from "@/redux/slices/subscriptionSlice";
 import {
@@ -30,18 +31,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SubscriptionPlansDisplay() {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { plans, loading, error } = useSelector(
     (state: RootState) => state.subscription
   );
 
-  // Debug logging
-  console.log("Subscription state:", { plans, loading, error });
-  console.log("Plans type:", typeof plans);
-  console.log("Plans is array:", Array.isArray(plans));
+ 
 
   useEffect(() => {
     dispatch(fetchSubscriptionPlans());
   }, [dispatch]);
+
+  const handlePlanSelection = (plan: {
+    id: string;
+    name: string;
+    description: string;
+    base_price: string;
+    price_per_student: string;
+    price_per_bus: string;
+    features_json: Record<string, boolean | number>;
+    is_active: boolean;
+    default_billing_cycle: string;
+  }) => {
+    // Store the selected plan in localStorage
+    localStorage.setItem("selectedSubscriptionPlan", JSON.stringify(plan));
+
+    // Navigate to school registration with the selected plan
+    navigate("/register", {
+      state: { selectedPlan: plan },
+    });
+  };
 
   const getFeatureIcon = (featureName: string) => {
     switch (featureName) {
@@ -80,6 +99,8 @@ export default function SubscriptionPlansDisplay() {
     const name = planName.toLowerCase();
     if (name.includes("basic") || name.includes("starter")) {
       return { text: "Starter", variant: "secondary" as const };
+    } else if (name.includes("standard")) {
+      return { text: "Popular", variant: "default" as const };
     } else if (name.includes("pro") || name.includes("professional")) {
       return { text: "Popular", variant: "default" as const };
     } else if (name.includes("enterprise") || name.includes("premium")) {
@@ -88,11 +109,33 @@ export default function SubscriptionPlansDisplay() {
     return null;
   };
 
+  const getPlanDisplayName = (planName: string) => {
+    const name = planName.toLowerCase();
+
+    if (name.includes("basic")) {
+      return "Basic Plan";
+    } else if (name.includes("standard")) {
+      return "Standard Plan";
+    } else if (name.includes("premium")) {
+      return "Premium Plan";
+    } else if (name.includes("pro") || name.includes("professional")) {
+      return "Professional Plan";
+    } else if (name.includes("enterprise")) {
+      return "Enterprise Plan";
+    }
+    // Fallback: format the original name
+    return planName.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   const getPlanIcon = (planName: string) => {
     const name = planName.toLowerCase();
     if (name.includes("basic") || name.includes("starter")) {
       return <Users className="h-6 w-6" />;
-    } else if (name.includes("pro") || name.includes("professional")) {
+    } else if (
+      name.includes("standard") ||
+      name.includes("pro") ||
+      name.includes("professional")
+    ) {
       return <TrendingUp className="h-6 w-6" />;
     } else if (name.includes("enterprise") || name.includes("premium")) {
       return <Crown className="h-6 w-6" />;
@@ -319,9 +362,7 @@ export default function SubscriptionPlansDisplay() {
                     </div>
                   </div>
                   <CardTitle className="text-2xl font-bold text-slate-900 mb-2">
-                    {plan.name
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                    {getPlanDisplayName(plan.name)}
                   </CardTitle>
                   <CardDescription className="text-slate-600">
                     {plan.description}
@@ -424,6 +465,7 @@ export default function SubscriptionPlansDisplay() {
                         : "bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white hover:scale-105"
                     }`}
                     disabled={!plan.is_active}
+                    onClick={() => plan.is_active && handlePlanSelection(plan)}
                   >
                     {plan.is_active ? "Get Started" : "Coming Soon"}
                   </Button>

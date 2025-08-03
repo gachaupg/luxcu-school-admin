@@ -46,34 +46,14 @@ export const uploadCSVFile = async (
           const authData = JSON.parse(persistAuth);
           const userData = JSON.parse(authData.user || "{}");
           schoolId = userData.school_id || userData.school;
-          console.log("🏫 Found school_id in persist:auth:", schoolId);
         } catch (e) {
-          console.log("Error parsing persist:auth for school_id:", e);
+          // Error parsing persist:auth for school_id
         }
       }
     }
 
-    console.log("🏫 Upload - Final school_id being used:", schoolId);
-
     if (schoolId) {
       formData.append("school_id", schoolId);
-      console.log("📝 Adding school_id to FormData:", schoolId);
-    } else {
-      console.warn("⚠️ No school_id found in any source");
-    }
-
-    // Log FormData contents for debugging
-    console.log("📤 FormData contents:");
-    for (const [key, value] of formData.entries()) {
-      if (key === "file") {
-        console.log(
-          `  ${key}:`,
-          (value as File).name,
-          `(${(value as File).size} bytes)`
-        );
-      } else {
-        console.log(`  ${key}:`, value);
-      }
     }
 
     // Get auth token
@@ -86,7 +66,7 @@ export const uploadCSVFile = async (
           const userData = JSON.parse(authData.user || "{}");
           token = userData.token;
         } catch (e) {
-          console.log("Error parsing persist:auth:", e);
+          // Error parsing persist:auth
         }
       }
     }
@@ -123,10 +103,6 @@ export const uploadCSVFile = async (
       created_users: response.data.created_users || [],
     };
   } catch (error: any) {
-    console.error("CSV upload error:", error);
-    console.error("Error response data:", error.response?.data);
-    console.error("Error status:", error.response?.status);
-
     if (error.response?.data) {
       return {
         success: false,
@@ -178,22 +154,14 @@ export const generateParentsCSVTemplate = (): string => {
         const authData = JSON.parse(persistAuth);
         const userData = JSON.parse(authData.user || "{}");
         schoolId = userData.school_id || userData.school;
-        console.log(
-          "🏫 Found school_id in persist:auth for template:",
-          schoolId
-        );
       } catch (e) {
-        console.log("Error parsing persist:auth for template school_id:", e);
+        // Error parsing persist:auth for template school_id
       }
     }
   }
 
-  console.log("🏫 Generating parent template with school_id:", schoolId);
-
   if (!schoolId) {
-    console.warn(
-      "No school ID found in any source for parent template. Using placeholder '2'"
-    );
+    // No school ID found in any source for parent template. Using placeholder '2'
   }
 
   const sampleData = [
@@ -216,11 +184,6 @@ export const generateParentsCSVTemplate = (): string => {
       schoolId || "2"
     },Smith,+254723456789,mary.smith@email.com,456 Oak Ave,Tom Smith (+254734567890),+254745678901,email,Tom Smith (Spouse, +254734567890)`,
   ].join("\n");
-
-  console.log(
-    "📄 Generated CSV content preview:",
-    csvContent.substring(0, 200) + "..."
-  );
 
   return csvContent;
 };
@@ -252,23 +215,14 @@ export const generateDriversCSVTemplate = (): string => {
         const authData = JSON.parse(persistAuth);
         const userData = JSON.parse(authData.user || "{}");
         schoolId = userData.school_id || userData.school;
-        console.log(
-          "🏫 Found school_id in persist:auth for driver template:",
-          schoolId
-        );
       } catch (e) {
-        console.log(
-          "Error parsing persist:auth for driver template school_id:",
-          e
-        );
+        // Error parsing persist:auth for driver template school_id
       }
     }
   }
 
   if (!schoolId) {
-    console.warn(
-      "No school ID found in any source for driver template. Using placeholder '2'"
-    );
+    // No school ID found in any source for driver template. Using placeholder '2'
   }
 
   const sampleData = [
@@ -342,9 +296,6 @@ export const getCurrentSchoolInfo = (): {
       allSchoolKeys.push({ key, value: localStorage.getItem(key) });
     }
   }
-
-  console.log("🏫 Current school info:", { id: schoolId, name: schoolName });
-  console.log("🏫 All school-related localStorage keys:", allSchoolKeys);
 
   return {
     id: schoolId,

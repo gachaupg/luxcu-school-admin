@@ -83,15 +83,10 @@ export const fetchInvoices = createAsyncThunk(
       });
 
       const data = await response.json();
-      console.log("Invoices API response:", data);
-      console.log("Invoices API response type:", typeof data);
-      console.log("Invoices API response keys:", Object.keys(data));
-      console.log("Invoices data field:", data.data);
-      console.log("Invoices data type:", typeof data.data);
+      
 
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching invoices:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to fetch invoices"
       );
@@ -117,7 +112,6 @@ export const fetchInvoiceById = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching invoice:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to fetch invoice"
       );
@@ -141,7 +135,6 @@ export const createInvoice = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error creating invoice:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to create invoice"
       );
@@ -168,7 +161,6 @@ export const processPayment = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error processing payment:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to process payment"
       );
@@ -198,7 +190,6 @@ export const updateInvoice = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error updating invoice:", error);
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to update invoice"
       );

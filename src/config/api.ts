@@ -46,12 +46,7 @@ const createAxiosInstance = (
       requestConfig.timeout = endpointConfig.timeout || config.timeout;
     }
 
-    // Log request details
-    console.debug("API Request", {
-      method: requestConfig.method,
-      url: requestConfig.url,
-      timeout: requestConfig.timeout,
-    });
+  
 
     return requestConfig;
   });
@@ -87,7 +82,7 @@ const addAuthInterceptor = (instance: AxiosInstance): AxiosInstance => {
             }
           }
         } catch (error) {
-          console.warn("Error parsing persist data:", error);
+          // console.warn("Error parsing persist data:", error);
         }
       }
 
@@ -109,7 +104,7 @@ const addAuthInterceptor = (instance: AxiosInstance): AxiosInstance => {
               }
             }
           } catch (e) {
-            console.warn("Error parsing persist data:", e);
+            // console.warn("Error parsing persist data:", e);
           }
         }
       }
@@ -117,23 +112,20 @@ const addAuthInterceptor = (instance: AxiosInstance): AxiosInstance => {
       // Set Authorization header if token found
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("Auth header set for:", config.url);
       } else {
-        console.error("NO TOKEN FOUND - Authentication will fail!");
-        console.log("Available localStorage keys:", Object.keys(localStorage));
-
+       
         // Check if user is logged in
         const persistData = localStorage.getItem("persist:auth");
         if (persistData) {
-          console.log(
-            "User appears to be logged in but token extraction failed"
-          );
-          console.log(
-            "Raw persist data:",
-            persistData.substring(0, 200) + "..."
-          );
+          // console.log(
+          //   "User appears to be logged in but token extraction failed"
+          // );
+          // console.log(
+          //   "Raw persist data:",
+          //   persistData.substring(0, 200) + "..."
+          // );
         } else {
-          console.log("User is NOT logged in - need to login first");
+          // console.log("User is NOT logged in - need to login first");
         }
       }
 
@@ -156,7 +148,6 @@ api.interceptors.response.use(
   (error) => {
     // Handle 401 Unauthorized errors (token expired)
     if (error.response?.status === 401) {
-      console.log("Token expired, logging out user");
       // Clear auth data from localStorage
       localStorage.removeItem("persist:auth");
       localStorage.removeItem("schoolId");
@@ -168,7 +159,7 @@ api.interceptors.response.use(
 
     // Handle other authentication errors
     if (error.response?.status === 403) {
-      console.log("Access forbidden, logging out user");
+      
       localStorage.removeItem("persist:auth");
       localStorage.removeItem("schoolId");
       localStorage.removeItem("token");

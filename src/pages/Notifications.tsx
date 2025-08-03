@@ -224,13 +224,6 @@ export default function NotificationsPage() {
   const paginatedNotifications =
     filteredAndSearchedNotifications?.slice(startIndex, endIndex) || [];
 
-  // Debug logging
-  console.log("🔍 Notifications debugging:");
-  console.log("Raw notifications:", notifications);
-  console.log("Search term:", searchTerm);
-  console.log("Type filter:", typeFilter);
-  console.log("Filtered notifications:", filteredAndSearchedNotifications);
-  console.log("Paginated notifications:", paginatedNotifications);
 
   // Reset to first page when search or filter changes
   useEffect(() => {
@@ -275,7 +268,6 @@ export default function NotificationsPage() {
         return;
       }
 
-      console.log("🔍 Debug - Form values:", values);
 
       // Structure the payload based on target type
       const notificationData: any = {
@@ -289,41 +281,35 @@ export default function NotificationsPage() {
 
       if (values.target_type === "all") {
         // For "all users", don't specify any specific parents
-        console.log("📤 Sending to all users - no specific parent");
       } else if (values.target_type === "parents") {
         // For parents, use the selected parent IDs
         if (values.selected_targets && values.selected_targets.length > 0) {
           notificationData.parents = values.selected_targets;
-          console.log(
-            "📤 Sending to specific parents:",
-            values.selected_targets
-          );
+          // console.log(
+          //   "📤 Sending to specific parents:",
+          //   values.selected_targets
+          // );
         } else {
-          console.log("📤 No specific parents selected");
+          // console.log("📤 No specific parents selected");
         }
       } else if (values.target_type === "drivers") {
         // For drivers, use the selected driver IDs
         if (values.selected_targets && values.selected_targets.length > 0) {
           notificationData.drivers = values.selected_targets;
-          console.log(
-            "📤 Sending to specific drivers:",
-            values.selected_targets
-          );
+         
         } else {
-          console.log("📤 No specific drivers selected");
+          // console.log("📤 No specific drivers selected");
         }
       } else {
         // For non-parent categories, we might need a different API endpoint
         // For now, let's send without parent field
-        console.log("📤 Sending to non-parent category:", values.target_type);
+        // console.log("📤 Sending to non-parent category:", values.target_type);
       }
 
-      console.log("📤 Final notification payload:", notificationData);
 
       const result = await dispatch(
         createNotification(notificationData)
       ).unwrap();
-      console.log("✅ Notification created successfully:", result);
 
       toast({
         title: "Success",
@@ -334,7 +320,6 @@ export default function NotificationsPage() {
       form.reset();
       setIsCreateModalOpen(false);
     } catch (error) {
-      console.error("❌ Error creating notification:", error);
       toast({
         title: "Error",
         description: "Failed to create notification",

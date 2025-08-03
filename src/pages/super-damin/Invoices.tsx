@@ -84,8 +84,8 @@ const Invoices = () => {
   // Debug: Log invoice data structure
   useEffect(() => {
     if (invoices.length > 0) {
-      console.log("Invoices data structure:", invoices[0]);
-      console.log("First invoice ID:", invoices[0]?.id);
+      // console.log("Invoices data structure:", invoices[0]);
+      // console.log("First invoice ID:", invoices[0]?.id);
     }
   }, [invoices]);
 
@@ -147,7 +147,6 @@ const Invoices = () => {
         description: "Invoices report has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
@@ -169,7 +168,6 @@ const Invoices = () => {
         description: "Invoice PDF has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating invoice PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate invoice PDF. Please try again.",
@@ -214,7 +212,6 @@ const Invoices = () => {
         day: "numeric",
       });
     } catch (error) {
-      console.error("Error formatting date:", error);
       return "N/A";
     }
   };
@@ -227,13 +224,11 @@ const Invoices = () => {
         currency: currency,
       }).format(parseFloat(amount));
     } catch (error) {
-      console.error("Error formatting currency:", error);
       return "N/A";
     }
   };
 
   const handleProcessPayment = async (invoiceId: string) => {
-    console.log("Processing payment for invoice ID:", invoiceId);
 
     if (!invoiceId) {
       toast({
@@ -249,7 +244,6 @@ const Invoices = () => {
         status: "paid" as const,
       };
 
-      console.log("Updating invoice with data:", { id: invoiceId, updateData });
 
       await dispatch(updateInvoice({ id: invoiceId, updateData })).unwrap();
 
@@ -258,7 +252,7 @@ const Invoices = () => {
         description: "Invoice payment has been processed successfully.",
       });
     } catch (error) {
-      console.error("Error processing payment:", error);
+      // console.error("Error processing payment:", error);
       toast({
         title: "Error",
         description: "Failed to process payment.",
@@ -448,10 +442,8 @@ const Invoices = () => {
               </TableHeader>
               <TableBody>
                 {filteredInvoices.map((invoice) => {
-                  console.log("Processing invoice:", invoice);
                   const invoiceId =
                     invoice.id || invoice.invoice_id || invoice.uuid;
-                  console.log("Extracted invoice ID:", invoiceId);
 
                   return (
                     <TableRow key={invoiceId || invoice.id}>

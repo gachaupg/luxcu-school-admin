@@ -83,7 +83,6 @@ const ContactForm = () => {
         message_type: "inquiry_message" as const,
       };
 
-      console.log("Submitting contact form with data:", messageData);
 
       await dispatch(createContactMessage(messageData)).unwrap();
 

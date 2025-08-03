@@ -127,8 +127,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       school: schoolId,
     };
 
-    console.log("Submitting trip data:", tripData);
-
     try {
       if (mode === "create") {
         await dispatch(createTrip(tripData)).unwrap();
@@ -144,8 +142,7 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
         });
       }
       onClose();
-    } catch (error: any) {
-      console.log("Trip creation error:", error);
+    } catch (error: unknown) {
       let errorMsg = "Failed to save trip";
 
       // Handle backend validation errors
@@ -172,7 +169,7 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement> | { name: string; value: string }
   ) => {
-    const { name, value } = e.target || e;
+    const { name, value } = "target" in e ? e.target : e;
 
     setFormData((prev) => ({
       ...prev,

@@ -54,11 +54,7 @@ export const apiRequestWithRetry = async (
         const retryAfter = errorData.detail?.match(/(\d+) seconds?/)?.[1] || 20;
 
         if (attempt < maxRetries) {
-          console.log(
-            `Rate limited. Waiting ${retryAfter} seconds before retry ${
-              attempt + 1
-            }/${maxRetries}`
-          );
+         
           await new Promise((resolve) =>
             setTimeout(resolve, parseInt(retryAfter) * 1000)
           );
@@ -81,11 +77,7 @@ export const apiRequestWithRetry = async (
       // If it's not a throttling error and we have retries left, wait with exponential backoff
       if (!error.message?.includes("Rate limited") && attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(
-          `Request failed. Retrying in ${delay}ms (attempt ${
-            attempt + 1
-          }/${maxRetries})`
-        );
+       
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }

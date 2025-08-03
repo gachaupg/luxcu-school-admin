@@ -106,13 +106,10 @@ export const deleteRoute = createAsyncThunk<
   { rejectValue: string }
 >("routes/deleteRoute", async (id, { rejectWithValue }) => {
   try {
-    console.log(`Deleting route ${id}`);
     // Use the direct route deletion endpoint
     await api.delete(`/api/routes/${id}/`);
-    console.log("Route deleted successfully");
     return id;
   } catch (error) {
-    console.error("Error deleting route:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete route"

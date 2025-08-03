@@ -69,14 +69,12 @@ class SchoolsService {
       }
 
       const data = await response.json();
-      console.log("Schools API response:", data);
 
       // Handle different response structures
       let schoolsData = data.data || data;
 
       // Ensure we have an array
       if (!Array.isArray(schoolsData)) {
-        console.error("Invalid schools response - not an array:", schoolsData);
         return [];
       }
 
@@ -84,7 +82,6 @@ class SchoolsService {
       const validatedSchools = schoolsData
         .map((school: any, index: number) => {
           if (!school || typeof school !== "object") {
-            console.warn(`Invalid school at index ${index}:`, school);
             return null;
           }
 
@@ -116,10 +113,8 @@ class SchoolsService {
         })
         .filter(Boolean); // Remove null entries
 
-      console.log("Validated schools:", validatedSchools);
       return validatedSchools;
     } catch (error) {
-      console.error("Error fetching schools:", error);
       throw error;
     }
   }
@@ -139,7 +134,6 @@ class SchoolsService {
       }
 
       const data = await response.json();
-      console.log("School details response:", data);
 
       // Handle different response structures
       let schoolData = data.data || data;
@@ -181,10 +175,8 @@ class SchoolsService {
         lastActive: schoolData.last_active || schoolData.lastActive || "Never",
       };
 
-      console.log("Validated school:", validatedSchool);
       return validatedSchool;
     } catch (error) {
-      console.error("Error fetching school:", error);
       throw error;
     }
   }
@@ -207,7 +199,6 @@ class SchoolsService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error creating school:", error);
       throw error;
     }
   }
@@ -233,7 +224,6 @@ class SchoolsService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error updating school:", error);
       throw error;
     }
   }
@@ -252,7 +242,6 @@ class SchoolsService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error deleting school:", error);
       throw error;
     }
   }
@@ -274,7 +263,6 @@ class SchoolsService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error toggling school status:", error);
       throw error;
     }
   }
@@ -296,7 +284,6 @@ class SchoolsService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
       // Return mock data if API is not available
       return {
         totalUsers: 1247,

@@ -131,11 +131,8 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
   };
 
   const handleFiles = async (files: File[]) => {
-    console.log("🚀 handleFiles called with:", files.length, "files");
-
     // Prevent multiple processing
     if (isProcessing) {
-      console.log("⚠️ Already processing files, ignoring new request");
       return;
     }
 
@@ -157,12 +154,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         });
 
         if (!isValidType) {
-          console.log("❌ File type validation failed:", {
-            fileName: file.name,
-            fileType: file.type,
-            fileExtension: fileExtension,
-            acceptedTypes: acceptedFileTypes,
-          });
           toast({
             title: "Invalid file type",
             description: `${
@@ -208,7 +199,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       // Add files to state and process them immediately
       for (const file of validFiles) {
         const fileId = Math.random().toString(36).substr(2, 9);
-        console.log("📁 Processing file:", file.name, "with ID:", fileId);
 
         // Add file to state
         const newFile: UploadedFile = {
@@ -231,11 +221,8 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
   };
 
   const processFile = async (file: File, fileId: string) => {
-    console.log("🔄 processFile called for:", file.name, "with ID:", fileId);
-
     // Check if file is already being processed
     if (processingFiles.has(fileId)) {
-      console.log("⚠️ File already being processed:", file.name);
       return;
     }
 
@@ -249,14 +236,12 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       );
 
       // Quick progress update (no simulation loop)
-      console.log("⏳ Processing file:", file.name);
       setUploadedFiles((prev) =>
         prev.map((f) => (f.id === fileId ? { ...f, progress: 50 } : f))
       );
 
       // Parse file based on type
       let parsedData: Record<string, string>[] = [];
-      console.log("📄 Parsing file:", file.name, "type:", file.type);
       if (file.type === "text/csv") {
         parsedData = await parseCSV(file);
       } else if (file.type.includes("pdf")) {
@@ -267,14 +252,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         parsedData = await parseHTML(file);
       }
 
-      console.log(
-        "📊 Parsed data for",
-        file.name,
-        ":",
-        parsedData.length,
-        "rows"
-      );
-
       // Validate data if schema provided
       if (validationSchema) {
         const validationResult = validateData(parsedData, validationSchema);
@@ -284,7 +261,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       }
 
       // Update status to completed
-      console.log("🎉 Setting status to completed for:", file.name);
       setUploadedFiles((prev) =>
         prev.map((f) =>
           f.id === fileId
@@ -305,7 +281,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         description: `${file.name} has been processed and is ready for upload.`,
       });
     } catch (error) {
-      console.error("❌ Error processing file:", file.name, error);
       setUploadedFiles((prev) =>
         prev.map((f) =>
           f.id === fileId ? { ...f, status: "error", error: error.message } : f
@@ -340,8 +315,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
 
     // Debug: Log the first row to see what columns are available
     if (data.length > 0) {
-      console.log("🔍 Available columns in CSV:", Object.keys(data[0]));
-      console.log("🔍 First row data:", data[0]);
+      // Available columns and first row data logging removed
     }
 
     data.forEach((row, index) => {
@@ -439,20 +413,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         row.lastBackgroundCheck ||
         row["LastBackgroundCheck"];
 
-      // Debug: Log what we found for this row
-      console.log(`🔍 Row ${rowNumber} (${uploadType}):`, {
-        hasName: !!hasName,
-        hasPhone: !!hasPhone,
-        hasLicenseNumber: !!hasLicenseNumber,
-        hasLicenseClass: !!hasLicenseClass,
-        hasLicenseExpiry: !!hasLicenseExpiry,
-        hasHealthCheck: !!hasHealthCheck,
-        hasBackgroundCheck: !!hasBackgroundCheck,
-        nameValue: hasName,
-        phoneValue: hasPhone,
-        licenseValue: hasLicenseNumber,
-        availableFields: Object.keys(row),
-      });
+      // Debug: Log what we found for this row - removed for production
 
       // Only validate if the row has some data (not completely empty)
       const hasAnyData = Object.values(row).some(
@@ -474,29 +435,19 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           // For drivers, all fields are required by the API, but we'll generate defaults
           // Only validate that we have the essential fields that we can't easily generate
           if (!hasLicenseNumber) {
-            console.warn(
-              `⚠️ Row ${rowNumber}: License number not provided - will generate default`
-            );
+            // License number not provided - will generate default
           }
           if (!hasLicenseClass) {
-            console.warn(
-              `⚠️ Row ${rowNumber}: License class not provided - will use default "B"`
-            );
+            // License class not provided - will use default "B"
           }
           if (!hasLicenseExpiry) {
-            console.warn(
-              `⚠️ Row ${rowNumber}: License expiry not provided - will use default "2025-12-31"`
-            );
+            // License expiry not provided - will use default "2025-12-31"
           }
           if (!hasHealthCheck) {
-            console.warn(
-              `⚠️ Row ${rowNumber}: Last health check not provided - will use default "2024-01-01"`
-            );
+            // Last health check not provided - will use default "2024-01-01"
           }
           if (!hasBackgroundCheck) {
-            console.warn(
-              `⚠️ Row ${rowNumber}: Last background check not provided - will use default "2024-01-01"`
-            );
+            // Last background check not provided - will use default "2024-01-01"
           }
         }
       }
@@ -517,7 +468,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           const headerLine = lines[0];
           const headers = parseCSVLine(headerLine).map((h) => h.trim());
 
-          console.log("🔍 CSV Headers found:", headers);
+          // CSV Headers found - logging removed
 
           const data = lines.slice(1).map((line, lineIndex) => {
             const values = parseCSVLine(line);
@@ -530,10 +481,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
               row[header] = cleanValue;
             });
 
-            // Debug: Log first few rows
-            if (lineIndex < 3) {
-              console.log(`🔍 Row ${lineIndex + 1} parsed:`, row);
-            }
+            // Debug: Log first few rows - removed for production
 
             return row;
           });
@@ -679,26 +627,20 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
   // Parse text to structured data
   const parseTextToStructuredData = (text: string): any[] => {
     try {
-      console.log("🔍 Raw text content:", text);
-
       // Split text into lines and filter out empty lines
       const lines = text.split("\n").filter((line) => line.trim());
-      console.log("📄 Total lines found:", lines.length);
 
       // Try to detect if it's CSV-like format (comma-separated)
       if (lines.length > 0 && lines[0].includes(",")) {
-        console.log("📄 Detected CSV format");
         return parseCSVFormat(lines);
       }
 
       // Try to detect if it's TSV-like format (tab-separated)
       if (lines.length > 0 && lines[0].includes("\t")) {
-        console.log("📄 Detected TSV format");
         return parseTSVFormat(lines);
       }
 
       // Try to detect if it's space-separated or other delimiters
-      console.log("📄 Attempting flexible parsing for unstructured text");
       return parseFlexibleFormat(lines);
     } catch (error) {
       console.error("Error parsing text to structured data:", error);
@@ -711,12 +653,10 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     // Find the header row by looking for common column names
     const headerRowIndex = findHeaderRow(lines, ",");
     if (headerRowIndex === -1) {
-      console.log("❌ No header row found in CSV format");
       return [];
     }
 
     const headers = lines[headerRowIndex].split(",").map((h) => h.trim());
-    console.log("📋 Detected headers:", headers);
 
     const data = lines.slice(headerRowIndex + 1).map((line) => {
       const values = line.split(",").map((v) => v.trim());
@@ -735,12 +675,10 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     // Find the header row by looking for common column names
     const headerRowIndex = findHeaderRow(lines, "\t");
     if (headerRowIndex === -1) {
-      console.log("❌ No header row found in TSV format");
       return [];
     }
 
     const headers = lines[headerRowIndex].split("\t").map((h) => h.trim());
-    console.log("📋 Detected headers:", headers);
 
     const data = lines.slice(headerRowIndex + 1).map((line) => {
       const values = line.split("\t").map((v) => v.trim());
@@ -756,20 +694,12 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
 
   // Parse flexible format (space-separated or mixed delimiters)
   const parseFlexibleFormat = (lines: string[]): any[] => {
-    console.log("🔍 Attempting flexible parsing for Word document content");
-
     // Try to find a header row first
     const headerRowIndex = findHeaderRowFlexible(lines);
     let dataLines = lines;
 
     if (headerRowIndex !== -1) {
-      console.log(
-        `✅ Found header row at index ${headerRowIndex}:`,
-        lines[headerRowIndex]
-      );
       dataLines = lines.slice(headerRowIndex + 1);
-    } else {
-      console.log("⚠️ No header row found, treating all lines as data");
     }
 
     const data: any[] = [];
@@ -784,7 +714,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       }
     }
 
-    console.log(`✅ Extracted ${data.length} records from flexible parsing`);
     return data;
   };
 
@@ -811,7 +740,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         Boolean
       ).length;
       if (matchCount >= 2) {
-        console.log(`✅ Found header row at index ${i}:`, lines[i]);
         return i;
       }
     }
@@ -848,7 +776,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         Boolean
       ).length;
       if (matchCount >= 2) {
-        console.log(`✅ Found header row at index ${i}:`, lines[i]);
         return i;
       }
     }
@@ -859,8 +786,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
   // Extract data from a text line (fallback method)
   const extractDataFromTextLine = (line: string): any | null => {
     try {
-      console.log("🔍 Processing line:", line);
-
       // This is a simplified pattern matching approach
       // In production, you might want to use more sophisticated NLP or regex patterns
 
@@ -923,14 +848,11 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           Address: address,
         };
 
-        console.log("✅ Extracted data:", extractedData);
         return extractedData;
       }
 
-      console.log("❌ No valid data found in line");
       return null;
     } catch (error) {
-      console.error("Error extracting data from line:", error);
       return null;
     }
   };
@@ -977,12 +899,8 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     arrayBuffer: ArrayBuffer
   ): Promise<string> => {
     try {
-      console.log("🔍 Extracting text from Word document...");
-
       // Convert ArrayBuffer to Uint8Array for text processing
       const uint8Array = new Uint8Array(arrayBuffer);
-      console.log("📄 ArrayBuffer size:", arrayBuffer.byteLength);
-      console.log("📄 Uint8Array length:", uint8Array.length);
 
       // Try multiple text decoding approaches
       let text = "";
@@ -991,9 +909,8 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       try {
         const decoder = new TextDecoder("utf-8");
         text = decoder.decode(uint8Array);
-        console.log("✅ UTF-8 decoding successful, text length:", text.length);
       } catch (error) {
-        console.log("❌ UTF-8 decoding failed, trying other approaches...");
+        // UTF-8 decoding failed, trying other approaches
       }
 
       // Approach 2: If UTF-8 fails or produces no readable text, try other encodings
@@ -1001,12 +918,8 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         try {
           const decoder = new TextDecoder("latin1");
           text = decoder.decode(uint8Array);
-          console.log(
-            "✅ Latin1 decoding successful, text length:",
-            text.length
-          );
         } catch (error) {
-          console.log("❌ Latin1 decoding failed");
+          // Latin1 decoding failed
         }
       }
 
@@ -1022,28 +935,14 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         // Extract continuous readable text blocks
         const textBlocks = readableChars.match(/[a-zA-Z0-9\s@.,+\-()]+/g) || [];
         text = textBlocks.join("\n");
-        console.log(
-          "✅ ASCII extraction successful, text length:",
-          text.length
-        );
       }
-
-      console.log(
-        "📄 Extracted text sample (first 500 chars):",
-        text.substring(0, 500)
-      );
 
       // Split text into lines and filter out empty lines
       const lines = text.split("\n").filter((line) => line.trim());
-      console.log("📄 Total lines found:", lines.length);
 
       if (lines.length === 0) {
-        console.log("❌ No readable lines found in Word document");
         throw new Error("No readable content found in Word document");
       }
-
-      // Show first few lines for debugging
-      console.log("📄 First 5 lines:", lines.slice(0, 5));
 
       // Try to find CSV-like patterns in the Word text
       const csvLines = lines.filter(
@@ -1053,18 +952,12 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       );
 
       if (csvLines.length > 0) {
-        console.log(
-          "✅ Found CSV-like patterns, lines count:",
-          csvLines.length
-        );
         return csvLines.join("\n");
       }
 
       // If no CSV pattern found, return the raw text for pattern matching
-      console.log("📄 Returning raw text for pattern matching");
       return text;
     } catch (error) {
-      console.error("Error extracting text from Word document:", error);
       throw new Error("Failed to extract text from Word document");
     }
   };
@@ -1162,7 +1055,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
 
       return data.filter((row) => Object.values(row).some((value) => value));
     } catch (error) {
-      console.error("Error parsing HTML table:", error);
       return [];
     }
   };
@@ -1259,7 +1151,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       errors: [],
     });
 
-    console.log("🚀 Starting submission of", fileObjects.length, "files");
+    // Starting submission of files
 
     try {
       // Call the onUpload function with all files
@@ -1278,7 +1170,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       setSubmissionStatus({ total: 0, completed: 0, failed: 0, errors: [] });
       onClose();
     } catch (error) {
-      console.error("❌ Upload process failed:", error);
       toast({
         title: "Upload failed",
         description: error.message,

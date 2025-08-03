@@ -163,19 +163,17 @@ export default function Students() {
   useEffect(() => {
     // Always fetch schools first
     dispatch(fetchSchools()).catch((error) => {
-      console.error("Failed to fetch schools:", error);
       // The API interceptor should handle token expiration automatically
     });
   }, [dispatch]);
 
   useEffect(() => {
     if (schoolId) {
-      console.log("Fetching data for schoolId:", schoolId);
       dispatch(fetchStudents({ schoolId }));
       dispatch(fetchParents({ schoolId }));
       dispatch(fetchGrades({ schoolId }));
     } else {
-      console.log("No schoolId available, skipping data fetch");
+      // console.log("No schoolId available, skipping data fetch");
     }
   }, [dispatch, schoolId]);
 
@@ -359,8 +357,7 @@ export default function Students() {
 
   const handleCreateStudent = async (studentData: Omit<Student, "id">) => {
     try {
-      console.log("Creating student with data:", studentData);
-      console.log("Current schoolId:", schoolId);
+     
 
       await dispatch(createStudent(studentData)).unwrap();
       showToast.success("Student created successfully");
@@ -370,9 +367,7 @@ export default function Students() {
       setSelectedStudent(null);
 
       // No need to refresh - Redux slice automatically updates the state
-      console.log("Student created successfully - state updated automatically");
     } catch (error) {
-      console.error("Student creation error:", error);
 
       // Show the actual database error response
       let errorMessage = "Failed to create student";
@@ -408,16 +403,12 @@ export default function Students() {
     data: Partial<Student>;
   }) => {
     try {
-      console.log("handleUpdateStudent called with ID:", id, "Data:", data);
       await dispatch(updateStudent({ id, data })).unwrap();
-      console.log("Student update successful");
       showToast.success("Student updated successfully");
       setIsEditModalOpen(false);
       setSelectedStudent(null);
       // No need to refresh - Redux slice automatically updates the state
-      console.log("Student updated successfully - state updated automatically");
     } catch (error) {
-      console.error("Student update error:", error);
 
       // Show the actual database error response
       let errorMessage = "Failed to update student";
@@ -459,9 +450,7 @@ export default function Students() {
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
       // No need to refresh - Redux slice automatically updates the state
-      console.log("Student deleted successfully - state updated automatically");
     } catch (error) {
-      console.error("Student deletion error:", error);
 
       // Show the actual database error response
       let errorMessage = "Failed to delete student";
@@ -490,12 +479,10 @@ export default function Students() {
   };
 
   const openEditModal = (student: Student) => {
-    console.log("openEditModal called with student:", student);
     if (!student || !student.id) {
       showToast.error("Invalid student data");
       return;
     }
-    console.log("Setting selected student and opening edit modal");
     setSelectedStudent(student);
     setIsEditModalOpen(true);
   };
@@ -1598,7 +1585,6 @@ export default function Students() {
         key={selectedStudent?.id || "create"} // Force re-render when student changes
         isOpen={isEditModalOpen}
         onClose={() => {
-          console.log("Closing edit modal");
           setIsEditModalOpen(false);
           setSelectedStudent(null);
         }}

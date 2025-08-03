@@ -47,40 +47,28 @@ export const fetchVehicles = createAsyncThunk<
       url += `?school=${schoolId}`;
     }
 
-    console.log("Fetching vehicles from URL:", url);
     const response = await api.get(url);
-    console.log("Vehicles response:", response.data);
 
     // Check if the response has the expected structure
     if (Array.isArray(response.data)) {
-      console.log(
-        "Vehicles data is an array with",
-        response.data.length,
-        "items"
-      );
       // Validate each vehicle has required fields
       const validatedVehicles = response.data.filter((vehicle) => {
         if (!vehicle || typeof vehicle !== "object") {
-          console.warn("Invalid vehicle data:", vehicle);
           return false;
         }
         return true;
       });
-      console.log("Validated vehicles:", validatedVehicles);
       return validatedVehicles;
     } else if (
       response.data &&
       response.data.data &&
       Array.isArray(response.data.data)
     ) {
-      console.log("Vehicles data is nested in data.data");
       return response.data.data;
     } else {
-      console.log("Unexpected vehicles response structure:", response.data);
       return [];
     }
   } catch (error: unknown) {
-    console.error("Error fetching vehicles:", error);
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
@@ -117,29 +105,13 @@ export const deleteVehicle = createAsyncThunk<
   { rejectValue: string }
 >("vehicles/deleteVehicle", async (id, { rejectWithValue, getState }) => {
   try {
-    console.log(`Deleting vehicle ${id}`);
-    console.log(`API URL: ${API_ENDPOINTS.VEHICLES}${id}/`);
-
     // Get the current auth token for debugging
     const state = getState() as RootState;
     const token = state.auth.token;
-    console.log("Auth token present:", !!token);
 
     const response = await api.delete(`${API_ENDPOINTS.VEHICLES}${id}/`);
-    console.log("Delete response:", response);
-    console.log("Vehicle deleted successfully");
     return id;
   } catch (error) {
-    console.error("Error deleting vehicle:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      response:
-        error instanceof AxiosError ? error.response : "Not an Axios error",
-      status:
-        error instanceof AxiosError ? error.response?.status : "No status",
-      data: error instanceof AxiosError ? error.response?.data : "No data",
-    });
-
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete vehicle"

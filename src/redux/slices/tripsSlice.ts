@@ -56,7 +56,6 @@ export const fetchTrips = createAsyncThunk<
     }
 
     const response = await api.get(url);
-    console.log("Raw trips response:", response.data);
 
     // Handle paginated response structure
     let tripsData;
@@ -96,7 +95,6 @@ export const fetchTrips = createAsyncThunk<
         }))
       : [];
 
-    console.log("Transformed trips data:", transformedTrips);
     return transformedTrips;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -129,8 +127,6 @@ export const createTrip = createAsyncThunk<
   { rejectValue: string }
 >("trips/createTrip", async (tripData, { rejectWithValue }) => {
   try {
-    console.log("Creating trip with data:", tripData);
-
     // Debug: Check if auth token is available
     try {
       const persistData = localStorage.getItem("persist:auth");
@@ -146,25 +142,9 @@ export const createTrip = createAsyncThunk<
             // Keep original if second parse fails
           }
         }
-
-        console.log("Auth token available:", !!token);
-        if (token) {
-          console.log("Token preview:", token.substring(0, 20) + "...");
-        }
-      } else {
-        console.log("No persist:auth data found in localStorage");
-      }
-
-      // Also check for direct token storage
-      const directToken = localStorage.getItem("token");
-      if (directToken) {
-        console.log(
-          "Direct token found:",
-          directToken.substring(0, 20) + "..."
-        );
       }
     } catch (error) {
-      console.warn("Error checking auth token:", error);
+      // Error checking auth token
     }
 
     // Ensure school ID is included
@@ -173,8 +153,6 @@ export const createTrip = createAsyncThunk<
       ...tripData,
       school: tripData.school || parseInt(schoolId || "0"),
     };
-
-    console.log("Trip data with school:", tripDataWithSchool);
 
     // Manual token setting as fallback
     let token = null;
@@ -192,7 +170,7 @@ export const createTrip = createAsyncThunk<
         }
       }
     } catch (error) {
-      console.warn("Error getting token for manual setting:", error);
+      // Error getting token for manual setting
     }
 
     // Create request config with manual auth header if needed
@@ -200,14 +178,11 @@ export const createTrip = createAsyncThunk<
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     };
 
-    console.log("Request config:", requestConfig);
-
     const response = await api.post(
       API_ENDPOINTS.TRIPS,
       tripDataWithSchool,
       requestConfig
     );
-    console.log("Trip creation response:", response.data);
 
     // Transform the response to match our frontend structure
     const trip = response.data?.data || response.data;
@@ -219,17 +194,9 @@ export const createTrip = createAsyncThunk<
       driver_name: trip.driver_details?.full_name || `Driver ${trip.driver}`,
     };
 
-    console.log("Transformed trip:", transformedTrip);
     return transformedTrip;
   } catch (error) {
-    console.error("Trip creation error:", error);
     if (error instanceof AxiosError) {
-      console.error("Axios error details:", {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers,
-      });
       return rejectWithValue(
         error.response?.data?.message ||
           error.response?.data?.detail ||
@@ -275,12 +242,9 @@ export const deleteTrip = createAsyncThunk<
   { rejectValue: string }
 >("trips/deleteTrip", async (id, { rejectWithValue }) => {
   try {
-    console.log(`Deleting trip ${id}`);
     await api.delete(`${API_ENDPOINTS.TRIPS}${id}/`);
-    console.log("Trip deleted successfully");
     return id;
   } catch (error) {
-    console.error("Error deleting trip:", error);
     if (error instanceof AxiosError) {
       return rejectWithValue(
         error.response?.data?.message || "Failed to delete trip"
