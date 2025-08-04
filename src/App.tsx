@@ -8,6 +8,7 @@ import { ReduxProvider } from "./redux/provider";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Login from "./pages/Login";
 import Landing from "./pages/Landing";
+import Pricing from "./pages/Pricing";
 import SchoolRegistration from "./pages/SchoolRegistration";
 import SubscriptionSelection from "./pages/SubscriptionSelection";
 import Verification from "./pages/Verification";
@@ -83,12 +84,8 @@ const AppRoutes = () => {
 
   const schoolId = schools.find((school) => school.admin === user?.id)?.id;
 
- 
-
-
   // Additional debugging
   useEffect(() => {
-    
     try {
       const persistAuth = localStorage.getItem("persist:auth");
       if (persistAuth) {
@@ -125,7 +122,6 @@ const AppRoutes = () => {
   // Fetch schools when component mounts and token is available
   React.useEffect(() => {
     if (token && isInitialized) {
-     
       dispatch(fetchSchools()).catch((error) => {
         // The API interceptor should handle token expiration automatically
       });
@@ -150,6 +146,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/home" element={<Landing />} />
+      <Route path="/pricing" element={<Pricing />} />
       <Route
         path="/subscription-selection"
         element={<SubscriptionSelection />}

@@ -51,6 +51,9 @@ import {
   Database,
   Lock,
   BarChart3,
+  Target,
+  Eye,
+  Rocket,
 } from "lucide-react";
 import SubscriptionPlansDisplay from "@/components/SubscriptionPlansDisplay";
 import { isTokenExpired } from "@/utils/auth";
@@ -59,6 +62,9 @@ const Landing = () => {
   const [activeFAQ, setActiveFAQ] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showDemoRequestModal, setShowDemoRequestModal] = useState(false);
+  const [animatedSections, setAnimatedSections] = useState<Set<string>>(
+    new Set()
+  );
   const heroRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -96,6 +102,20 @@ const Landing = () => {
 
   useEffect(() => {
     setIsVisible(true);
+
+    // Trigger stats animation on page load
+    setTimeout(() => {
+      const statsSection = document.getElementById("stats");
+      if (statsSection) {
+        setAnimatedSections((prev) => new Set([...prev, "stats"]));
+        const cards = statsSection.querySelectorAll(".card-animate");
+        cards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.add("animate");
+          }, index * 100);
+        });
+      }
+    }, 500);
   }, []);
 
   useEffect(() => {
@@ -118,6 +138,30 @@ const Landing = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Enhanced scroll animation handler with intersection observer
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: "0px 0px -50px 0px",
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.getAttribute("id");
+          if (sectionId && !animatedSections.has(sectionId)) {
+            setAnimatedSections((prev) => new Set([...prev, sectionId]));
+          }
+        }
+      });
+    }, observerOptions);
+
+    const sections = document.querySelectorAll("section[id]");
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [animatedSections]);
 
   const features = [
     {
@@ -234,52 +278,251 @@ const Landing = () => {
 
   const contactInfo = [
     {
-      icon: <Phone className="h-6 w-6 text-emerald-600" />,
-      title: "Phone Support",
-      description: "24/7 dedicated support",
-      value: "+1 (555) 123-4567",
+      icon: <LocationIcon className="h-6 w-6 text-emerald-600" />,
+      title: "Head Office",
+      description: "Visit our headquarters",
+      value: "Gesora Road, Utawala, Nairobi",
+      link: "https://maps.google.com/?q=Gesora+Road,+Utawala,+Nairobi",
     },
     {
       icon: <Mail className="h-6 w-6 text-emerald-600" />,
-      title: "Email Support",
-      description: "Quick response guaranteed",
-      value: "hello@luxcub.com",
+      title: "Mailing Address",
+      description: "Get in touch with our team",
+      value: "Inquiry: info@eujimsloutions.com",
+      link: "mailto:info@eujimsloutions.com",
     },
     {
-      icon: <LocationIcon className="h-6 w-6 text-emerald-600" />,
-      title: "Office Location",
-      description: "Visit our headquarters",
-      value: "123 Innovation Drive, Tech City, TC 12345",
+      icon: <Mail className="h-6 w-6 text-emerald-600" />,
+      title: "Support Email",
+      description: "Technical support and assistance",
+      value: "Support: support@eujimsolutions.com",
+      link: "mailto:support@eujimsolutions.com",
+    },
+    {
+      icon: <Phone className="h-6 w-6 text-emerald-600" />,
+      title: "Business Talk",
+      description: "Call us anytime",
+      value: "+254 113281424",
+      link: "tel:+254113281424",
+    },
+    {
+      icon: <Phone className="h-6 w-6 text-emerald-600" />,
+      title: "Alternative Contact",
+      description: "Secondary business line",
+      value: "+254 718099959",
+      link: "tel:+254718099959",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-white from-slate-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-white from-slate-50 via-white to-emerald-50 scroll-smooth">
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes fadeInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes fadeInRight {
+          from {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in-left {
+          animation: fadeInLeft 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in-right {
+          animation: fadeInRight 0.8s ease-out forwards;
+        }
+        
+        .animate-scale-in {
+          animation: scaleIn 0.6s ease-out forwards;
+        }
+        
+        .section-animate {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .section-animate.animate {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        /* Make stats section visible by default */
+        #stats.section-animate {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        .card-animate {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-animate.animate {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        /* Make stats cards visible by default */
+        #stats .card-animate {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        
+        @keyframes slideInFromBottom {
+          from {
+            opacity: 0;
+            transform: translateY(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slideInFromLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        @keyframes slideInFromRight {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        
+        .slide-in-bottom {
+          animation: slideInFromBottom 0.8s ease-out forwards;
+        }
+        
+        .slide-in-left {
+          animation: slideInFromLeft 0.8s ease-out forwards;
+        }
+        
+        .slide-in-right {
+          animation: slideInFromRight 0.8s ease-out forwards;
+        }
+        
+        .hover-lift {
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-300">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-300 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold transition-colors duration-300">
-                LuxCub
-              </span>
-            </div>
+            <Link to="/home">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold transition-colors duration-300">
+                  LuxCub
+                </span>
+              </div>
+            </Link>
             <div className="hidden md:flex items-center space-x-8">
               <a
+                href="#about"
+                className="transition-colors font-medium hover:text-emerald-400 hover:scale-105 transform duration-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("about")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                About Us
+              </a>
+              <a
                 href="#features"
-                className="transition-colors font-medium hover:text-emerald-600"
+                className="transition-colors font-medium hover:text-emerald-400 hover:scale-105 transform duration-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("features")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="transition-colors font-medium hover:text-emerald-600"
+                className="transition-colors font-medium hover:text-emerald-400 hover:scale-105 transform duration-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("pricing")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="transition-colors font-medium hover:text-emerald-600"
+                className="transition-colors font-medium hover:text-emerald-400 hover:scale-105 transform duration-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("contact")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
                 Contact
               </a>
@@ -311,91 +554,95 @@ const Landing = () => {
         ref={heroRef}
         className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900 pt-16"
       >
-        {/* Enhanced Background decorative elements */}
+        {/* Professional Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
-          {/* Animated gradient waves */}
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-emerald-500 via-cyan-500 to-teal-400 rounded-full opacity-40 blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 left-20 w-80 h-80 bg-gradient-to-tr from-cyan-500 via-emerald-500 to-teal-400 rounded-full opacity-30 blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-emerald-400 via-teal-500 to-cyan-400 rounded-full opacity-25 blur-3xl animate-pulse delay-2000"></div>
-
-          {/* Enhanced floating particles */}
-          <div className="absolute inset-0">
-            <div className="absolute top-20 left-1/4 w-1 h-4 bg-gradient-to-b from-emerald-400 to-transparent opacity-80 animate-bounce"></div>
-            <div className="absolute top-40 right-1/3 w-1 h-3 bg-gradient-to-b from-cyan-400 to-transparent opacity-80 animate-bounce delay-300"></div>
-            <div className="absolute top-60 left-1/2 w-1 h-5 bg-gradient-to-b from-teal-400 to-transparent opacity-80 animate-bounce delay-600"></div>
-            <div className="absolute top-80 right-1/4 w-1 h-4 bg-gradient-to-b from-emerald-400 to-transparent opacity-80 animate-bounce delay-900"></div>
-            <div className="absolute top-32 left-3/4 w-1 h-3 bg-gradient-to-b from-cyan-400 to-transparent opacity-80 animate-bounce delay-1200"></div>
+          {/* Animated gradient orbs */}
+          <div className="absolute top-0 left-0 w-full h-full">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-tr from-emerald-500/20 via-cyan-500/20 to-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-bl from-cyan-500/15 via-emerald-500/15 to-teal-400/15 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-tr from-teal-500/10 via-emerald-400/10 to-cyan-400/10 rounded-full blur-3xl animate-pulse delay-2000"></div>
           </div>
 
-          {/* Floating orbs with enhanced styling */}
-          <div className="absolute top-1/4 left-1/3 w-32 h-32 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-full opacity-30 blur-xl animate-pulse"></div>
-          <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-gradient-to-r from-cyan-600 to-teal-600 rounded-full opacity-25 blur-xl animate-pulse delay-1000"></div>
-          <div className="absolute bottom-1/3 left-1/4 w-20 h-20 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-full opacity-20 blur-xl animate-pulse delay-2000"></div>
+          {/* Professional grid pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)`,
+                backgroundSize: "50px 50px",
+              }}
+            ></div>
+          </div>
 
-          {/* Geometric shapes */}
-          <div className="absolute top-1/3 left-1/6 w-16 h-16 border border-emerald-400/30 rotate-45 animate-spin-slow"></div>
-          <div className="absolute bottom-1/4 right-1/6 w-12 h-12 border border-cyan-400/30 -rotate-45 animate-spin-slow-reverse"></div>
+          {/* Floating geometric elements */}
+          <div className="absolute top-1/4 left-1/6 w-2 h-2 bg-emerald-400/60 rounded-full animate-ping"></div>
+          <div className="absolute top-1/3 right-1/6 w-1 h-1 bg-cyan-400/60 rounded-full animate-ping delay-1000"></div>
+          <div className="absolute bottom-1/3 left-1/5 w-1.5 h-1.5 bg-teal-400/60 rounded-full animate-ping delay-2000"></div>
+          <div className="absolute bottom-1/4 right-1/5 w-1 h-1 bg-emerald-400/60 rounded-full animate-ping delay-3000"></div>
+
+          {/* Professional lines */}
+          <div className="absolute top-1/2 left-0 w-32 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
+          <div className="absolute top-1/3 right-0 w-24 h-px bg-gradient-to-l from-transparent via-cyan-400/30 to-transparent"></div>
+          <div className="absolute bottom-1/3 left-0 w-20 h-px bg-gradient-to-r from-transparent via-teal-400/30 to-transparent"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Left Content */}
-            <div className="text-left space-y-6">
-              {/* Enhanced Badge */}
-              <Badge
-                variant="secondary"
-                className={`inline-flex items-center bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border-emerald-400/40 px-3 py-1.5 rounded-full transition-all duration-1000 backdrop-blur-sm ${
+            <div className="text-left space-y-8">
+              {/* Professional Badge */}
+              <div
+                className={`transition-all duration-1000 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
-                } hover:scale-105 transition-transform shadow-lg`}
+                }`}
               >
-                <Star className="h-3 w-3 mr-2 text-emerald-300 animate-pulse" />
-                Trusted by 500+ Schools Nationwide
-              </Badge>
+                <Badge
+                  variant="secondary"
+                  className="inline-flex items-center bg-white/10 backdrop-blur-md text-emerald-300 border-emerald-400/30 px-3 py-1.5 rounded-full font-medium shadow-lg hover:scale-105 transition-all duration-300"
+                >
+                  <Star className="h-3 w-3 mr-2 text-emerald-300" />
+                  Trusted by 500+ Schools Nationwide
+                </Badge>
+              </div>
 
-              {/* Enhanced Main Headline */}
-              <div className="space-y-3">
+              {/* Professional Headline */}
+              <div className="space-y-4">
                 <h1
-                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight transition-all duration-1000 delay-200 ${
+                  className={`text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight transition-all duration-1000 delay-200 ${
                     isVisible
                       ? "opacity-100 translate-y-0"
                       : "opacity-0 translate-y-4"
                   }`}
                 >
-                  Modern School
-                  <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent block">
+                  <span className="block">Modern School</span>
+                  <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent block">
                     Transportation
                   </span>
-                  <span className="text-lg md:text-xl lg:text-2xl font-normal text-white/80 block mt-1">
-                    Made Simple
+                  <span className="text-lg md:text-xl lg:text-2xl font-light text-white/90 block mt-1">
+                    Made Simple & Secure
                   </span>
                 </h1>
               </div>
 
-              {/* Enhanced Separator line */}
-              <div
-                className={`w-24 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full transition-all duration-1000 delay-300 ${
-                  isVisible ? "opacity-100" : "opacity-0"
-                }`}
-              ></div>
-
-              {/* Enhanced Description */}
+              {/* Professional Description */}
               <p
-                className={`text-base text-white/90 leading-relaxed max-w-lg transition-all duration-1000 delay-400 ${
+                className={`text-lg text-white/80 leading-relaxed max-w-lg transition-all duration-1000 delay-400 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
                 }`}
               >
-                Transform your school transportation with our comprehensive
-                platform. Real-time tracking, smart routes, and complete
-                transparency for parents, drivers, and administrators.
+                Transform your school transportation with our enterprise-grade
+                platform. Real-time GPS tracking, AI-powered route optimization,
+                and complete transparency for parents, drivers, and
+                administrators.
               </p>
 
-              {/* Enhanced Call to Action Buttons */}
+              {/* Professional CTA Buttons */}
               <div
-                className={`flex flex-col sm:flex-row gap-3 transition-all duration-1000 delay-900 ${
+                className={`flex flex-col sm:flex-row gap-4 transition-all duration-1000 delay-600 ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-4"
@@ -403,237 +650,125 @@ const Landing = () => {
               >
                 <Button
                   size="lg"
-                  className="text-sm px-6 py-3 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white border-0 hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl rounded-xl font-semibold"
+                  className="text-base px-8 py-4 bg-gradient-to-r from-emerald-600 via-cyan-600 to-teal-600 hover:from-emerald-700 hover:via-cyan-700 hover:to-teal-700 text-white border-0 hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-emerald-500/25 rounded-xl font-semibold group"
                   onClick={() => setShowDemoRequestModal(true)}
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
                   Request Demo
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="text-sm px-6 py-3 border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400/10 hover:scale-105 transition-all duration-300 rounded-xl font-semibold backdrop-blur-sm"
+                  className="text-base px-8 py-4 border-2 border-white/30 text-green-500 hover:bg-white/20 hover:scale-105 transition-all duration-300 rounded-xl font-semibold backdrop-blur-md group"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document
+                      .getElementById("about")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
                 >
-                  <ArrowRight className="h-4 w-4 mr-2" />
+                  <ArrowRight className="h-5 w-5 mr-2 group-hover:translate-x-1 transition-transform" />
                   Learn More
                 </Button>
               </div>
+
+              {/* Professional Stats Preview */}
+              <div
+                className={`flex items-center space-x-6 pt-6 transition-all duration-1000 delay-800 ${
+                  isVisible
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-4"
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <span className="text-white/70 text-sm">
+                    Real-time GPS Tracking
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse delay-300"></div>
+                  <span className="text-white/70 text-sm">
+                    AI Route Optimization
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse delay-600"></div>
+                  <span className="text-white/70 text-sm">24/7 Support</span>
+                </div>
+              </div>
             </div>
 
-            {/* Enhanced Animated Centerpiece with Moving Car */}
+            {/* Right Side - Professional Image Display */}
             <div className="relative flex items-center justify-center">
-              {/* Main animated circle */}
-              <div className="relative w-80 h-80">
-                {/* Outer rotating ring with enhanced glow */}
-                <div className="absolute inset-0 border-2 border-emerald-400/40 rounded-full animate-spin-slow shadow-lg shadow-emerald-400/20"></div>
-
-                {/* Middle ring with enhanced glow */}
-                <div className="absolute inset-4 border-2 border-cyan-400/50 rounded-full animate-spin-slow-reverse shadow-lg shadow-cyan-400/20"></div>
-
-                {/* Inner ring with enhanced glow */}
-                <div className="absolute inset-8 border-2 border-teal-400/60 rounded-full animate-spin-slow shadow-lg shadow-teal-400/20"></div>
-
-                {/* Central hub with enhanced styling */}
-                <div className="absolute inset-12 bg-gradient-to-br from-emerald-500 via-cyan-500 to-teal-500 rounded-full flex items-center justify-center shadow-2xl">
-                  <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20">
-                    <Bus className="h-10 w-10 text-white animate-pulse" />
+              <div className="relative w-full max-w-xl">
+                {/* Professional image container with glow effect */}
+                <div className="relative group">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-teal-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>
+                  <div className="relative bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10">
+                    <img
+                      src="https://res.cloudinary.com/pitz/image/upload/v1753867118/images__1_-removebg-preview_mbnod8.png"
+                      alt="School Bus Transportation"
+                      className="w-full h-auto object-contain transition-all duration-500 group-hover:scale-105"
+                    />
                   </div>
                 </div>
 
-                {/* Moving car around the circle */}
-                <div className="absolute inset-0 animate-spin-slow">
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-6 h-6 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full flex items-center justify-center shadow-lg">
-                      <div className="w-3 h-3 bg-white rounded-full"></div>
-                    </div>
+                {/* Professional floating indicators */}
+                <div className="absolute -top-6 -right-6 w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <Shield className="h-6 w-6 text-white" />
+                </div>
+                <div className="absolute -bottom-6 -left-6 w-10 h-10 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-pulse delay-1000">
+                  <Bus className="h-5 w-5 text-white" />
+                </div>
+                <div className="absolute top-1/2 -right-8 w-8 h-8 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-pulse delay-2000">
+                  <MapPin className="h-4 w-4 text-white" />
+                </div>
+                <div className="absolute top-1/2 -left-8 w-8 h-8 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg animate-pulse delay-3000">
+                  <Zap className="h-4 w-4 text-white" />
+                </div>
+
+                {/* Professional status indicators */}
+                <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-white text-sm font-medium">
+                      Live Tracking
+                    </span>
                   </div>
                 </div>
-
-                {/* Second moving car in opposite direction */}
-                <div className="absolute inset-0 animate-spin-slow-reverse">
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
-                    <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full flex items-center justify-center shadow-lg">
-                      <div className="w-3 h-3 bg-white rounded-full"></div>
-                    </div>
+                <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse delay-500"></div>
+                    <span className="text-white text-sm font-medium">
+                      GPS Active
+                    </span>
                   </div>
                 </div>
-
-                {/* Enhanced floating elements around the circle */}
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <div className="w-5 h-5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-bounce shadow-lg"></div>
-                </div>
-                <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
-                  <div className="w-5 h-5 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-bounce delay-300 shadow-lg"></div>
-                </div>
-                <div className="absolute top-1/2 -left-3 transform -translate-y-1/2">
-                  <div className="w-5 h-5 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full animate-bounce delay-600 shadow-lg"></div>
-                </div>
-                <div className="absolute top-1/2 -right-3 transform -translate-y-1/2">
-                  <div className="w-5 h-5 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-bounce delay-900 shadow-lg"></div>
-                </div>
-
-                {/* Enhanced diagonal floating elements */}
-                <div className="absolute top-6 left-6">
-                  <div className="w-4 h-4 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-pulse shadow-md"></div>
-                </div>
-                <div className="absolute top-6 right-6">
-                  <div className="w-4 h-4 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full animate-pulse delay-200 shadow-md"></div>
-                </div>
-                <div className="absolute bottom-6 left-6">
-                  <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full animate-pulse delay-400 shadow-md"></div>
-                </div>
-                <div className="absolute bottom-6 right-6">
-                  <div className="w-4 h-4 bg-gradient-to-r from-cyan-400 to-teal-400 rounded-full animate-pulse delay-600 shadow-md"></div>
-                </div>
-
-                {/* Additional small particles */}
-                <div className="absolute top-12 left-12">
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse delay-100"></div>
-                </div>
-                <div className="absolute top-12 right-12">
-                  <div className="w-2 h-2 bg-cyan-300 rounded-full animate-pulse delay-300"></div>
-                </div>
-                <div className="absolute bottom-12 left-12">
-                  <div className="w-2 h-2 bg-teal-300 rounded-full animate-pulse delay-500"></div>
-                </div>
-                <div className="absolute bottom-12 right-12">
-                  <div className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse delay-700"></div>
-                </div>
-              </div>
-
-              {/* Enhanced glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/30 to-cyan-400/30 blur-3xl -z-10 animate-pulse"></div>
-
-              {/* Enhanced data flow lines */}
-              <div className="absolute inset-0">
-                <svg className="w-full h-full" viewBox="0 0 320 320">
-                  <defs>
-                    <linearGradient
-                      id="dataFlow"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        style={{ stopColor: "#10b981", stopOpacity: 0.8 }}
-                      />
-                      <stop
-                        offset="100%"
-                        style={{ stopColor: "#06b6d4", stopOpacity: 0.8 }}
-                      />
-                    </linearGradient>
-                    <linearGradient
-                      id="dataFlow2"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        style={{ stopColor: "#06b6d4", stopOpacity: 0.6 }}
-                      />
-                      <stop
-                        offset="100%"
-                        style={{ stopColor: "#0d9488", stopOpacity: 0.6 }}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <circle
-                    cx="160"
-                    cy="160"
-                    r="150"
-                    fill="none"
-                    stroke="url(#dataFlow)"
-                    strokeWidth="2"
-                    strokeDasharray="8,8"
-                    className="animate-spin-slow"
-                  />
-                  <circle
-                    cx="160"
-                    cy="160"
-                    r="130"
-                    fill="none"
-                    stroke="url(#dataFlow2)"
-                    strokeWidth="1.5"
-                    strokeDasharray="5,5"
-                    className="animate-spin-slow-reverse"
-                  />
-                  <circle
-                    cx="160"
-                    cy="160"
-                    r="110"
-                    fill="none"
-                    stroke="url(#dataFlow)"
-                    strokeWidth="1"
-                    strokeDasharray="3,3"
-                    className="animate-spin-slow"
-                  />
-                </svg>
-              </div>
-
-              {/* Connection lines between elements */}
-              <div className="absolute inset-0">
-                <svg className="w-full h-full" viewBox="0 0 320 320">
-                  <line
-                    x1="160"
-                    y1="10"
-                    x2="160"
-                    y2="310"
-                    stroke="url(#dataFlow)"
-                    strokeWidth="1"
-                    opacity="0.3"
-                  />
-                  <line
-                    x1="10"
-                    y1="160"
-                    x2="310"
-                    y2="160"
-                    stroke="url(#dataFlow2)"
-                    strokeWidth="1"
-                    opacity="0.3"
-                  />
-                  <line
-                    x1="30"
-                    y1="30"
-                    x2="290"
-                    y2="290"
-                    stroke="url(#dataFlow)"
-                    strokeWidth="1"
-                    opacity="0.2"
-                  />
-                  <line
-                    x1="290"
-                    y1="30"
-                    x2="30"
-                    y2="290"
-                    stroke="url(#dataFlow2)"
-                    strokeWidth="1"
-                    opacity="0.2"
-                  />
-                </svg>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Background decoration */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-56 h-56 md:w-80 md:h-80 bg-white/3 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white border-y border-slate-200 ml-10 mr-10">
+      <section
+        id="stats"
+        className={`py-12 bg-white border-y border-slate-200 ml-10 mr-10 section-animate ${
+          animatedSections.has("stats") ? "animate" : ""
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
               <div
                 key={index}
-                className="text-center group hover:scale-105 transition-transform duration-300"
+                className={`text-center group hover:scale-105 transition-transform duration-300 card-animate ${
+                  animatedSections.has("stats") ? "animate" : ""
+                }`}
+                style={{
+                  transitionDelay: `${index * 100}ms`,
+                }}
               >
                 <div className="text-4xl md:text-5xl font-bold text-emerald-600 mb-3 group-hover:text-emerald-700 transition-colors">
                   {stat.number}
@@ -647,10 +782,199 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* About Us Section */}
+      <section
+        id="about"
+        className={`py-1 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10 section-animate ${
+          animatedSections.has("about") ? "animate" : ""
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
+              About Us
+            </Badge>
+            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+              Leading the Future of
+              <span className="text-emerald-600 block">
+                School Transportation
+              </span>
+            </h2>
+            <p className="text-xl text-slate-600 max-w-4xl mx-auto leading-relaxed">
+              LuxCub is a modern school transportation management platform
+              designed to revolutionize how schools handle their transportation
+              operations. Based in Nairobi, Kenya, we serve schools across the
+              country with cutting-edge technology and exceptional support.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* Mission */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">
+                  Our Mission
+                </h3>
+              </div>
+              <p className="text-lg text-slate-600 leading-relaxed">
+                To provide schools with innovative transportation solutions that
+                enhance safety, improve efficiency, and create peace of mind for
+                parents and administrators through cutting-edge technology and
+                exceptional service.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    Enhance student safety
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    Improve operational efficiency
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    Provide peace of mind
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Vision */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <Eye className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">
+                  Our Vision
+                </h3>
+              </div>
+              <p className="text-lg text-slate-600 leading-relaxed">
+                To become the leading provider of school transportation
+                technology in Africa, making safe and efficient school
+                transportation accessible to every educational institution while
+                setting global standards for innovation.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    Lead African innovation
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">Set global standards</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">
+                    Universal accessibility
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Future */}
+            <div className="space-y-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                  <Rocket className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">
+                  Our Future
+                </h3>
+              </div>
+              <p className="text-lg text-slate-600 leading-relaxed">
+                We envision a future where every school in Africa has access to
+                world-class transportation technology, creating safer, more
+                efficient, and environmentally sustainable school transportation
+                systems.
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-teal-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">AI-powered solutions</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-teal-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">Green transportation</p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-5 h-5 bg-teal-100 rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-teal-600" />
+                  </div>
+                  <p className="text-slate-600 text-sm">Global expansion</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Why Choose LuxCub Section */}
+          <div className="mt-16">
+            <h3 className="text-2xl font-bold text-slate-900 mb-8 text-center">
+              Why Choose LuxCub?
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-slate-600">
+                  Local expertise with global standards
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-slate-600">
+                  24/7 customer support in your timezone
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-slate-600">
+                  Customized solutions for African schools
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section
         id="features"
-        className="py-20 bg-gradient-to-b from-white to-slate-50 ml-10 mr-10"
+        className={`py-16 bg-gradient-to-b from-white to-slate-50 ml-10 mr-10 section-animate ${
+          animatedSections.has("features") ? "animate" : ""
+        }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -673,7 +997,12 @@ const Landing = () => {
             {features.map((feature, index) => (
               <Card
                 key={index}
-                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group bg-white rounded-2xl overflow-hidden"
+                className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group bg-white rounded-2xl overflow-hidden card-animate ${
+                  animatedSections.has("features") ? "animate" : ""
+                }`}
+                style={{
+                  transitionDelay: `${index * 100}ms`,
+                }}
               >
                 <CardHeader className="pb-4">
                   <div className="mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -695,7 +1024,12 @@ const Landing = () => {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-white ml-10 mr-10">
+      <section
+        id="benefits"
+        className={`py-16 bg-white ml-10 mr-10 section-animate ${
+          animatedSections.has("benefits") ? "animate" : ""
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -716,7 +1050,14 @@ const Landing = () => {
                 {benefits.map((benefit, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-4 group hover:translate-x-2 transition-transform duration-300"
+                    className={`flex items-center space-x-4 group hover:translate-x-2 transition-transform duration-300 ${
+                      animatedSections.has("benefits")
+                        ? "opacity-100 translate-x-0"
+                        : "opacity-0 translate-x-10"
+                    }`}
+                    style={{
+                      transitionDelay: `${index * 150}ms`,
+                    }}
                   >
                     <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                       <CheckCircle className="h-5 w-5 text-emerald-600" />
@@ -759,7 +1100,7 @@ const Landing = () => {
       </section>
 
       {/* School Bus Fleet Section */}
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10">
+      <section className="py-16 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -776,7 +1117,7 @@ const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl overflow-hidden group">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl overflow-hidden group hover-lift">
               <CardHeader className="pb-4">
                 <div className="mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Bus className="h-12 w-12 text-emerald-600" />
@@ -1002,7 +1343,7 @@ const Landing = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-white ml-10 mr-10">
+      <section className="py-16 bg-white ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -1023,7 +1364,10 @@ const Landing = () => {
             {testimonials.map((testimonial, index) => (
               <Card
                 key={index}
-                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl overflow-hidden"
+                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl overflow-hidden hover-lift"
+                style={{
+                  animationDelay: `${index * 200}ms`,
+                }}
               >
                 <CardContent className="p-8">
                   <div className="flex items-center space-x-1 mb-6">
@@ -1058,10 +1402,24 @@ const Landing = () => {
       </section>
 
       {/* Subscription Plans Section */}
-      <SubscriptionPlansDisplay />
+      <section
+        id="pricing"
+        className={`transition-all duration-1000 ${
+          animatedSections.has("pricing")
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-10"
+        }`}
+      >
+        <SubscriptionPlansDisplay />
+      </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-white ml-10 mr-10">
+      <section
+        id="faq"
+        className={`py-16 bg-white ml-10 mr-10 section-animate ${
+          animatedSections.has("faq") ? "animate" : ""
+        }`}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
@@ -1081,7 +1439,14 @@ const Landing = () => {
             {faqs.map((faq, index) => (
               <Card
                 key={index}
-                className="border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-200"
+                className={`border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-200 ${
+                  animatedSections.has("faq")
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-10"
+                }`}
+                style={{
+                  transitionDelay: `${index * 100}ms`,
+                }}
               >
                 <button
                   onClick={() =>
@@ -1114,21 +1479,18 @@ const Landing = () => {
       {/* Contact Section */}
       <section
         id="contact"
-        className="py-20 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10"
+        className={`py-16 bg-gradient-to-b from-slate-50 to-white ml-10 mr-10 section-animate ${
+          animatedSections.has("contact") ? "animate" : ""
+        }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-2 lg:px-2">
+          <div className="text-center mb-1">
             <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
               Contact Us
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
               Get in Touch
-              <span className="text-emerald-600 block">With Our Team</span>
             </h2>
-            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-              Ready to transform your school transportation? Contact us today
-              for a free consultation and personalized demo.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
@@ -1149,7 +1511,14 @@ const Landing = () => {
                 {contactInfo.map((info, index) => (
                   <div
                     key={index}
-                    className="flex items-start space-x-4 group hover:translate-x-2 transition-transform duration-300"
+                    className={`flex items-start space-x-4 group hover:translate-x-2 transition-transform duration-300 ${
+                      animatedSections.has("contact")
+                        ? "opacity-100 translate-x-0"
+                        : "opacity-0 translate-x-10"
+                    }`}
+                    style={{
+                      transitionDelay: `${index * 100}ms`,
+                    }}
                   >
                     <div className="flex-shrink-0 w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       {info.icon}
@@ -1162,7 +1531,26 @@ const Landing = () => {
                         {info.description}
                       </div>
                       <div className="text-emerald-600 font-medium">
-                        {info.value}
+                        {info.link ? (
+                          <a
+                            href={info.link}
+                            target={
+                              info.link.startsWith("http")
+                                ? "_blank"
+                                : undefined
+                            }
+                            rel={
+                              info.link.startsWith("http")
+                                ? "noopener noreferrer"
+                                : undefined
+                            }
+                            className="hover:text-emerald-700 transition-colors"
+                          >
+                            {info.value}
+                          </a>
+                        ) : (
+                          info.value
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1202,7 +1590,14 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 ml-10 mr-10">
+      <section
+        id="cta"
+        className={`py-20 bg-gradient-to-r from-emerald-600 to-emerald-700 ml-10 mr-10 transition-all duration-1000 ${
+          animatedSections.has("cta")
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-10"
+        }`}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your
@@ -1241,22 +1636,93 @@ const Landing = () => {
                 Modern school transportation management platform that helps
                 schools improve safety, efficiency, and parent satisfaction.
               </p>
+
+              {/* Contact Information */}
+              <div className="space-y-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <LocationIcon className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">
+                      Head Office
+                    </h4>
+                    <p className="text-slate-300 text-sm">
+                      Gesora Road, Utawala, Nairobi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Mail className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">
+                      Mailing Address
+                    </h4>
+                    <p className="text-slate-300 text-sm">
+                      <a
+                        href="mailto:info@eujimsloutions.com"
+                        className="hover:text-emerald-400 transition-colors"
+                      >
+                        Inquiry: info@eujimsloutions.com
+                      </a>
+                    </p>
+                    <p className="text-slate-300 text-sm">
+                      <a
+                        href="mailto:support@eujimsolutions.com"
+                        className="hover:text-emerald-400 transition-colors"
+                      >
+                        Support: support@eujimsolutions.com
+                      </a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Phone className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-white mb-1">
+                      Business Talk
+                    </h4>
+                    <p className="text-slate-300 text-sm">
+                      <a
+                        href="tel:+254113281424"
+                        className="hover:text-emerald-400 transition-colors"
+                      >
+                        +254 113281424
+                      </a>
+                    </p>
+                    <p className="text-slate-300 text-sm">
+                      <a
+                        href="tel:+254718099959"
+                        className="hover:text-emerald-400 transition-colors"
+                      >
+                        +254 718099959
+                      </a>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex space-x-4">
                 <a
-                  href="#"
+                  href="tel:+254113281424"
                   className="text-slate-400 hover:text-emerald-400 transition-colors"
+                  title="Call us"
                 >
                   <Phone className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
+                  href="mailto:info@eujimsloutions.com"
                   className="text-slate-400 hover:text-emerald-400 transition-colors"
+                  title="Email us"
                 >
                   <Mail className="h-5 w-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://maps.google.com/?q=Gesora+Road,+Utawala,+Nairobi"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-slate-400 hover:text-emerald-400 transition-colors"
+                  title="Visit our office"
                 >
                   <LocationIcon className="h-5 w-5" />
                 </a>
@@ -1267,7 +1733,7 @@ const Landing = () => {
               <ul className="space-y-3">
                 <li>
                   <a
-                    href="#"
+                    href="#features"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
                     Features
@@ -1275,27 +1741,19 @@ const Landing = () => {
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#pricing"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="#"
+                  <button
+                    onClick={() => setShowDemoRequestModal(true)}
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
                   >
                     Demo
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-slate-300 hover:text-emerald-400 transition-colors"
-                  >
-                    API
-                  </a>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -1304,32 +1762,28 @@ const Landing = () => {
               <ul className="space-y-3">
                 <li>
                   <a
-                    href="#"
+                    href="#about"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document
+                        .getElementById("about")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
                   >
-                    About
+                    About Us
                   </a>
                 </li>
                 <li>
                   <a
-                    href="#"
+                    href="#contact"
                     className="text-slate-300 hover:text-emerald-400 transition-colors"
-                  >
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-slate-300 hover:text-emerald-400 transition-colors"
-                  >
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="text-slate-300 hover:text-emerald-400 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document
+                        .getElementById("contact")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
                   >
                     Contact
                   </a>
@@ -1339,7 +1793,7 @@ const Landing = () => {
           </div>
           <div className="border-t border-slate-800 mt-12 pt-8 text-center">
             <p className="text-slate-400">
-              © 2024 LuxCub. All rights reserved.
+              © {new Date().getFullYear()} LuxCub. All rights reserved.
             </p>
           </div>
         </div>
