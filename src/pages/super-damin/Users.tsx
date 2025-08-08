@@ -1,32 +1,38 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
+  Trash2,
   Eye,
   UserPlus,
-  Download
+  Download,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,16 +42,76 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { staffService } from "@/services/staffService";
+import { toast } from "@/components/ui/use-toast";
 
 interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  school: string;
+  id: number;
+  employee_id: string;
+  user: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    profile_image: string | null;
+    user_type: string;
+    phone_number: string;
+    two_factor_enabled: boolean;
+    last_login_ip: string | null;
+    account_verified: boolean;
+    last_password_change: string | null;
+    failed_login_attempts: number;
+    staff_profile: {
+      id: number;
+      employee_id: string;
+      role: number;
+      role_name: string;
+      school: number;
+      school_name: string;
+      status: string;
+      is_on_duty: boolean;
+    };
+  };
+  role: number;
+  role_details: {
+    id: number;
+    name: string;
+    description: string;
+    is_system_role: boolean;
+    parent_role: number | null;
+    school: number;
+  };
+  school: number;
+  school_details: {
+    id: number;
+    name: string;
+    location: string;
+    description: string;
+    logo: string | null;
+    contact_number: string;
+    email: string;
+    admin: number;
+    admin_details: any;
+    longitude_point: any;
+    latitude_point: any;
+    location_coordinates: {
+      longitude: number;
+      latitude: number;
+    };
+    operating_hours_start: string;
+    operating_hours_end: string;
+    is_active: boolean;
+    notification_enabled: boolean;
+    allow_parent_tracking: boolean;
+  };
+  date_joined: string;
   status: "active" | "inactive" | "pending";
-  lastLogin: string;
-  createdAt: string;
+  can_manage_routes: boolean;
+  can_manage_vehicles: boolean;
+  can_view_student_trips: boolean;
+  can_manage_staff: boolean;
+  is_on_duty: boolean;
+  last_activity: string | null;
 }
 
 const Users = () => {
@@ -56,77 +122,37 @@ const Users = () => {
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    // Simulate fetching users data
     const fetchUsers = async () => {
       setLoading(true);
-      // Mock data - replace with actual API calls
-      setTimeout(() => {
-        setUsers([
-          {
-            id: "1",
-            name: "John Doe",
-            email: "john.doe@school.edu",
-            role: "School Admin",
-            school: "Springfield High School",
-            status: "active",
-            lastLogin: "2024-01-15 10:30 AM",
-            createdAt: "2023-09-15",
-          },
-          {
-            id: "2",
-            name: "Jane Smith",
-            email: "jane.smith@school.edu",
-            role: "Teacher",
-            school: "Lincoln Elementary",
-            status: "active",
-            lastLogin: "2024-01-14 02:15 PM",
-            createdAt: "2023-10-20",
-          },
-          {
-            id: "3",
-            name: "Mike Johnson",
-            email: "mike.johnson@school.edu",
-            role: "Driver",
-            school: "Central Middle School",
-            status: "inactive",
-            lastLogin: "2024-01-10 09:45 AM",
-            createdAt: "2023-08-05",
-          },
-          {
-            id: "4",
-            name: "Sarah Wilson",
-            email: "sarah.wilson@school.edu",
-            role: "Parent",
-            school: "Oakwood Academy",
-            status: "pending",
-            lastLogin: "Never",
-            createdAt: "2024-01-12",
-          },
-          {
-            id: "5",
-            name: "David Brown",
-            email: "david.brown@school.edu",
-            role: "School Admin",
-            school: "Riverside High",
-            status: "active",
-            lastLogin: "2024-01-15 11:20 AM",
-            createdAt: "2023-07-22",
-          },
-        ]);
+      try {
+        const response = await staffService.getAllStaff();
+        setUsers(response);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     };
 
     fetchUsers();
   }, []);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.school.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
-    
+  const filteredUsers = users.filter((user) => {
+    const fullName = `${user.user.first_name} ${user.user.last_name}`;
+    const matchesSearch =
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.school_details.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole =
+      roleFilter === "all" || user.role_details.name === roleFilter;
+    const matchesStatus =
+      statusFilter === "all" || user.status === statusFilter;
+
     return matchesSearch && matchesRole && matchesStatus;
   });
 
@@ -145,13 +171,15 @@ const Users = () => {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "School Admin":
-        return <Badge className="bg-blue-100 text-blue-800">School Admin</Badge>;
-      case "Teacher":
+      case "school_admin":
+        return (
+          <Badge className="bg-blue-100 text-blue-800">School Admin</Badge>
+        );
+      case "teacher":
         return <Badge className="bg-purple-100 text-purple-800">Teacher</Badge>;
-      case "Driver":
+      case "driver":
         return <Badge className="bg-orange-100 text-orange-800">Driver</Badge>;
-      case "Parent":
+      case "parent":
         return <Badge className="bg-green-100 text-green-800">Parent</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
@@ -166,7 +194,10 @@ const Users = () => {
           <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded animate-pulse"></div>
+              <div
+                key={i}
+                className="h-16 bg-gray-200 rounded animate-pulse"
+              ></div>
             ))}
           </div>
         </div>
@@ -179,7 +210,9 @@ const Users = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Users Management
+          </h1>
           <p className="text-muted-foreground">
             Manage all users across all schools
           </p>
@@ -200,9 +233,7 @@ const Users = () => {
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>
-            Filter users by various criteria
-          </CardDescription>
+          <CardDescription>Filter users by various criteria</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -221,10 +252,10 @@ const Users = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="School Admin">School Admin</SelectItem>
-                <SelectItem value="Teacher">Teacher</SelectItem>
-                <SelectItem value="Driver">Driver</SelectItem>
-                <SelectItem value="Parent">Parent</SelectItem>
+                <SelectItem value="school_admin">School Admin</SelectItem>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="driver">Driver</SelectItem>
+                <SelectItem value="parent">Parent</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -250,9 +281,7 @@ const Users = () => {
       <Card>
         <CardHeader>
           <CardTitle>Users ({filteredUsers.length})</CardTitle>
-          <CardDescription>
-            All registered users in the system
-          </CardDescription>
+          <CardDescription>All registered users in the system</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -271,13 +300,21 @@ const Users = () => {
             <TableBody>
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
-                  <TableCell>{user.school}</TableCell>
+                  <TableCell className="font-medium">
+                    {`${user.user.first_name} ${user.user.last_name}`}
+                  </TableCell>
+                  <TableCell>{user.user.email}</TableCell>
+                  <TableCell>{getRoleBadge(user.role_details.name)}</TableCell>
+                  <TableCell>{user.school_details.name}</TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
-                  <TableCell>{user.createdAt}</TableCell>
+                  <TableCell>
+                    {user.last_activity
+                      ? new Date(user.last_activity).toLocaleString()
+                      : "Never"}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(user.date_joined).toLocaleDateString()}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -313,4 +350,4 @@ const Users = () => {
   );
 };
 
-export default Users; 
+export default Users;

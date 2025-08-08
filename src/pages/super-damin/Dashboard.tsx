@@ -24,6 +24,7 @@ import {
   FileText,
 } from "lucide-react";
 import { schoolsService, DashboardStats } from "@/services/schoolsService";
+import { staffService } from "@/services/staffService";
 import { toast, useToast } from "@/components/ui/use-toast";
 import { generateTablePDF, downloadPDF } from "@/utils/pdfGenerator";
 
@@ -58,8 +59,11 @@ const Dashboard = () => {
           dispatch(fetchSchoolSubscriptions()),
         ]);
 
-        // Get schools data
-        const allSchools = await schoolsService.getAllSchools();
+        // Get schools and staff data
+        const [allSchools, allStaff] = await Promise.all([
+          schoolsService.getAllSchools(),
+          staffService.getAllStaff(),
+        ]);
 
         // Calculate real statistics from the data
         const totalRevenue = invoices.reduce((sum, invoice) => {
@@ -73,6 +77,14 @@ const Dashboard = () => {
           (invoice) => invoice.status === "pending"
         );
 
+        // Calculate total users (staff + students)
+        const totalStaff = allStaff.length;
+        const totalStudents = allSchools.reduce(
+          (sum, school) => sum + (school.currentStudents || 0),
+          0
+        );
+        const totalUsers = totalStaff + totalStudents;
+
         const realStats: DashboardStats = {
           totalSchools: allSchools.length,
           activeSchools: allSchools.filter((school) => school.isActive).length,
@@ -80,23 +92,16 @@ const Dashboard = () => {
             .length,
           premiumSchools: subscriptions.filter((sub) => sub.status === "active")
             .length,
-          totalUsers: allSchools.reduce(
-            (sum, school) => sum + (school.currentStudents || 0),
-            0
-          ),
+          totalUsers: totalUsers,
           activeSubscriptions: subscriptions.filter(
             (sub) => sub.status === "active"
           ).length,
           revenue: totalRevenue,
           pendingApprovals: allSchools.filter((school) => !school.isActive)
             .length,
-          activeUsers: allSchools.reduce(
-            (sum, school) => sum + (school.currentStudents || 0),
-            0
-          ),
+          activeUsers: totalUsers, // For now, consider all users as active
           inactiveUsers: 0,
         };
-
 
         setStats(realStats);
       } catch (error) {
@@ -110,6 +115,8 @@ const Dashboard = () => {
           activeUsers: 1189,
           inactiveUsers: 58,
           premiumSchools: 23,
+          activeSchools: 67,
+          inactiveSchools: 22,
         });
       } finally {
         setLoading(false);
@@ -133,7 +140,7 @@ const Dashboard = () => {
         [
           "Total Users",
           stats.totalUsers.toLocaleString(),
-          "All registered users",
+          "All registered users (staff + students)",
         ],
         [
           "Total Schools",
@@ -392,7 +399,7 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">Pending Invoices</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-green-600">
                 {subscriptions.length}
               </div>
               <p className="text-sm text-muted-foreground">
@@ -446,7 +453,7 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">Inactive Schools</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-green-600">
                 {stats.premiumSchools}
               </div>
               <p className="text-sm text-muted-foreground">Premium Schools</p>
@@ -524,7 +531,10 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-function toast(arg0: { title: string; description: string; variant: "destructive"; }) {
+function toast(arg0: {
+  title: string;
+  description: string;
+  variant: "destructive";
+}) {
   throw new Error("Function not implemented.");
 }
-

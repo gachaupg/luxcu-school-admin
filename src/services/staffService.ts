@@ -1,6 +1,4 @@
-import axios from "axios";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+import { API_ENDPOINTS } from "@/utils/api";
 
 export interface StaffUser {
   first_name: string;
@@ -19,34 +17,186 @@ export interface StaffData {
   user: StaffUser;
 }
 
-export const staffService = {
-  // Get all staff members
-  getAllStaff: async () => {
-    const response = await axios.get(`${API_URL}/staff/`);
-    return response.data;
-  },
+export interface Staff {
+  id: number;
+  employee_id: string;
+  user: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    profile_image: string | null;
+    user_type: string;
+    phone_number: string;
+    two_factor_enabled: boolean;
+    last_login_ip: string | null;
+    account_verified: boolean;
+    last_password_change: string | null;
+    failed_login_attempts: number;
+    staff_profile: {
+      id: number;
+      employee_id: string;
+      role: number;
+      role_name: string;
+      school: number;
+      school_name: string;
+      status: string;
+      is_on_duty: boolean;
+    };
+  };
+  role: number;
+  role_details: {
+    id: number;
+    name: string;
+    description: string;
+    is_system_role: boolean;
+    parent_role: number | null;
+    school: number;
+  };
+  school: number;
+  school_details: {
+    id: number;
+    name: string;
+    location: string;
+    description: string;
+    logo: string | null;
+    contact_number: string;
+    email: string;
+    admin: number;
+    admin_details: any;
+    longitude_point: any;
+    latitude_point: any;
+    location_coordinates: {
+      longitude: number;
+      latitude: number;
+    };
+    operating_hours_start: string;
+    operating_hours_end: string;
+    is_active: boolean;
+    notification_enabled: boolean;
+    allow_parent_tracking: boolean;
+  };
+  date_joined: string;
+  status: "active" | "inactive" | "pending";
+  can_manage_routes: boolean;
+  can_manage_vehicles: boolean;
+  can_view_student_trips: boolean;
+  can_manage_staff: boolean;
+  is_on_duty: boolean;
+  last_activity: string | null;
+}
 
-  // Add new staff member
-  addStaff: async (staffData: StaffData) => {
-    const response = await axios.post(`${API_URL}/staff/`, staffData);
-    return response.data;
-  },
+class StaffService {
+  private baseUrl = API_ENDPOINTS.STAFF;
 
-  // Update staff member
-  updateStaff: async (id: string, staffData: Partial<StaffData>) => {
-    const response = await axios.patch(`${API_URL}/staff/${id}/`, staffData);
-    return response.data;
-  },
+  async getAllStaff(): Promise<Staff[]> {
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-  // Delete staff member
-  deleteStaff: async (id: string) => {
-    const response = await axios.delete(`${API_URL}/staff/${id}/`);
-    return response.data;
-  },
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-  // Get staff member by ID
-  getStaffById: async (id: string) => {
-    const response = await axios.get(`${API_URL}/staff/${id}/`);
-    return response.data;
-  },
-};
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+      throw error;
+    }
+  }
+
+  async addStaff(staffData: StaffData): Promise<Staff> {
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(staffData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error("Error adding staff:", error);
+      throw error;
+    }
+  }
+
+  async updateStaff(id: string, staffData: Partial<StaffData>): Promise<Staff> {
+    try {
+      const response = await fetch(`${this.baseUrl}${id}/`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(staffData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error("Error updating staff:", error);
+      throw error;
+    }
+  }
+
+  async deleteStaff(id: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}${id}/`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Error deleting staff:", error);
+      throw error;
+    }
+  }
+
+  async getStaffById(id: string): Promise<Staff> {
+    try {
+      const response = await fetch(`${this.baseUrl}${id}/`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data || data;
+    } catch (error) {
+      console.error("Error fetching staff by ID:", error);
+      throw error;
+    }
+  }
+}
+
+export const staffService = new StaffService();

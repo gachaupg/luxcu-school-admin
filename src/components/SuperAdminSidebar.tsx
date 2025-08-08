@@ -59,12 +59,12 @@ export function SuperAdminSidebar() {
       {/* Logo */}
       <Link to="/super-admin">
         <div className="p-6 flex items-center gap-2">
-          <div className="rounded-full bg-purple-100 dark:bg-purple-900/20 p-2">
-            <Shield className="h-6 w-6 text-purple-600" />
+          <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
+            <Shield className="h-6 w-6 text-green-600" />
           </div>
           <span className="font-extrabold text-lg">
             <span className="text-black dark:text-white">Super</span>
-            <span className="text-purple-500">Admin</span>
+            <span className="text-green-500">Admin</span>
           </span>
         </div>
       </Link>
@@ -80,7 +80,7 @@ export function SuperAdminSidebar() {
                 to={item.href}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                   active
-                    ? "bg-purple-500/90 text-white"
+                    ? "bg-green-500/90 text-white"
                     : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
@@ -98,7 +98,6 @@ export function SuperAdminSidebar() {
       </div>
 
       {/* Quick Stats */}
-     
 
       {/* Settings at the bottom */}
       <div className="p-4">
@@ -106,7 +105,7 @@ export function SuperAdminSidebar() {
           to="/super-admin/settings"
           className={`flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 w-full ${
             isActive("/super-admin/settings")
-              ? "bg-purple-500/90 text-white"
+              ? "bg-green-500/90 text-white"
               : ""
           }`}
         >

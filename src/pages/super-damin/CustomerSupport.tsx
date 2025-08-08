@@ -191,35 +191,35 @@ const CustomerSupport = () => {
       </div>
 
       {/* Search */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Contact Messages</CardTitle>
-          <CardDescription>
-            Messages from potential clients and existing customers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contact messages..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Messages</CardTitle>
+              <CardDescription>
+                Messages from potential clients and existing customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search contact messages..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
       {/* Contact Messages Table */}
-      <Card>
-        <CardHeader>
+        <Card>
+          <CardHeader>
           <CardTitle>Contact Messages ({filteredMessages.length})</CardTitle>
-          <CardDescription>
-            Messages from potential clients and existing customers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+            <CardDescription>
+              Messages from potential clients and existing customers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
           {contactMessagesError ? (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -227,109 +227,109 @@ const CustomerSupport = () => {
                 Error Loading Messages
               </h3>
               <p className="text-muted-foreground">{contactMessagesError}</p>
-            </div>
+              </div>
           ) : filteredMessages.length === 0 ? (
-            <div className="text-center py-8">
-              <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                No Contact Messages
-              </h3>
-              <p className="text-muted-foreground">
+              <div className="text-center py-8">
+                <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  No Contact Messages
+                </h3>
+                <p className="text-muted-foreground">
                 {contactMessages.length === 0
                   ? "No contact messages have been received yet."
                   : "No messages match your current search."}
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>School</TableHead>
-                  <TableHead>Message Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMessages.map((message) => (
-                  <TableRow key={message.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {message.first_name} {message.last_name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {message.email_address}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {message.school_name}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {getMessageTypeBadge(message.message_type)}
-                    </TableCell>
-                    <TableCell>{getReadStatusBadge(message.is_read)}</TableCell>
-                    <TableCell>
-                      <div className="max-w-xs">
-                        <div className="text-sm line-clamp-2">
-                          {message.message}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDate(message.created_at)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Reply
-                          </DropdownMenuItem>
-                          {!message.is_read && (
-                            <DropdownMenuItem
-                              onClick={() => handleMarkAsRead(message.id)}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Mark as Read
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
-                            <XCircle className="mr-2 h-4 w-4" />
-                            Delete Message
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>School</TableHead>
+                    <TableHead>Message Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                {filteredMessages.map((message) => (
+                      <TableRow key={message.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {message.first_name} {message.last_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {message.email_address}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {message.school_name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {getMessageTypeBadge(message.message_type)}
+                        </TableCell>
+                    <TableCell>{getReadStatusBadge(message.is_read)}</TableCell>
+                        <TableCell>
+                          <div className="max-w-xs">
+                            <div className="text-sm line-clamp-2">
+                              {message.message}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {formatDate(message.created_at)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Reply
+                              </DropdownMenuItem>
+                              {!message.is_read && (
+                                <DropdownMenuItem
+                                  onClick={() => handleMarkAsRead(message.id)}
+                                >
+                                  <CheckCircle className="mr-2 h-4 w-4" />
+                                  Mark as Read
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600">
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Delete Message
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
     </div>
   );
 };
