@@ -4,6 +4,21 @@ import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { isTokenExpired } from "@/utils/auth";
 
+interface SchoolSubscription {
+  id: string;
+  plan_name: string;
+  status: string;
+  billing_cycle: string;
+  school_name: string;
+  school_to_pay: boolean;
+  parents_to_pay: boolean;
+  start_date: string;
+  end_date: string | null;
+  next_billing_date: string | null;
+  total_amount: number;
+  payment_responsibility: string;
+}
+
 interface User {
   id: number;
   first_name: string;
@@ -18,6 +33,7 @@ interface User {
   last_password_change: string | null;
   failed_login_attempts: number;
   staff_profile: any | null;
+  school_subscription?: SchoolSubscription;
 }
 
 interface AuthState {
@@ -99,6 +115,46 @@ const initialState: AuthState = {
 // Note: API headers will be set by the auth interceptor in api.ts
 // No need to set them here during module initialization
 
+// Helper function to check subscription restrictions
+const checkSubscriptionRestrictions = (user: User): string | null => {
+  const subscription = user.school_subscription;
+  
+  if (!subscription) {
+    return null; // No subscription data, allow login
+  }
+
+  // If school_to_pay is true, don't restrict even if status is not active
+  if (subscription.school_to_pay) {
+    return null; // Allow login regardless of status
+  }
+
+  // If school_to_pay is false and status is not active, restrict login
+  if (!subscription.school_to_pay && subscription.status !== "active") {
+    let errorMessage = "Access denied. ";
+    
+    switch (subscription.status) {
+      case "suspended":
+        errorMessage += "Your school subscription has been suspended due to payment issues. Please contact your school administrator to resolve this.";
+        break;
+      case "expired":
+        errorMessage += "Your school subscription has expired. Please contact your school administrator to renew the subscription.";
+        break;
+      case "cancelled":
+        errorMessage += "Your school subscription has been cancelled. Please contact your school administrator to reactivate the subscription.";
+        break;
+      case "pending":
+        errorMessage += "Your school subscription is pending activation. Please contact your school administrator.";
+        break;
+      default:
+        errorMessage += `Your school subscription is ${subscription.status}. Please contact your school administrator to resolve payment issues.`;
+    }
+    
+    return errorMessage;
+  }
+
+  return null; // Allow login
+};
+
 export const login = createAsyncThunk<
   { token: string; user: User },
   { phone_number: string; password: string },
@@ -116,6 +172,14 @@ export const login = createAsyncThunk<
           const data = JSON.parse(xhr.responseText);
           if (data.data?.token) {
             const { token, user } = data.data;
+            
+            // Check subscription restrictions
+            const restrictionError = checkSubscriptionRestrictions(user);
+            if (restrictionError) {
+              reject(rejectWithValue(restrictionError));
+              return;
+            }
+            
             // Note: API headers will be set by the auth interceptor
             resolve({ token, user });
           } else {

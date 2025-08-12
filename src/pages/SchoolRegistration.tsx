@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Building2, User, Package, Check, MapPin } from "lucide-react";
+import { Loader2, Building2, User, Package, Check, MapPin, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const SchoolRegistration = () => {
@@ -37,6 +37,7 @@ const SchoolRegistration = () => {
     principalName: "",
     principalPhone: "",
     principalEmail: "", // This field now stores admin email
+    adminPassword: "", // Admin password field
     description: "",
     longitude: "",
     latitude: "",
@@ -50,6 +51,7 @@ const SchoolRegistration = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [addressSearch, setAddressSearch] = useState("");
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -178,6 +180,7 @@ const SchoolRegistration = () => {
       principalName: "Principal Name",
       principalPhone: "Principal Phone",
       principalEmail: "Admin Email",
+      adminPassword: "Admin Password",
       estimatedStudents: "Estimated Number of Students",
       estimatedBuses: "Estimated Number of Buses",
       estimatedParents: "Estimated Number of Parents",
@@ -209,6 +212,11 @@ const SchoolRegistration = () => {
 
     if (formData.principalEmail && !validateEmail(formData.principalEmail)) {
       newErrors.principalEmail = "Please enter a valid admin email address";
+    }
+
+    // Password validation
+    if (formData.adminPassword && formData.adminPassword.length < 6) {
+      newErrors.adminPassword = "Password must be at least 6 characters long";
     }
 
     // Website validation (optional but if provided, should be valid)
@@ -505,7 +513,7 @@ const SchoolRegistration = () => {
           formData.principalName,
         admin_phone_number: formatPhoneNumber(formData.principalPhone),
         admin_email: formData.principalEmail, // Changed from admin_number to admin_email
-        admin_password: "AdminPass456@", // This should be generated or user-provided
+        admin_password: formData.adminPassword, // Use the password from form
         selected_plan_id: selectedPlan?.id || "1",
         billing_cycle: selectedPlan?.default_billing_cycle || "monthly",
         estimated_students: parseInt(formData.estimatedStudents) || 400,
@@ -523,14 +531,14 @@ const SchoolRegistration = () => {
       toast({
         title: "Registration Submitted",
         description:
-          "Your school registration has been submitted successfully. You will be notified once verified.",
+          "Your school registration has been submitted successfully. You can now log in with your admin credentials.",
       });
 
       // Clear stored plan
       localStorage.removeItem("selectedSubscriptionPlan");
 
-      // Navigate to verification page
-      navigate("/verification");
+      // Navigate to login page
+      navigate("/login");
     } catch (error) {
       toast({
         variant: "destructive",
@@ -545,27 +553,27 @@ const SchoolRegistration = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 p-4">
-      <Card className="w-full max-w-2xl shadow-xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="h-8 w-8 text-emerald-600" />
+      <Card className="w-full max-w-4xl shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
+            <Building2 className="h-6 w-6 text-emerald-600" />
           </div>
-          <CardTitle className="text-3xl font-bold text-slate-900">
+          <CardTitle className="text-2xl font-bold text-slate-900">
             Register Your School
           </CardTitle>
-          <CardDescription className="text-lg text-slate-600">
+          <CardDescription className="text-base text-slate-600">
             Join LuxCub and transform your school transportation management
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-                <Building2 className="h-5 w-5 mr-2 text-emerald-600" />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold text-slate-900 flex items-center">
+                <Building2 className="h-4 w-4 mr-2 text-emerald-600" />
                 School Information
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="schoolName">School Name *</Label>
                   <Input
@@ -597,102 +605,120 @@ const SchoolRegistration = () => {
                     <p className="text-sm text-red-500">{errors.schoolType}</p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    name="website"
+                    type="url"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    placeholder="https://www.school.edu"
+                    className={errors.website ? "border-red-500" : ""}
+                  />
+                  {errors.website && (
+                    <p className="text-sm text-red-500">{errors.website}</p>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
-                <div className="relative address-search-container">
-                  <div className="flex gap-2">
-                    <Input
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={(e) => {
-                        handleInputChange(e);
-                        debouncedSearch(e.target.value);
-                      }}
-                      placeholder="Search for school location..."
-                      required
-                      className={errors.address ? "border-red-500" : ""}
-                    />
-                    {isSearchingLocation && (
-                      <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address *</Label>
+                  <div className="relative address-search-container">
+                    <div className="flex gap-2">
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={(e) => {
+                          handleInputChange(e);
+                          debouncedSearch(e.target.value);
+                        }}
+                        placeholder="Search for school location..."
+                        required
+                        className={errors.address ? "border-red-500" : ""}
+                      />
+                      {isSearchingLocation && (
+                        <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Results Dropdown */}
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {searchResults.map((result, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            onClick={() =>
+                              selectLocation(result.place_id, result.description)
+                            }
+                          >
+                            <div className="font-medium text-sm">
+                              {result.structured_formatting?.main_text ||
+                                result.description}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {result.structured_formatting?.secondary_text || ""}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-
-                  {/* Search Results Dropdown */}
-                  {showSearchResults && searchResults.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {searchResults.map((result, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                          onClick={() =>
-                            selectLocation(result.place_id, result.description)
-                          }
-                        >
-                          <div className="font-medium text-sm">
-                            {result.structured_formatting?.main_text ||
-                              result.description}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {result.structured_formatting?.secondary_text || ""}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {errors.address && (
-                  <p className="text-sm text-red-500">{errors.address}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    placeholder="City"
-                    required
-                    className={errors.city ? "border-red-500" : ""}
-                  />
-                  {errors.city && (
-                    <p className="text-sm text-red-500">{errors.city}</p>
+                  {errors.address && (
+                    <p className="text-sm text-red-500">{errors.address}</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="state">State/Province *</Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    placeholder="State"
-                    required
-                    className={errors.state ? "border-red-500" : ""}
-                  />
-                  {errors.state && (
-                    <p className="text-sm text-red-500">{errors.state}</p>
-                  )}
-                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Input
+                      id="city"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      placeholder="City"
+                      required
+                      className={errors.city ? "border-red-500" : ""}
+                    />
+                    {errors.city && (
+                      <p className="text-sm text-red-500">{errors.city}</p>
+                    )}
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="zipCode">ZIP/Postal Code</Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleInputChange}
-                    placeholder="ZIP code"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State/Province *</Label>
+                    <Input
+                      id="state"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleInputChange}
+                      placeholder="State"
+                      required
+                      className={errors.state ? "border-red-500" : ""}
+                    />
+                    {errors.state && (
+                      <p className="text-sm text-red-500">{errors.state}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="zipCode">ZIP/Postal Code</Label>
+                    <Input
+                      id="zipCode"
+                      name="zipCode"
+                      value={formData.zipCode}
+                      onChange={handleInputChange}
+                      placeholder="ZIP code"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -750,27 +776,27 @@ const SchoolRegistration = () => {
             </div>
 
             {selectedPlan && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-                  <Package className="h-5 w-5 mr-2 text-emerald-600" />
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-slate-900 flex items-center">
+                  <Package className="h-4 w-4 mr-2 text-emerald-600" />
                   Selected Subscription Plan
                 </h3>
                 <Card className="border-emerald-200 bg-emerald-50">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-emerald-800">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-emerald-800 text-sm">
                         {selectedPlan.name
                           .replace(/_/g, " ")
                           .replace(/\b\w/g, (l: string) => l.toUpperCase())}
                       </h4>
-                      <Badge className="bg-emerald-600 text-white">
+                      <Badge className="bg-emerald-600 text-white text-xs">
                         {formatPrice(selectedPlan.base_price)}/month
                       </Badge>
                     </div>
-                    <p className="text-sm text-emerald-700 mb-3">
+                    <p className="text-xs text-emerald-700 mb-2">
                       {selectedPlan.description}
                     </p>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center">
                         <div className="font-semibold text-emerald-600">
                           {selectedPlan.features_json.max_students}
@@ -795,179 +821,217 @@ const SchoolRegistration = () => {
               </div>
             )}
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-                <User className="h-5 w-5 mr-2 text-emerald-600" />
-                Principal Information
-              </h3>
+                         <div className="space-y-3">
+               <h3 className="text-base font-semibold text-slate-900 flex items-center">
+                 <User className="h-4 w-4 mr-2 text-emerald-600" />
+                 Admin Information
+               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                   <Label htmlFor="principalName">Admin Name *</Label>
+                   <Input
+                     id="principalName"
+                     name="principalName"
+                     value={formData.principalName}
+                     onChange={handleInputChange}
+                     placeholder="Admin's full name"
+                     required
+                     className={errors.principalName ? "border-red-500" : ""}
+                   />
+                   {errors.principalName && (
+                     <p className="text-sm text-red-500">
+                       {errors.principalName}
+                     </p>
+                   )}
+                 </div>
+
+                 <div className="space-y-2">
+                   <Label htmlFor="principalPhone">Admin Phone *</Label>
+                   <Input
+                     id="principalPhone"
+                     name="principalPhone"
+                     type="tel"
+                     value={formData.principalPhone}
+                     onChange={handleInputChange}
+                     placeholder="e.g., 0723456789"
+                     required
+                     className={errors.principalPhone ? "border-red-500" : ""}
+                   />
+                   {errors.principalPhone && (
+                     <p className="text-sm text-red-500">
+                       {errors.principalPhone}
+                     </p>
+                   )}
+                 </div>
+               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label htmlFor="principalName">Principal Name *</Label>
+                  <Label htmlFor="principalEmail">Admin Email *</Label>
                   <Input
-                    id="principalName"
-                    name="principalName"
-                    value={formData.principalName}
+                    id="principalEmail"
+                    name="principalEmail"
+                    type="email"
+                    value={formData.principalEmail}
                     onChange={handleInputChange}
-                    placeholder="Principal's full name"
+                    placeholder="admin@schoolname.com"
                     required
-                    className={errors.principalName ? "border-red-500" : ""}
+                    className={errors.principalEmail ? "border-red-500" : ""}
                   />
-                  {errors.principalName && (
+                  {errors.principalEmail && (
                     <p className="text-sm text-red-500">
-                      {errors.principalName}
+                      {errors.principalEmail}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="principalPhone">Principal Phone *</Label>
-                  <Input
-                    id="principalPhone"
-                    name="principalPhone"
-                    type="tel"
-                    value={formData.principalPhone}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 0723456789"
-                    required
-                    className={errors.principalPhone ? "border-red-500" : ""}
-                  />
-                  {errors.principalPhone && (
-                    <p className="text-sm text-red-500">
-                      {errors.principalPhone}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="principalEmail">Admin Email *</Label>
-                <Input
-                  id="principalEmail"
-                  name="principalEmail"
-                  type="email"
-                  value={formData.principalEmail}
-                  onChange={handleInputChange}
-                  placeholder="admin@schoolname.com"
-                  required
-                  className={errors.principalEmail ? "border-red-500" : ""}
-                />
-                {errors.principalEmail && (
-                  <p className="text-sm text-red-500">
-                    {errors.principalEmail}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Additional Information
-              </h3>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">School Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Tell us about your school, number of students, transportation needs, etc."
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="estimatedStudents">
-                    Estimated Number of Students *
-                  </Label>
-                  <Input
-                    id="estimatedStudents"
-                    name="estimatedStudents"
-                    type="number"
-                    value={formData.estimatedStudents}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 400"
-                    required
-                    className={errors.estimatedStudents ? "border-red-500" : ""}
-                  />
-                  {errors.estimatedStudents && (
-                    <p className="text-sm text-red-500">
-                      {errors.estimatedStudents}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="estimatedBuses">
-                    Estimated Number of Buses *
-                  </Label>
-                  <Input
-                    id="estimatedBuses"
-                    name="estimatedBuses"
-                    type="number"
-                    value={formData.estimatedBuses}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 4"
-                    required
-                    className={errors.estimatedBuses ? "border-red-500" : ""}
-                  />
-                  {errors.estimatedBuses && (
-                    <p className="text-sm text-red-500">
-                      {errors.estimatedBuses}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="estimatedParents">
-                    Estimated Number of Parents *
-                  </Label>
-                  <Input
-                    id="estimatedParents"
-                    name="estimatedParents"
-                    type="number"
-                    value={formData.estimatedParents}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 800"
-                    required
-                    className={errors.estimatedParents ? "border-red-500" : ""}
-                  />
-                  {errors.estimatedParents && (
-                    <p className="text-sm text-red-500">
-                      {errors.estimatedParents}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="operatingHoursStart">
-                    Operating Hours Start
-                  </Label>
-                  <Input
-                    id="operatingHoursStart"
-                    name="operatingHoursStart"
-                    type="time"
-                    value={formData.operatingHoursStart}
-                    onChange={handleInputChange}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="operatingHoursEnd">Operating Hours End</Label>
-                  <Input
-                    id="operatingHoursEnd"
-                    name="operatingHoursEnd"
-                    type="time"
-                    value={formData.operatingHoursEnd}
-                    onChange={handleInputChange}
-                  />
-                </div>
+                                 <div className="space-y-2">
+                   <Label htmlFor="adminPassword">Admin Password *</Label>
+                   <div className="relative">
+                     <Input
+                       id="adminPassword"
+                       name="adminPassword"
+                       type={showPassword ? "text" : "password"}
+                       value={formData.adminPassword}
+                       onChange={handleInputChange}
+                       placeholder="Enter admin password"
+                       required
+                       className={`pr-10 ${errors.adminPassword ? "border-red-500" : ""}`}
+                     />
+                     <Button
+                       type="button"
+                       variant="ghost"
+                       size="sm"
+                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                       onClick={() => setShowPassword(!showPassword)}
+                     >
+                       {showPassword ? (
+                         <EyeOff className="h-4 w-4 text-muted-foreground" />
+                       ) : (
+                         <Eye className="h-4 w-4 text-muted-foreground" />
+                       )}
+                     </Button>
+                   </div>
+                   {errors.adminPassword && (
+                     <p className="text-sm text-red-500">
+                       {errors.adminPassword}
+                     </p>
+                   )}
+                 </div>
               </div>
             </div>
+
+                         <div className="space-y-3">
+               <h3 className="text-base font-semibold text-slate-900">
+                 Additional Information
+               </h3>
+
+               <div className="space-y-3">
+                 <div className="space-y-2">
+                   <Label htmlFor="description">School Description</Label>
+                   <Textarea
+                     id="description"
+                     name="description"
+                     value={formData.description}
+                     onChange={handleInputChange}
+                     placeholder="Tell us about your school, number of students, transportation needs, etc."
+                     rows={3}
+                   />
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                   <div className="space-y-2">
+                     <Label htmlFor="operatingHoursStart">
+                       Operating Hours Start
+                     </Label>
+                     <Input
+                       id="operatingHoursStart"
+                       name="operatingHoursStart"
+                       type="time"
+                       value={formData.operatingHoursStart}
+                       onChange={handleInputChange}
+                     />
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="operatingHoursEnd">Operating Hours End</Label>
+                     <Input
+                       id="operatingHoursEnd"
+                       name="operatingHoursEnd"
+                       type="time"
+                       value={formData.operatingHoursEnd}
+                       onChange={handleInputChange}
+                     />
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                   <div className="space-y-2">
+                     <Label htmlFor="estimatedStudents">
+                       Estimated Number of Students *
+                     </Label>
+                     <Input
+                       id="estimatedStudents"
+                       name="estimatedStudents"
+                       type="number"
+                       value={formData.estimatedStudents}
+                       onChange={handleInputChange}
+                       placeholder="e.g., 400"
+                       required
+                       className={errors.estimatedStudents ? "border-red-500" : ""}
+                     />
+                     {errors.estimatedStudents && (
+                       <p className="text-sm text-red-500">
+                         {errors.estimatedStudents}
+                       </p>
+                     )}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="estimatedBuses">
+                       Estimated Number of Buses *
+                     </Label>
+                     <Input
+                       id="estimatedBuses"
+                       name="estimatedBuses"
+                       type="number"
+                       value={formData.estimatedBuses}
+                       onChange={handleInputChange}
+                       placeholder="e.g., 4"
+                       required
+                       className={errors.estimatedBuses ? "border-red-500" : ""}
+                     />
+                     {errors.estimatedBuses && (
+                       <p className="text-sm text-red-500">
+                         {errors.estimatedBuses}
+                       </p>
+                     )}
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="estimatedParents">
+                       Estimated Number of Parents *
+                     </Label>
+                     <Input
+                       id="estimatedParents"
+                       name="estimatedParents"
+                       type="number"
+                       value={formData.estimatedParents}
+                       onChange={handleInputChange}
+                       placeholder="e.g., 800"
+                       required
+                       className={errors.estimatedParents ? "border-red-500" : ""}
+                     />
+                     {errors.estimatedParents && (
+                       <p className="text-sm text-red-500">
+                         {errors.estimatedParents}
+                       </p>
+                     )}
+                   </div>
+                 </div>
+               </div>
+             </div>
 
             <Alert>
               <AlertDescription>

@@ -16,11 +16,13 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import SubscriptionActivationModal from "@/components/SubscriptionActivationModal";
 
 const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,11 +35,21 @@ const Login = () => {
 
   useEffect(() => {
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error,
-      });
+      // Check if it's an account disabled error (subscription issue)
+      const isAccountDisabled = error.includes("Account is disabled") || error.includes("Authentication failed");
+      
+      if (isAccountDisabled) {
+        setShowSubscriptionModal(true);
+      } else {
+        // Check if it's a subscription restriction error
+        const isSubscriptionError = error.includes("subscription") || error.includes("Access denied");
+        
+        toast({
+          variant: "destructive",
+          title: isSubscriptionError ? "Subscription Issue" : "Error",
+          description: error,
+        });
+      }
     }
   }, [error, toast]);
 
@@ -115,6 +127,13 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <Card className="w-full max-w-md shadow-lg">
+        <SubscriptionActivationModal 
+          isOpen={showSubscriptionModal}
+          onClose={() => {
+            setShowSubscriptionModal(false);
+            dispatch(clearError());
+          }}
+        />
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
             Welcome Back
