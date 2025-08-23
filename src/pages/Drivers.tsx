@@ -1621,13 +1621,13 @@ const Drivers = () => {
           <Card className="bg-white shadow-lg border-0 rounded-xl">
             <CardHeader className=" border-b border-gray-100 flex flex-row w-full items-center justify-between">
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center">
-                <Users className="w-6 h-6 text-green-500" />
+                <Users className="w-6 h-6 text-[#f7c624]" />
                 Drivers List
               </CardTitle>
               <div className="flex gap-2">
                 <Button
                   onClick={() => setIsMultipleUploadOpen(true)}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                  className="bg-[#10213f] hover:bg-[#10213f] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
                 >
                   <Download className="mr-2 h-4 w-4" /> Bulk Upload
                 </Button>
@@ -1636,7 +1636,7 @@ const Drivers = () => {
                   onOpenChange={handleModalOpenChange}
                 >
                   <DialogTrigger asChild>
-                    <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
+                    <Button className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
                       <Plus className="mr-2 h-4 w-4" /> Add Driver
                     </Button>
                   </DialogTrigger>

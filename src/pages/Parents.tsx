@@ -1192,13 +1192,13 @@ export default function Parents() {
             <div className="flex gap-2">
               <Button
                 onClick={() => setIsMultipleUploadOpen(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                className="bg-[#10213f] hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
               >
                 <Download className="mr-2 h-4 w-4" /> Bulk Upload
               </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
+                  <Button className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
                     <Plus className="mr-2 h-4 w-4" /> Add New Parent
                   </Button>
                 </DialogTrigger>

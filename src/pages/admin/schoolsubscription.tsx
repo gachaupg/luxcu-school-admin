@@ -116,6 +116,17 @@ const SchoolSubscriptionPage = () => {
           setSchoolIdFilter(loggedInSchoolId);
        
         }
+
+        // Debug: Test the calculation for the provided data
+        const testStartDate = "2025-07-31T23:07:35+03:00";
+        const testBillingCycle = "quarterly";
+        const calculatedEndDate = calculateEndDate(testStartDate, testBillingCycle);
+        console.log("Test calculation:", {
+          startDate: testStartDate,
+          billingCycle: testBillingCycle,
+          calculatedEndDate: calculatedEndDate?.toISOString(),
+          formattedEndDate: calculatedEndDate ? formatDate(calculatedEndDate.toISOString()) : "null"
+        });
       } catch (error) {
         const errorMessage =
           error instanceof Error
@@ -231,9 +242,15 @@ const subsdata= subscriptions.filter((subscription) => {
     switch (cycle) {
       case "monthly":
         return <Badge className="bg-blue-100 text-blue-800">Monthly</Badge>;
+      case "quarterly":
+        return <Badge className="bg-orange-100 text-orange-800">Quarterly</Badge>;
       case "annually":
         return (
           <Badge className="bg-purple-100 text-purple-800">Annually</Badge>
+        );
+      case "yearly":
+        return (
+          <Badge className="bg-purple-100 text-purple-800">Yearly</Badge>
         );
       default:
         return <Badge variant="outline">{cycle}</Badge>;
@@ -255,6 +272,31 @@ const subsdata= subscriptions.filter((subscription) => {
     }).format(parseFloat(amount));
   };
 
+  // Calculate end date based on billing cycle and start date
+  const calculateEndDate = (startDate: string, billingCycle: string): Date | null => {
+    if (!startDate || !billingCycle) return null;
+    
+    const start = new Date(startDate);
+    
+    switch (billingCycle.toLowerCase()) {
+      case "monthly":
+        return new Date(start.getFullYear(), start.getMonth() + 1, start.getDate());
+      case "quarterly":
+        return new Date(start.getFullYear(), start.getMonth() + 3, start.getDate());
+      case "annually":
+        return new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
+      case "yearly":
+        return new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
+      default:
+        return null;
+    }
+  };
+
+  // Example calculation for the provided data:
+  // start_date: "2025-07-31T23:07:35+03:00" (July 31, 2025)
+  // billing_cycle: "quarterly" (3 months)
+  // Calculated end_date: October 31, 2025 (3 months after start date)
+
   const getUniqueSchools = () => {
     const schoolMap = new Map();
     subscriptions.forEach((subscription) => {
@@ -273,11 +315,20 @@ const subsdata= subscriptions.filter((subscription) => {
   };
 
   const getExpiryStatus = (subscription: SchoolSubscription) => {
-    if (!subscription.end_date) {
+    // Use actual end_date if available, otherwise calculate based on billing cycle
+    let endDate: Date | null = null;
+    
+    if (subscription.end_date) {
+      endDate = new Date(subscription.end_date);
+    } else {
+      // Calculate end date based on billing cycle and start date
+      endDate = calculateEndDate(subscription.start_date, subscription.billing_cycle);
+    }
+
+    if (!endDate) {
       return { status: "no_expiry", days: 0 };
     }
 
-    const endDate = new Date(subscription.end_date);
     const today = new Date();
     const daysUntilExpiry = Math.ceil(
       (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
@@ -315,6 +366,28 @@ const subsdata= subscriptions.filter((subscription) => {
           </Badge>
         );
       case "no_expiry":
+        // Show calculated expiry if available
+        const calculatedEndDate = calculateEndDate(subscription.start_date, subscription.billing_cycle);
+        if (calculatedEndDate) {
+          const daysUntilCalculatedExpiry = Math.ceil(
+            (calculatedEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          );
+          if (daysUntilCalculatedExpiry < 0) {
+            return <Badge variant="destructive">Expired (calculated)</Badge>;
+          } else if (daysUntilCalculatedExpiry <= 30) {
+            return (
+              <Badge className="bg-orange-100 text-orange-800">
+                Expires in {daysUntilCalculatedExpiry} days (calculated)
+              </Badge>
+            );
+          } else {
+            return (
+              <Badge className="bg-green-100 text-green-800">
+                Active ({daysUntilCalculatedExpiry} days left, calculated)
+              </Badge>
+            );
+          }
+        }
         return <Badge variant="outline">No expiry date</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
@@ -339,7 +412,7 @@ const subsdata= subscriptions.filter((subscription) => {
         <div>
           <h1 className="text-3xl font-bold">School Subscriptions</h1>
           <p className="text-muted-foreground">
-            Manage and monitor school ddddsubscription plans
+            Manage and monitor school subscription plans
          
           </p>
         </div>
@@ -471,7 +544,9 @@ const subsdata= subscriptions.filter((subscription) => {
               <SelectContent>
                 <SelectItem value="all">All Cycles</SelectItem>
                 <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
                 <SelectItem value="annually">Annually</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" onClick={clearAllFilters}>
@@ -785,17 +860,23 @@ const subsdata= subscriptions.filter((subscription) => {
                       {formatDate(selectedSubscription.start_date)}
                     </span>
                   </div>
-                  {selectedSubscription.end_date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-red-600" />
-                      <span className="text-sm text-muted-foreground">
-                        End Date:
-                      </span>
-                      <span className="font-medium">
-                        {formatDate(selectedSubscription.end_date)}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-red-600" />
+                    <span className="text-sm text-muted-foreground">
+                      End Date:
+                    </span>
+                    <span className="font-medium">
+                      {selectedSubscription.end_date 
+                        ? formatDate(selectedSubscription.end_date)
+                        : calculateEndDate(selectedSubscription.start_date, selectedSubscription.billing_cycle)
+                          ? formatDate(calculateEndDate(selectedSubscription.start_date, selectedSubscription.billing_cycle)!.toISOString())
+                          : "Not calculated"
+                      }
+                      {!selectedSubscription.end_date && calculateEndDate(selectedSubscription.start_date, selectedSubscription.billing_cycle) && (
+                        <span className="text-xs text-muted-foreground ml-2">(Calculated from {selectedSubscription.billing_cycle} cycle)</span>
+                      )}
+                    </span>
+                  </div>
                   {selectedSubscription.next_billing_date && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-yellow-600" />

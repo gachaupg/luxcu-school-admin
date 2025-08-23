@@ -683,12 +683,12 @@ export default function Students() {
             <CardHeader className="pb-1 border-b border-border">
               <div className="flex items-center justify-between w-full">
                 <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <Users className="w-6 h-6 text-green-500" />
+                  <Users className="w-6 h-6 text-[#f7c624]" />
                   Students List
                 </CardTitle>
                 <Button
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200 ml-auto"
+                  className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200 ml-auto"
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Student
                 </Button>

@@ -139,7 +139,7 @@ const Login = () => {
             Welcome Back
           </CardTitle>
           <CardDescription className="text-center">
-            Sign in to access LuxCab Admin Dashboard
+            Sign in to access Smart shule Admin Dashboard
           </CardDescription>
         </CardHeader>
         <CardContent>

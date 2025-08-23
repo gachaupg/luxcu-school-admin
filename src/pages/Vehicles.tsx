@@ -768,7 +768,7 @@ export default function Vehicles() {
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                      className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
                       disabled={!schoolId}
                       title={
                         !schoolId
@@ -1049,7 +1049,7 @@ export default function Vehicles() {
                               }
                               className={`font-medium ${
                                 vehicle.is_active
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                  ? "bg-[#f7c624    ] text-[#f7c624] dark:bg-green-900/20 dark:text-green-400"
                                   : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
                               }`}
                             >

@@ -44,6 +44,7 @@ interface AuthState {
   userId: number | null;
   verificationStatus: "idle" | "pending" | "verified" | "failed";
   isInitialized: boolean;
+  hasLoggedInBefore: boolean; // New field to track login history
 }
 
 interface LoginResponse {
@@ -110,6 +111,7 @@ const initialState: AuthState = {
   userId: null,
   verificationStatus: "idle",
   isInitialized: false,
+  hasLoggedInBefore: false, // Initialize the new field
 };
 
 // Note: API headers will be set by the auth interceptor in api.ts
@@ -265,6 +267,7 @@ const authSlice = createSlice({
       state.userId = null;
       state.verificationStatus = "idle";
       state.isInitialized = true;
+      // Don't reset hasLoggedInBefore - keep the login history
       localStorage.removeItem("schoolId");
       localStorage.removeItem("persist:auth");
       localStorage.removeItem("token");
@@ -283,6 +286,7 @@ const authSlice = createSlice({
         state.userId = null;
         state.verificationStatus = "idle";
         state.isInitialized = true;
+        // Don't reset hasLoggedInBefore - keep the login history
         localStorage.removeItem("schoolId");
         localStorage.removeItem("persist:auth");
         localStorage.removeItem("token");
@@ -297,6 +301,11 @@ const authSlice = createSlice({
       if (persistedToken && persistedUser) {
         state.token = persistedToken;
         state.user = persistedUser;
+        state.hasLoggedInBefore = true; // Set to true if persisted data exists
+      } else {
+        // Check if user has logged in before (even if currently logged out)
+        const hasLoggedInBefore = localStorage.getItem("hasLoggedInBefore") === "true";
+        state.hasLoggedInBefore = hasLoggedInBefore;
       }
 
       state.isInitialized = true;
@@ -311,9 +320,11 @@ const authSlice = createSlice({
           if (token && user && !isTokenExpired(token)) {
             state.token = token;
             state.user = user;
+            state.hasLoggedInBefore = true; // Set to true if persisted data exists
           } else {
             state.token = null;
             state.user = null;
+            state.hasLoggedInBefore = false; // Reset if persisted data is invalid
           }
         }
         state.isInitialized = true;
@@ -328,8 +339,11 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isInitialized = true;
+        state.hasLoggedInBefore = true; // Set to true on successful login
         // Store token in localStorage for API interceptor
         localStorage.setItem("token", action.payload.token);
+        // Store login history flag
+        localStorage.setItem("hasLoggedInBefore", "true");
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -349,8 +363,11 @@ const authSlice = createSlice({
           state.token = action.payload.token;
           state.verificationStatus = "verified";
           state.isInitialized = true;
+          state.hasLoggedInBefore = true; // Set to true on successful OTP verification
           // Store token in localStorage for API interceptor
           localStorage.setItem("token", action.payload.token);
+          // Store login history flag
+          localStorage.setItem("hasLoggedInBefore", "true");
         }
       )
       .addCase(verifyOTP.rejected, (state, action) => {
@@ -369,8 +386,11 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.token = action.payload.token;
         state.isInitialized = true;
+        state.hasLoggedInBefore = true; // Set to true on successful registration
         // Store token in localStorage for API interceptor
         localStorage.setItem("token", action.payload.token);
+        // Store login history flag
+        localStorage.setItem("hasLoggedInBefore", "true");
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;

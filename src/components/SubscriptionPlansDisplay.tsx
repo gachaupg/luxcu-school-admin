@@ -145,7 +145,7 @@ export default function SubscriptionPlansDisplay() {
 
   if (loading) {
     return (
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+      <section className="py-20 bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Skeleton className="h-8 w-32 mx-auto mb-4" />
@@ -177,7 +177,7 @@ export default function SubscriptionPlansDisplay() {
 
   if (error) {
     return (
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+      <section className="py-20 bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
             <h2 className="text-red-800 font-semibold text-xl mb-2">
@@ -280,7 +280,7 @@ export default function SubscriptionPlansDisplay() {
 
   if (displayPlans.length === 0) {
     return (
-      <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+      <section className="py-20 bg-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <div className="text-gray-500">
@@ -297,17 +297,17 @@ export default function SubscriptionPlansDisplay() {
   }
 
   return (
-    <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
+    <section className="py-20 bg-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <Badge className="mb-4 bg-emerald-100 text-emerald-800 border-emerald-200 px-4 py-2 rounded-full">
+          <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
             Pricing Plans
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Choose Your Perfect
-            <span className="text-emerald-600 block">Subscription Plan</span>
+            <span className="text-[#f7c624] block">Subscription Plan</span>
           </h2>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
             Flexible pricing options designed to meet the needs of schools of
             all sizes. Start with what you need and scale as you grow.
           </p>
@@ -333,9 +333,9 @@ export default function SubscriptionPlansDisplay() {
                 key={plan.id}
                 className={`relative border-2 transition-all duration-300 hover:-translate-y-2 rounded-2xl overflow-hidden ${
                   badge?.text === "Popular"
-                    ? "border-emerald-600 shadow-xl scale-105"
-                    : "border-slate-200 shadow-lg hover:shadow-xl"
-                } bg-white`}
+                    ? "border-[#f7c624] shadow-xl scale-105"
+                    : "border-slate-600 shadow-lg hover:shadow-xl"
+                } bg-slate-700`}
               >
                 {!plan.is_active && (
                   <div className="absolute top-4 right-4 z-10">
@@ -347,8 +347,8 @@ export default function SubscriptionPlansDisplay() {
                   <div
                     className={`text-center py-2 text-sm font-medium ${
                       badge.text === "Popular"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-100 text-slate-700"
+                        ? "bg-[#f7c624] text-white"
+                        : "bg-slate-600 text-slate-300"
                     }`}
                   >
                     {badge.text}
@@ -357,14 +357,14 @@ export default function SubscriptionPlansDisplay() {
 
                 <CardHeader className="text-center pb-6">
                   <div className="flex justify-center mb-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                    <div className="w-12 h-12 bg-[#f7c624] rounded-xl flex items-center justify-center text-white">
                       {planIcon}
                     </div>
                   </div>
-                  <CardTitle className="text-2xl font-bold text-slate-900 mb-2">
+                  <CardTitle className="text-2xl font-bold text-white mb-2">
                     {getPlanDisplayName(plan.name)}
                   </CardTitle>
-                  <CardDescription className="text-slate-600">
+                  <CardDescription className="text-slate-300">
                     {plan.description}
                   </CardDescription>
                 </CardHeader>
@@ -373,12 +373,12 @@ export default function SubscriptionPlansDisplay() {
                   {/* Pricing */}
                   <div className="text-center mb-6">
                     <div className="mb-2">
-                      <span className="text-3xl font-bold text-slate-900">
+                      <span className="text-3xl font-bold text-white">
                         {formatPrice(plan.base_price)}
                       </span>
-                      <span className="text-slate-600">/month</span>
+                      <span className="text-slate-300">/month</span>
                     </div>
-                    <div className="text-sm text-slate-500 space-y-1">
+                    <div className="text-sm text-slate-400 space-y-1">
                       <div>
                         + {formatPrice(plan.price_per_student)} per student
                       </div>
@@ -388,34 +388,34 @@ export default function SubscriptionPlansDisplay() {
 
                   {/* Limits */}
                   <div className="mb-6">
-                    <h4 className="font-medium text-slate-900 mb-3 text-center">
+                    <h4 className="font-medium text-white mb-3 text-center">
                       Plan Limits
                     </h4>
                     <div className="grid grid-cols-3 gap-3 text-sm">
-                      <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-2 bg-slate-600 rounded-lg">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_students}
                         </div>
-                        <div className="text-slate-500 text-xs">Students</div>
+                        <div className="text-slate-300 text-xs">Students</div>
                       </div>
-                      <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-2 bg-slate-600 rounded-lg">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_parents}
                         </div>
-                        <div className="text-slate-500 text-xs">Parents</div>
+                        <div className="text-slate-300 text-xs">Parents</div>
                       </div>
-                      <div className="text-center p-2 bg-slate-50 rounded-lg">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-2 bg-slate-600 rounded-lg">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_buses}
                         </div>
-                        <div className="text-slate-500 text-xs">Buses</div>
+                        <div className="text-slate-300 text-xs">Buses</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Features */}
                   <div className="mb-6">
-                    <h4 className="font-medium text-slate-900 mb-3">
+                    <h4 className="font-medium text-white mb-3">
                       Features
                     </h4>
                     <div className="space-y-2">
@@ -430,11 +430,11 @@ export default function SubscriptionPlansDisplay() {
                               >
                                 <div className="flex items-center gap-2">
                                   {value ? (
-                                    <Check className="h-4 w-4 text-emerald-500" />
+                                    <Check className="h-4 w-4 text-[#f7c624]" />
                                   ) : (
                                     <X className="h-4 w-4 text-red-500" />
                                   )}
-                                  <span className="capitalize">
+                                  <span className="capitalize text-white">
                                     {key.replace(/_/g, " ")}
                                   </span>
                                 </div>
@@ -448,9 +448,9 @@ export default function SubscriptionPlansDisplay() {
                   </div>
 
                   {/* Billing Cycle */}
-                  <div className="pt-4 border-t border-slate-200 mb-6">
+                  <div className="pt-4 border-t border-slate-600 mb-6">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Billing Cycle:</span>
+                      <span className="text-slate-300">Billing Cycle:</span>
                       <Badge variant="outline" className="capitalize">
                         {plan.default_billing_cycle}
                       </Badge>
@@ -461,8 +461,8 @@ export default function SubscriptionPlansDisplay() {
                   <Button
                     className={`w-full py-3 rounded-xl font-medium transition-all duration-200 ${
                       badge?.text === "Popular"
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:scale-105"
-                        : "bg-slate-100 hover:bg-emerald-600 text-slate-700 hover:text-white hover:scale-105"
+                        ? "bg-[#f7c624] hover:bg-[#f7c624]/90 text-white hover:scale-105"
+                        : "bg-slate-600 hover:bg-[#f7c624] text-slate-300 hover:text-white hover:scale-105"
                     }`}
                     disabled={!plan.is_active}
                     onClick={() => plan.is_active && handlePlanSelection(plan)}
@@ -477,14 +477,14 @@ export default function SubscriptionPlansDisplay() {
 
         {/* Additional Info */}
         <div className="mt-16 text-center">
-          <div className="bg-emerald-50 p-8 rounded-2xl border border-emerald-200">
+          <div className="bg-[#f7c624] p-8 rounded-2xl border border-[#f7c624]">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <Star className="h-5 w-5 text-emerald-600" />
-              <span className="text-emerald-800 font-semibold">
+              <Star className="h-5 w-5 text-white" />
+              <span className="text-white font-semibold">
                 All plans include:
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-emerald-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-white">
               <div className="flex items-center justify-center space-x-2">
                 <Check className="h-4 w-4" />
                 <span>24/7 Support</span>

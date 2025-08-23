@@ -1658,7 +1658,7 @@ export default function RoutesPage() {
                 >
                   <DialogTrigger asChild>
                     <Button
-                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+                      className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-6 py-2 rounded-lg shadow"
                       onClick={() => setIsAddDialogOpen(true)}
                     >
                       Add New Route

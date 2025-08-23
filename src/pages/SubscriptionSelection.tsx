@@ -133,7 +133,7 @@ export default function SubscriptionSelection() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="min-h-screen bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center mb-16">
             <Skeleton className="h-8 w-32 mx-auto mb-4" />
@@ -165,7 +165,7 @@ export default function SubscriptionSelection() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="min-h-screen bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
             <h2 className="text-red-800 font-semibold text-xl mb-2">
@@ -185,17 +185,17 @@ export default function SubscriptionSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-slate-900">
       {/* Navbar */}
       <AppNavbar onMenuClick={() => {}} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px- py-1">
         <div className="text-center mb-4">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 ">
+          <h1 className="text-3xl md:text-4xl font-bold text-white ">
             Select Your Perfect
-            <span className="text-emerald-600 block">Subscription Plan</span>
+            <span className="text-[#f7c624] block">Subscription Plan</span>
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
             Choose the plan that best fits your school's needs. You can always
             upgrade or downgrade later.
           </p>
@@ -212,8 +212,8 @@ export default function SubscriptionSelection() {
                 key={plan.id}
                 className={`relative border-2 transition-all duration-300 hover:-translate-y-1 rounded-xl overflow-hidden cursor-pointer ${
                   isSelected
-                    ? "border-emerald-600 shadow-lg scale-102 bg-emerald-50"
-                    : "border-slate-200 shadow-md hover:shadow-lg bg-white"
+                    ? "border-[#f7c624] shadow-lg scale-102 bg-slate-800"
+                    : "border-slate-700 shadow-md hover:shadow-lg bg-slate-800"
                 }`}
                 onClick={() => handlePlanSelect(plan)}
               >
@@ -225,7 +225,7 @@ export default function SubscriptionSelection() {
 
                 {isSelected && (
                   <div className="absolute top-4 right-4 z-10">
-                    <Badge className="bg-emerald-600 text-white">
+                    <Badge className="bg-[#f7c624] text-white">
                       Selected
                     </Badge>
                   </div>
@@ -235,7 +235,7 @@ export default function SubscriptionSelection() {
                   <div
                     className={`text-center py-2 text-sm font-medium ${
                       badge.text === "Popular"
-                        ? "bg-emerald-600 text-white"
+                        ? "bg-[#f7c624] text-white"
                         : "bg-slate-100 text-slate-700"
                     }`}
                   >
@@ -245,16 +245,16 @@ export default function SubscriptionSelection() {
 
                 <CardHeader className="text-center pb-4">
                   <div className="flex justify-center mb-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                    <div className="w-10 h-10 bg-[#f7c624] rounded-lg flex items-center justify-center text-white">
                       {planIcon}
                     </div>
                   </div>
-                  <CardTitle className="text-xl font-bold text-slate-900 mb-2">
+                  <CardTitle className="text-xl font-bold text-white mb-2">
                     {plan.name
                       .replace(/_/g, " ")
                       .replace(/\b\w/g, (l) => l.toUpperCase())}
                   </CardTitle>
-                  <CardDescription className="text-slate-600 text-sm">
+                  <CardDescription className="text-slate-300 text-sm">
                     {plan.description}
                   </CardDescription>
                 </CardHeader>
@@ -263,12 +263,12 @@ export default function SubscriptionSelection() {
                   {/* Pricing */}
                   <div className="text-center mb-4">
                     <div className="mb-2">
-                      <span className="text-2xl font-bold text-slate-900">
+                      <span className="text-2xl font-bold text-white">
                         {formatPrice(plan.base_price)}
                       </span>
-                      <span className="text-slate-600">/month</span>
+                      <span className="text-slate-300">/month</span>
                     </div>
-                    <div className="text-xs text-slate-500 space-y-1">
+                    <div className="text-xs text-slate-400 space-y-1">
                       <div>
                         + {formatPrice(plan.price_per_student)} per student
                       </div>
@@ -278,34 +278,34 @@ export default function SubscriptionSelection() {
 
                   {/* Limits */}
                   <div className="mb-4">
-                    <h4 className="font-medium text-slate-900 mb-2 text-center text-sm">
+                    <h4 className="font-medium text-white mb-2 text-center text-sm">
                       Plan Limits
                     </h4>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center p-1 bg-slate-50 rounded">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-1 bg-slate-700 rounded">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_students}
                         </div>
-                        <div className="text-slate-500 text-xs">Students</div>
+                        <div className="text-slate-300 text-xs">Students</div>
                       </div>
-                      <div className="text-center p-1 bg-slate-50 rounded">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-1 bg-slate-700 rounded">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_parents}
                         </div>
-                        <div className="text-slate-500 text-xs">Parents</div>
+                        <div className="text-slate-300 text-xs">Parents</div>
                       </div>
-                      <div className="text-center p-1 bg-slate-50 rounded">
-                        <div className="font-semibold text-emerald-600">
+                      <div className="text-center p-1 bg-slate-700 rounded">
+                        <div className="font-semibold text-[#f7c624]">
                           {plan.features_json.max_buses}
                         </div>
-                        <div className="text-slate-500 text-xs">Buses</div>
+                        <div className="text-slate-300 text-xs">Buses</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Features */}
                   <div className="mb-4">
-                    <h4 className="font-medium text-slate-900 mb-2 text-sm">
+                    <h4 className="font-medium text-white mb-2 text-sm">
                       Features
                     </h4>
                     <div className="space-y-1">
@@ -320,11 +320,11 @@ export default function SubscriptionSelection() {
                               >
                                 <div className="flex items-center gap-2">
                                   {value ? (
-                                    <Check className="h-3 w-3 text-emerald-500" />
+                                    <Check className="h-3 w-3 text-[#f7c624]" />
                                   ) : (
                                     <X className="h-3 w-3 text-red-500" />
                                   )}
-                                  <span className="capitalize">
+                                  <span className="capitalize text-white">
                                     {key.replace(/_/g, " ")}
                                   </span>
                                 </div>
@@ -338,9 +338,9 @@ export default function SubscriptionSelection() {
                   </div>
 
                   {/* Billing Cycle */}
-                  <div className="pt-3 border-t border-slate-200 mb-4">
+                  <div className="pt-3 border-t border-slate-700 mb-4">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-600">Billing Cycle:</span>
+                      <span className="text-slate-300">Billing Cycle:</span>
                       <Badge variant="outline" className="capitalize text-xs">
                         {plan.default_billing_cycle}
                       </Badge>
@@ -351,7 +351,7 @@ export default function SubscriptionSelection() {
                   {isSelected && (
                     <div className="pt-3 border-t border-slate-200">
                       <Button
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
+                        className="w-full bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
                         onClick={handleContinue}
                       >
                         Continue to Registration
@@ -379,14 +379,14 @@ export default function SubscriptionSelection() {
 
         {/* Additional Info */}
         <div className="mt-8 text-center">
-          <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-200">
+          <div className="bg-[#f7c624] p-6 rounded-xl border border-[#f7c624]">
             <div className="flex items-center justify-center space-x-2 mb-3">
-              <Star className="h-4 w-4 text-emerald-600" />
-              <span className="text-emerald-800 font-semibold text-sm">
+              <Star className="h-4 w-4 text-white" />
+              <span className="text-white font-semibold text-sm">
                 All plans include:
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-emerald-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-white">
               <div className="flex items-center justify-center space-x-2">
                 <Check className="h-3 w-3" />
                 <span>24/7 Support</span>
@@ -410,7 +410,7 @@ export default function SubscriptionSelection() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
-                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-[#f7c624] rounded-lg flex items-center justify-center">
                   <Bus className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-xl font-bold">LuxCub</span>
@@ -422,13 +422,13 @@ export default function SubscriptionSelection() {
               <div className="flex space-x-4">
                 <a
                   href="#"
-                  className="text-slate-400 hover:text-emerald-400 transition-colors"
+                      className="text-slate-400 hover:text-[#f7c624] transition-colors"
                 >
                   <Phone className="h-5 w-5" />
                 </a>
                 <a
                   href="#"
-                  className="text-slate-400 hover:text-emerald-400 transition-colors"
+                  className="text-slate-400 hover:text-[#f7c624] transition-colors"
                 >
                   <Mail className="h-5 w-5" />
                 </a>

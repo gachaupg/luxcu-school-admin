@@ -22,7 +22,6 @@ const menu = [
   { label: "Staff", icon: Users, href: "/staff" },
   { label: "Reports", icon: FileText, href: "/reports" },
   { label: "Notifications", icon: Bell, href: "/notifications" },
-  { label: "Subscription", icon: CreditCard, href: "/subscription" },
   {
     label: "School Subscriptions",
     icon: Building2,
@@ -44,28 +43,11 @@ export function AppSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <Link to="/home">
-        <div className="p-6 flex items-center gap-2">
-          <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-2">
-            <svg width="28" height="28" fill="none">
-              <circle cx="14" cy="14" r="13" stroke="#22c55e" strokeWidth="2" />
-              <path
-                d="M14 9v7"
-                stroke="#22c55e"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <circle cx="14" cy="17.5" r="1.5" fill="#22c55e" />
-            </svg>
-          </div>
-          <span className="font-extrabold text-lg">
-            <span className="text-black dark:text-white">Lux</span>
-            <span className="text-green-500">Cab</span>
-          </span>
-        </div>
+          <img className="w-40 h-30 ml-6" src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo_wfussl.png" alt="Smartshule" />
       </Link>
 
       {/* Navigation */}
-      <div className="flex-1 overflow-y-auto px-4">
+      <div className="flex-1 mt-5 overflow-y-auto px-4">
         <nav className="space-y-1">
           {menu.map((item) => {
             const active = isActive(item.href);
@@ -75,8 +57,8 @@ export function AppSidebar() {
                 to={item.href}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
                   active
-                    ? "bg-green-500/90 text-white"
-                    : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    ? "bg-[#f7c624] text-white"
+                    : "text-[#10213f] dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               >
                 <item.icon

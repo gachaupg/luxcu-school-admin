@@ -75,7 +75,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => {
   const dispatch = useAppDispatch();
-  const { token, isInitialized, user } = useAppSelector((state) => state.auth);
+  const { token, isInitialized, user, hasLoggedInBefore } = useAppSelector((state) => state.auth);
   const {
     schools = [],
     loading,
@@ -155,7 +155,7 @@ const AppRoutes = () => {
       <Route path="/verification" element={<Verification />} />
       <Route
         path="/"
-        element={token ? <Index /> : <Navigate to="/home" replace />}
+        element={token ? <Index /> : <Navigate to={hasLoggedInBefore ? "/login" : "/home"} replace />}
       >
         <Route index element={<Overview />} />
         <Route path="trips" element={<Trips />} />

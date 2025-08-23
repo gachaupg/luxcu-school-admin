@@ -286,7 +286,7 @@ export default function Staff() {
           <main className="flex-1 px-8 py-6 bg-gray-100">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <Users className="text-green-500" size={32} />
+                  <Users className="text-[#f7c624]" size={32} />
                 <h2 className="text-2xl font-bold text-gray-800">
                   Staff Management
                 </h2>
@@ -323,7 +323,7 @@ export default function Staff() {
               <div className="flex gap-4">
                 {activeTab === "staff" && (
                   <button
-                    className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow"
+                    className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-5 py-2 rounded shadow"
                     onClick={() => setIsModalOpen(true)}
                   >
                     Add New Staff
@@ -332,14 +332,14 @@ export default function Staff() {
                 {activeTab === "roles" && (
                   <>
                     <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
+                      className="bg-[#10213f] hover:bg-[#10213f] text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
                       onClick={handleCreateDefaultRoles}
                     >
                       <Shield size={20} />
                       Create Default Roles
                     </button>
                     <button
-                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
+                      className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
                       onClick={() => setIsRoleModalOpen(true)}
                     >
                       <Shield size={20} />
@@ -356,11 +356,11 @@ export default function Staff() {
                 onClick={() => setActiveTab("staff")}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "staff"
-                    ? "border-green-500 text-green-600"
+                    ? "border-[#f7c624] text-[#f7c624]"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex text-[#f7c624] items-center gap-2">
                   <Users size={20} />
                   Staff Members ({staff?.length || 0})
                 </div>
@@ -369,7 +369,7 @@ export default function Staff() {
                 onClick={() => setActiveTab("roles")}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "roles"
-                    ? "border-green-500 text-green-600"
+                    ? "border-[#f7c624] text-[#f7c624]"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >

@@ -161,7 +161,7 @@ export default function Reports() {
   return (
     <div className="p-8">
       <div className="mb-4 flex items-center gap-3">
-        <FileText className="text-green-500" size={32} />
+        <FileText className="text-[#f7c624]" size={32} />
         <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
       </div>
 
@@ -197,7 +197,7 @@ export default function Reports() {
           />
         </div>
         <button
-          className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-6 py-2 flex items-center gap-2 text-sm font-semibold shadow"
+          className="bg-[#f7c624] hover:bg-[#f7c624] text-white rounded-lg px-6 py-2 flex items-center gap-2 text-sm font-semibold shadow"
           onClick={handleRunQuery}
           disabled={loading}
         >
@@ -296,7 +296,7 @@ export default function Reports() {
 
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f7c624] mx-auto"></div>
             <p className="text-gray-600 mt-2">Loading reports...</p>
           </div>
         ) : reports.length === 0 ? (

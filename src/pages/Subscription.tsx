@@ -322,7 +322,7 @@ export default function Subscription() {
         {/* Header */}
         <div className=" mb-3">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            Choose Your Subscription Plan
+            Choose Your Subscripthhhhion Plan
           </h1>
         </div>
 

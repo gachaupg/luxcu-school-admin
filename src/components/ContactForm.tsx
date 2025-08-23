@@ -119,7 +119,7 @@ const ContactForm = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="first_name" className="text-slate-700 font-medium">
+          <Label htmlFor="first_name" className="text-white font-medium">
             First Name *
           </Label>
           <Input
@@ -130,11 +130,11 @@ const ContactForm = () => {
             onChange={handleInputChange}
             placeholder="John"
             required
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="last_name" className="text-slate-700 font-medium">
+          <Label htmlFor="last_name" className="text-white font-medium">
             Last Name *
           </Label>
           <Input
@@ -145,13 +145,13 @@ const ContactForm = () => {
             onChange={handleInputChange}
             placeholder="Doe"
             required
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="email_address" className="text-slate-700 font-medium">
+          <Label htmlFor="email_address" className="text-white font-medium">
             Email Address *
           </Label>
           <Input
@@ -162,11 +162,11 @@ const ContactForm = () => {
             onChange={handleInputChange}
             placeholder="john@school.edu"
             required
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone_number" className="text-slate-700 font-medium">
+          <Label htmlFor="phone_number" className="text-white font-medium">
             Phone Number
           </Label>
           <Input
@@ -176,13 +176,13 @@ const ContactForm = () => {
             value={formData.phone_number}
             onChange={handleInputChange}
             placeholder="+1 (555) 123-4567"
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="school_name" className="text-slate-700 font-medium">
+          <Label htmlFor="school_name" className="text-white font-medium">
             School/District Name *
           </Label>
           <Input
@@ -193,11 +193,11 @@ const ContactForm = () => {
             onChange={handleInputChange}
             placeholder="Your School District"
             required
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="position" className="text-slate-700 font-medium">
+          <Label htmlFor="position" className="text-white font-medium">
             Your Position
           </Label>
           <Input
@@ -207,12 +207,12 @@ const ContactForm = () => {
             value={formData.position}
             onChange={handleInputChange}
             placeholder="Principal, Admin, etc."
-            className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors"
+            className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors placeholder:text-slate-400"
           />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="message" className="text-slate-700 font-medium">
+        <Label htmlFor="message" className="text-white font-medium">
           Message *
         </Label>
         <Textarea
@@ -223,12 +223,12 @@ const ContactForm = () => {
           placeholder="Tell us about your transportation needs and how we can help..."
           rows={4}
           required
-          className="border-slate-300 focus:border-emerald-600 focus:ring-emerald-600 transition-colors resize-none"
+          className="border-slate-600 bg-slate-800 text-white focus:border-[#f7c624] focus:ring-[#f7c624] transition-colors resize-none placeholder:text-slate-400"
         />
       </div>
       <Button
         type="submit"
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105"
+        className="w-full bg-[#f7c624] hover:bg-[#f7c624]/90 text-white py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
