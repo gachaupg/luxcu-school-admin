@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
-import { isTokenExpired } from "@/utils/auth";
+import { isTokenExpired, getStoredToken, clearAuthData } from "@/utils/auth";
 
 interface SchoolSubscription {
   id: string;
@@ -66,26 +66,7 @@ interface ApiError {
 
 // Helper function to initialize token from localStorage
 const getInitialToken = (): string | null => {
-  try {
-    // First try direct token storage (simpler and more reliable)
-    const directToken = localStorage.getItem("token");
-    if (directToken && !isTokenExpired(directToken)) {
-      return directToken;
-    }
-
-    // Fallback to Redux Persist storage
-    const persistAuth = localStorage.getItem("persist:auth");
-    if (persistAuth) {
-      const parsed = JSON.parse(persistAuth);
-      const authState = JSON.parse(parsed.token || "null");
-      if (authState && !isTokenExpired(authState)) {
-        return authState;
-      }
-    }
-  } catch (error) {
-    // Error parsing persisted token
-  }
-  return null;
+  return getStoredToken();
 };
 
 // Helper function to initialize user from localStorage
@@ -268,9 +249,7 @@ const authSlice = createSlice({
       state.verificationStatus = "idle";
       state.isInitialized = true;
       // Don't reset hasLoggedInBefore - keep the login history
-      localStorage.removeItem("schoolId");
-      localStorage.removeItem("persist:auth");
-      localStorage.removeItem("token");
+      clearAuthData();
       // Note: API headers will be cleared by the auth interceptor
     },
     clearError: (state) => {
@@ -281,15 +260,14 @@ const authSlice = createSlice({
     },
     checkTokenExpiration: (state) => {
       if (state.token && isTokenExpired(state.token)) {
+        // Only logout if token is actually expired
         state.user = null;
         state.token = null;
         state.userId = null;
         state.verificationStatus = "idle";
         state.isInitialized = true;
         // Don't reset hasLoggedInBefore - keep the login history
-        localStorage.removeItem("schoolId");
-        localStorage.removeItem("persist:auth");
-        localStorage.removeItem("token");
+        clearAuthData();
         // Note: API headers will be cleared by the auth interceptor
       }
     },
@@ -298,14 +276,25 @@ const authSlice = createSlice({
       const persistedToken = getInitialToken();
       const persistedUser = getInitialUser();
 
-      if (persistedToken && persistedUser) {
+      if (persistedToken && persistedUser && !isTokenExpired(persistedToken)) {
         state.token = persistedToken;
         state.user = persistedUser;
         state.hasLoggedInBefore = true; // Set to true if persisted data exists
       } else {
+        // Clear invalid persisted data
+        if (persistedToken && isTokenExpired(persistedToken)) {
+          clearAuthData();
+        }
+        
         // Check if user has logged in before (even if currently logged out)
         const hasLoggedInBefore = localStorage.getItem("hasLoggedInBefore") === "true";
         state.hasLoggedInBefore = hasLoggedInBefore;
+        
+        // Ensure we're in a clean logged-out state
+        state.token = null;
+        state.user = null;
+        state.userId = null;
+        state.verificationStatus = "idle";
       }
 
       state.isInitialized = true;

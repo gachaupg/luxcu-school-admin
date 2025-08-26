@@ -100,19 +100,28 @@ const Subscriptions = () => {
     SchoolSubscription[]
   >([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [planFilter, setPlanFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<"plans" | "schools">("plans");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
+  const [viewingPlan, setViewingPlan] = useState<SubscriptionPlan | null>(null);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
+  const [isEditSchoolModalOpen, setIsEditSchoolModalOpen] = useState(false);
+  const [isViewSchoolModalOpen, setIsViewSchoolModalOpen] = useState(false);
+  const [isDeletingSchool, setIsDeletingSchool] = useState(false);
+  const [editingSchool, setEditingSchool] = useState<SchoolSubscription | null>(null);
+  const [viewingSchool, setViewingSchool] = useState<SchoolSubscription | null>(null);
+  const [schoolToDelete, setSchoolToDelete] = useState<string | null>(null);
   const [newPlan, setNewPlan] = useState({
     name: "",
     description: "",
     base_price: "",
     price_per_student: "",
     price_per_bus: "",
-    default_billing_cycle: "monthly" as const,
+    default_billing_cycle: "monthly" as "monthly" | "annually" | "quarterly",
     is_active: true,
     features: {
       max_students: 100,
@@ -149,7 +158,7 @@ const Subscriptions = () => {
       // Handle different API response formats
       const plans = Array.isArray(data)
         ? data
-        : data?.results || data?.data || [];
+        : (data as any)?.results || (data as any)?.data || [];
       console.log("Processed plans:", plans);
       setSubscriptionPlans(plans || []);
       if (plans && plans.length > 0) {
@@ -322,6 +331,171 @@ const Subscriptions = () => {
       toast({
         title: "Error",
         description: "Failed to create subscription plan. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleEditPlan = (plan: SubscriptionPlan) => {
+    setEditingPlan(plan);
+    setIsEditModalOpen(true);
+  };
+
+  const handleViewPlan = (plan: SubscriptionPlan) => {
+    setViewingPlan(plan);
+    setIsViewModalOpen(true);
+  };
+
+  const handleUpdatePlan = async () => {
+    if (!editingPlan) return;
+    
+    try {
+      setIsCreating(true);
+      await subscriptionPlanService.updateSubscriptionPlan(editingPlan.id, {
+        name: editingPlan.name,
+        description: editingPlan.description,
+        base_price: editingPlan.base_price,
+        price_per_student: editingPlan.price_per_student,
+        price_per_bus: editingPlan.price_per_bus,
+        features_json: editingPlan.features_json,
+        is_active: editingPlan.is_active,
+        default_billing_cycle: editingPlan.default_billing_cycle,
+      });
+      setIsEditModalOpen(false);
+      setEditingPlan(null);
+      fetchSubscriptionPlans(); // Refresh the list
+      toast({
+        title: "Success",
+        description: "Subscription plan updated successfully!",
+      });
+    } catch (error) {
+      console.error("Error updating subscription plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update subscription plan. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeletePlan = async (planId: string) => {
+    try {
+      setIsDeleting(true);
+      await subscriptionPlanService.deleteSubscriptionPlan(planId);
+      setPlanToDelete(null);
+      fetchSubscriptionPlans(); // Refresh the list
+      toast({
+        title: "Success",
+        description: "Subscription plan deleted successfully!",
+      });
+    } catch (error) {
+      console.error("Error deleting subscription plan:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete subscription plan. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditSchoolSubscription = (subscription: SchoolSubscription) => {
+    setEditingSchool(subscription);
+    setIsEditSchoolModalOpen(true);
+  };
+
+  const handleViewSchoolSubscription = (subscription: SchoolSubscription) => {
+    setViewingSchool(subscription);
+    setIsViewSchoolModalOpen(true);
+  };
+
+  const handleUpdateSchoolSubscription = async () => {
+    if (!editingSchool) return;
+    
+    try {
+      setIsCreating(true);
+      // TODO: Replace with actual API call when available
+      // await schoolSubscriptionService.updateSchoolSubscription(editingSchool.id, editingSchool);
+      
+      // For now, update local state
+      setSchoolSubscriptions(prev => 
+        prev.map(sub => 
+          sub.id === editingSchool.id ? editingSchool : sub
+        )
+      );
+      
+      setIsEditSchoolModalOpen(false);
+      setEditingSchool(null);
+      toast({
+        title: "Success",
+        description: "School subscription updated successfully!",
+      });
+    } catch (error) {
+      console.error("Error updating school subscription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update school subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteSchoolSubscription = async (subscriptionId: string) => {
+    try {
+      setIsDeletingSchool(true);
+      // TODO: Replace with actual API call when available
+      // await schoolSubscriptionService.deleteSchoolSubscription(subscriptionId);
+      
+      // For now, update local state
+      setSchoolSubscriptions(prev => prev.filter(sub => sub.id !== subscriptionId));
+      setSchoolToDelete(null);
+      toast({
+        title: "Success",
+        description: "School subscription deleted successfully!",
+      });
+    } catch (error) {
+      console.error("Error deleting school subscription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete school subscription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingSchool(false);
+    }
+  };
+
+  const handleCancelSchoolSubscription = async (subscriptionId: string) => {
+    try {
+      setIsCreating(true);
+      // TODO: Replace with actual API call when available
+      // await schoolSubscriptionService.cancelSchoolSubscription(subscriptionId);
+      
+      // For now, update local state
+      setSchoolSubscriptions(prev => 
+        prev.map(sub => 
+          sub.id === subscriptionId 
+            ? { ...sub, status: "cancelled" as const }
+            : sub
+        )
+      );
+      
+      toast({
+        title: "Success",
+        description: "School subscription cancelled successfully!",
+      });
+    } catch (error) {
+      console.error("Error cancelling school subscription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel school subscription. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -579,6 +753,804 @@ const Subscriptions = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Plan Modal */}
+          <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Subscription Plan</DialogTitle>
+                <DialogDescription>
+                  Update the subscription plan details and features
+                </DialogDescription>
+              </DialogHeader>
+              {editingPlan && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editPlanName">Plan Name</Label>
+                    <Input
+                      id="editPlanName"
+                      value={editingPlan.name}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => 
+                          prev ? { ...prev, name: e.target.value } : null
+                        )
+                      }
+                      placeholder="e.g., premium_school"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editBillingCycle">Default Billing Cycle</Label>
+                    <Select
+                      value={editingPlan.default_billing_cycle}
+                      onValueChange={(value: "monthly" | "annually" | "quarterly") =>
+                        setEditingPlan((prev) => 
+                          prev ? { ...prev, default_billing_cycle: value } : null
+                        )
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BILLING_CYCLE_CHOICES.map((choice) => (
+                          <SelectItem key={choice.value} value={choice.value}>
+                            {choice.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editBasePrice">Base Price</Label>
+                    <Input
+                      id="editBasePrice"
+                      type="number"
+                      value={editingPlan.base_price}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => 
+                          prev ? { ...prev, base_price: e.target.value } : null
+                        )
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editPricePerStudent">Price per Student</Label>
+                    <Input
+                      id="editPricePerStudent"
+                      type="number"
+                      value={editingPlan.price_per_student}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => 
+                          prev ? { ...prev, price_per_student: e.target.value } : null
+                        )
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editPricePerBus">Price per Bus</Label>
+                    <Input
+                      id="editPricePerBus"
+                      type="number"
+                      value={editingPlan.price_per_bus}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => 
+                          prev ? { ...prev, price_per_bus: e.target.value } : null
+                        )
+                      }
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editMaxStudents">Max Students</Label>
+                    <Input
+                      id="editMaxStudents"
+                      type="number"
+                      value={editingPlan.features_json.max_students}
+                      onChange={(e) =>
+                        setEditingPlan((prev) => 
+                          prev ? {
+                            ...prev,
+                            features_json: {
+                              ...prev.features_json,
+                              max_students: parseInt(e.target.value),
+                            },
+                          } : null
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+              {editingPlan && (
+                <div className="space-y-2">
+                  <Label htmlFor="editDescription">Description</Label>
+                  <Textarea
+                    id="editDescription"
+                    value={editingPlan.description}
+                    onChange={(e) =>
+                      setEditingPlan((prev) => 
+                        prev ? { ...prev, description: e.target.value } : null
+                      )
+                    }
+                    rows={3}
+                  />
+                </div>
+              )}
+
+              {/* Features Section */}
+              {editingPlan && (
+                <div className="space-y-4">
+                  <Label>Features</Label>
+                  <div className="max-h-60 overflow-y-auto border rounded-lg p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(editingPlan.features_json).map(([key, value]) => (
+                        <div key={key} className="flex items-center space-x-2">
+                          <Switch
+                            checked={typeof value === "boolean" ? value : false}
+                            onCheckedChange={(checked) =>
+                              setEditingPlan((prev) => 
+                                prev ? {
+                                  ...prev,
+                                  features_json: { ...prev.features_json, [key]: checked },
+                                } : null
+                              )
+                            }
+                          />
+                          <Label className="text-sm capitalize">
+                            {key.replace(/_/g, " ")}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setEditingPlan(null);
+                  }}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdatePlan} disabled={isCreating}>
+                  {isCreating ? "Updating..." : "Update Plan"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* View Plan Details Modal */}
+          <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Subscription Plan Details</DialogTitle>
+                <DialogDescription>
+                  Complete information about the subscription plan
+                </DialogDescription>
+              </DialogHeader>
+              {viewingPlan && (
+                <div className="space-y-6">
+                  {/* Plan Header */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        {viewingPlan.name.replace(/_/g, " ").toUpperCase()}
+                      </h3>
+                      <p className="text-gray-600 mt-1">{viewingPlan.description}</p>
+                    </div>
+                    <Badge variant={viewingPlan.is_active ? "default" : "secondary"}>
+                      {viewingPlan.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+
+                  {/* Pricing Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Base Price
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(viewingPlan.base_price)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Monthly base cost</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <Users className="h-4 w-4 mr-2" />
+                          Per Student
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(viewingPlan.price_per_student)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Per student per month</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <Bus className="h-4 w-4 mr-2" />
+                          Per Bus
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(viewingPlan.price_per_bus)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Per bus per month</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Billing Information */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Billing Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium">Default Billing Cycle</Label>
+                          <p className="text-lg capitalize">{viewingPlan.default_billing_cycle}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Plan Status</Label>
+                          <p className="text-lg">{viewingPlan.is_active ? "Active" : "Inactive"}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Features */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Zap className="h-4 w-4 mr-2" />
+                        Features & Limits
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {/* Limits */}
+                        <div>
+                          <h4 className="font-medium mb-2">Limits</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                              <span className="text-sm">Max Students</span>
+                              <span className="font-semibold">{viewingPlan.features_json.max_students}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                              <span className="text-sm">Max Parents</span>
+                              <span className="font-semibold">{viewingPlan.features_json.max_parents}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                              <span className="text-sm">Max Buses</span>
+                              <span className="font-semibold">{viewingPlan.features_json.max_buses}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Features */}
+                        <div>
+                          <h4 className="font-medium mb-2">Features</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {Object.entries(viewingPlan.features_json).map(([key, value]) => {
+                              if (typeof value === "boolean") {
+                                return (
+                                  <div key={key} className="flex items-center space-x-2 p-2">
+                                    {value ? (
+                                      <CheckCircle className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                      <AlertCircle className="h-4 w-4 text-gray-400" />
+                                    )}
+                                    <span className="text-sm capitalize">
+                                      {key.replace(/_/g, " ")}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan Statistics */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Plan Statistics
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">0</div>
+                          <p className="text-sm text-muted-foreground">Active Subscriptions</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatCurrency("0")}
+                          </div>
+                          <p className="text-sm text-muted-foreground">Total Revenue</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-600">0%</div>
+                          <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setViewingPlan(null);
+                  }}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsViewModalOpen(false);
+                    setViewingPlan(null);
+                    if (viewingPlan) {
+                      handleEditPlan(viewingPlan);
+                    }
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Plan
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={!!planToDelete} onOpenChange={() => setPlanToDelete(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Subscription Plan</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this subscription plan? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setPlanToDelete(null)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => planToDelete && handleDeletePlan(planToDelete)}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "Deleting..." : "Delete Plan"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit School Subscription Modal */}
+          <Dialog open={isEditSchoolModalOpen} onOpenChange={setIsEditSchoolModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit School Subscription</DialogTitle>
+                <DialogDescription>
+                  Update the school subscription details
+                </DialogDescription>
+              </DialogHeader>
+              {editingSchool && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editSchoolName">School Name</Label>
+                      <Input
+                        id="editSchoolName"
+                        value={editingSchool.schoolName}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, schoolName: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPlan">Plan</Label>
+                      <Select
+                        value={editingSchool.plan}
+                        onValueChange={(value) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, plan: value } : null
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="premium_school">Premium School</SelectItem>
+                          <SelectItem value="basic_school">Basic School</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editStatus">Status</Label>
+                      <Select
+                        value={editingSchool.status}
+                        onValueChange={(value: "active" | "expired" | "cancelled" | "pending") =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, status: value } : null
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editAmount">Amount</Label>
+                      <Input
+                        id="editAmount"
+                        type="number"
+                        value={editingSchool.amount}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, amount: parseFloat(e.target.value) } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editBillingCycle">Billing Cycle</Label>
+                      <Select
+                        value={editingSchool.billingCycle}
+                        onValueChange={(value) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, billingCycle: value } : null
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Monthly">Monthly</SelectItem>
+                          <SelectItem value="Annually">Annually</SelectItem>
+                          <SelectItem value="Quarterly">Quarterly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPaymentMethod">Payment Method</Label>
+                      <Input
+                        id="editPaymentMethod"
+                        value={editingSchool.paymentMethod}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, paymentMethod: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editStartDate">Start Date</Label>
+                      <Input
+                        id="editStartDate"
+                        type="date"
+                        value={editingSchool.startDate}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, startDate: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editEndDate">End Date</Label>
+                      <Input
+                        id="editEndDate"
+                        type="date"
+                        value={editingSchool.endDate}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, endDate: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editNextBilling">Next Billing</Label>
+                      <Input
+                        id="editNextBilling"
+                        type="date"
+                        value={editingSchool.nextBilling}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, nextBilling: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editLastPayment">Last Payment</Label>
+                      <Input
+                        id="editLastPayment"
+                        type="date"
+                        value={editingSchool.lastPayment}
+                        onChange={(e) =>
+                          setEditingSchool((prev) => 
+                            prev ? { ...prev, lastPayment: e.target.value } : null
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editFeatures">Features</Label>
+                    <Textarea
+                      id="editFeatures"
+                      value={editingSchool.features.join(", ")}
+                      onChange={(e) =>
+                        setEditingSchool((prev) => 
+                          prev ? { ...prev, features: e.target.value.split(", ") } : null
+                        )
+                      }
+                      placeholder="Enter features separated by commas"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditSchoolModalOpen(false);
+                    setEditingSchool(null);
+                  }}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateSchoolSubscription} disabled={isCreating}>
+                  {isCreating ? "Updating..." : "Update Subscription"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* View School Subscription Modal */}
+          <Dialog open={isViewSchoolModalOpen} onOpenChange={setIsViewSchoolModalOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>School Subscription Details</DialogTitle>
+                <DialogDescription>
+                  Complete information about the school subscription
+                </DialogDescription>
+              </DialogHeader>
+              {viewingSchool && (
+                <div className="space-y-6">
+                  {/* School Header */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        {viewingSchool.schoolName}
+                      </h3>
+                      <p className="text-gray-600 mt-1">Subscription Details</p>
+                    </div>
+                    {getStatusBadge(viewingSchool.status)}
+                  </div>
+
+                  {/* Subscription Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Amount
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {formatCurrency(viewingSchool.amount.toString())}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{viewingSchool.billingCycle} billing</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Next Billing
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {new Date(viewingSchool.nextBilling).toLocaleDateString()}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Due date</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          Payment Method
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {viewingSchool.paymentMethod}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Last payment: {viewingSchool.lastPayment}</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Plan and Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Zap className="h-4 w-4 mr-2" />
+                          Plan Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Plan:</span>
+                            {getPlanBadge(viewingSchool.plan)}
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Billing Cycle:</span>
+                            <span>{viewingSchool.billingCycle}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Status:</span>
+                            {getStatusBadge(viewingSchool.status)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Date Information
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Start Date:</span>
+                            <span>{new Date(viewingSchool.startDate).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">End Date:</span>
+                            <span>{new Date(viewingSchool.endDate).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Last Payment:</span>
+                            <span>{new Date(viewingSchool.lastPayment).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Features */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Features
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {viewingSchool.features.map((feature, index) => (
+                          <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                            <span className="text-sm">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsViewSchoolModalOpen(false);
+                    setViewingSchool(null);
+                  }}
+                >
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsViewSchoolModalOpen(false);
+                    setViewingSchool(null);
+                    if (viewingSchool) {
+                      handleEditSchoolSubscription(viewingSchool);
+                    }
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Subscription
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete School Subscription Confirmation Dialog */}
+          <Dialog open={!!schoolToDelete} onOpenChange={() => setSchoolToDelete(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete School Subscription</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this school subscription? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setSchoolToDelete(null)}
+                  disabled={isDeletingSchool}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => schoolToDelete && handleDeleteSchoolSubscription(schoolToDelete)}
+                  disabled={isDeletingSchool}
+                >
+                  {isDeletingSchool ? "Deleting..." : "Delete Subscription"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -701,14 +1673,41 @@ const Subscriptions = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEditPlan(plan)}
+                    >
                       <Edit className="h-3 w-3 mr-1" />
                       Edit
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" className="flex-1">
+                          <MoreHorizontal className="h-3 w-3 mr-1" />
+                          More
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewPlan(plan)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditPlan(plan)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Plan
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => setPlanToDelete(plan.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Plan
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardContent>
               </Card>
@@ -860,11 +1859,11 @@ const Subscriptions = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewSchoolSubscription(subscription)}>
                               <Eye className="mr-2 h-4 w-4" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditSchoolSubscription(subscription)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Subscription
                             </DropdownMenuItem>
@@ -873,9 +1872,19 @@ const Subscriptions = () => {
                               Manage Billing
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem 
+                              className="text-orange-600"
+                              onClick={() => handleCancelSchoolSubscription(subscription.id)}
+                            >
+                              <AlertCircle className="mr-2 h-4 w-4" />
                               Cancel Subscription
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => setSchoolToDelete(subscription.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Subscription
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

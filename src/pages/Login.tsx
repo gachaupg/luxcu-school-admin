@@ -161,8 +161,7 @@ const Login = () => {
                 className="w-full"
               />
               <p className="text-sm text-muted-foreground">
-                Enter local format (e.g., 0757198515 or 0757xxxxxx) - will be
-                converted automatically when you login
+                Enter local format (e.g. 0757xxxxxx) 
               </p>
             </div>
             <div className="space-y-2">

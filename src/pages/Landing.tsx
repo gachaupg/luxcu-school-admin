@@ -256,15 +256,15 @@ const Landing = () => {
       icon: <Mail className="h-6 w-6 text-[#f7c624]" />,
       title: "Mailing Address",
       description: "Get in touch with our team",
-      value: "Inquiry: info@eujimsloutions.com",
-      link: "mailto:info@eujimsloutions.com",
+      value: "Inquiry:info@shuletrack.com",
+      link: "mailto:info@shuletrack.com",   
     },
     {
       icon: <Mail className="h-6 w-6 text-[#f7c624]" />,
       title: "Support Email",
       description: "Technical support and assistance",
-      value: "Support: support@eujimsolutions.com",
-      link: "mailto:support@eujimsolutions.com",
+      value: "Support: support@shuletrack.com",
+      link: "mailto:support@shuletrack.com",
     },
     {
       icon: <Phone className="h-6 w-6 text-[#f7c624]" />,
@@ -273,13 +273,7 @@ const Landing = () => {
       value: "+254 113281424",
       link: "tel:+254113281424",
     },
-    {
-      icon: <Phone className="h-6 w-6 text-[#f7c624]" />,
-      title: "Alternative Contact",
-      description: "Secondary business line",
-      value: "+254 718099959",
-      link: "tel:+254718099959",
-    },
+  
   ];
 
   return (
@@ -588,8 +582,8 @@ const Landing = () => {
                       ?.scrollIntoView({ behavior: "smooth" });
                   }}
                 >
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  <span className="text-white">Learn More</span>
+                  <ArrowRight className="h-4 text-black w-4 mr-2" />
+                  <span className="text-black">Learn More</span>
                 </Button>
               </div>
 
@@ -662,7 +656,7 @@ const Landing = () => {
       {/* Stats Section */}
       <section
         id="stats"
-        className={`py-12 bg-slate-800 border-y border-slate-700 ml-10 mr-10 section-animate ${
+      className={`py-12 bg-slate-900  ml-10 mr-10 section-animate ${
           animatedSections.has("stats") ? "animate" : ""
         }`}
       >
@@ -693,7 +687,7 @@ const Landing = () => {
       {/* About Us Section */}
       <section
         id="about"
-        className={`py-1 bg-slate-800 ml-10 mr-10 section-animate ${
+        className={`py-1 bg-slate-900 ml-10 mr-10 section-animate ${
           animatedSections.has("about") ? "animate" : ""
         }`}
       >
@@ -709,7 +703,7 @@ const Landing = () => {
               </span>
             </h2>
             <p className="text-xl text-slate-300 max-w-4xl mx-auto leading-relaxed">
-              Smartshule is a modern school transportation management platform
+              Shuletrack is a modern school transportation management platform
               designed to revolutionize how schools handle their transportation
               operations. Based in Nairobi, Kenya, we serve schools across the
               country with cutting-edge technology and exceptional support.
@@ -880,7 +874,7 @@ const Landing = () => {
       {/* Features Section */}
       <section
         id="features"
-        className={`py-16 bg-gradient-to-b from-white to-slate-50 ml-10 mr-10 section-animate ${
+        className={`py-16 bg-slate-900  ml-10 mr-10 section-animate ${
           animatedSections.has("features") ? "animate" : ""
         }`}
       >
@@ -889,7 +883,7 @@ const Landing = () => {
             <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
               Features
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Everything You Need for
               <span className="text-[#f7c624] block">
                 Safe Transportation
@@ -905,9 +899,9 @@ const Landing = () => {
             {features.map((feature, index) => (
               <Card
                 key={index}
-                className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group bg-white rounded-2xl overflow-hidden card-animate ${
+                className={`border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group bg-slate-700 rounded-2xl overflow-hidden card-animate ${
                   animatedSections.has("features") ? "animate" : ""
-                }`}
+                }`} 
                 style={{
                   transitionDelay: `${index * 100}ms`,
                 }}
@@ -916,12 +910,12 @@ const Landing = () => {
                   <div className="mb-6 group-hover:scale-110 transition-transform duration-300">
                     {feature.icon}
                   </div>
-                  <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold text-slate-900">
+                  <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold text-white">
                     {feature.title}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base group-hover:text-slate-600 transition-colors leading-relaxed text-slate-600">
+                  <CardDescription className="text-base group-hover:text-slate-600 transition-colors leading-relaxed text-slate-300">
                     {feature.description}
                   </CardDescription>
                 </CardContent>
@@ -934,7 +928,7 @@ const Landing = () => {
       {/* Benefits Section */}
       <section
         id="benefits"
-        className={`py-16 bg-slate-800 ml-10 mr-10 section-animate ${
+        className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${
           animatedSections.has("benefits") ? "animate" : ""
         }`}
       >
@@ -1008,7 +1002,7 @@ const Landing = () => {
       </section>
 
       {/* School Bus Fleet Section */}
-      <section className="py-16 bg-slate-800 ml-10 mr-10">
+      <section className="py-16 bg-slate-900 ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
@@ -1210,36 +1204,36 @@ const Landing = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl overflow-hidden group">
+            <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-slate-700 rounded-2xl overflow-hidden group">
               <CardHeader className="pb-4">
                 <div className="mb-6 group-hover:scale-110 transition-transform duration-300">
                   <Lock className="h-12 w-12 text-[#f7c624]" />
                 </div>
-                <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold">
+                <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold text-white">
                   Security & Compliance
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-base group-hover:text-slate-700 transition-colors leading-relaxed">
+                <CardDescription className="text-base group-hover:text-slate-700 transition-colors leading-relaxed text-slate-300">
                   Enterprise-grade security with FERPA compliance and data
                   protection for student safety and privacy.
                 </CardDescription>
                 <div className="mt-6 space-y-3">
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-[#f7c624] flex-shrink-0" />
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-slate-300">
                       FERPA compliant
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-[#f7c624] flex-shrink-0" />
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-slate-300">
                       Data encryption
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-[#f7c624] flex-shrink-0" />
-                    <span className="text-sm text-slate-600">
+                      <span className="text-sm text-slate-300">
                       Access controls
                     </span>
                   </div>
@@ -1251,7 +1245,7 @@ const Landing = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 bg-slate-800 ml-10 mr-10">
+      <section className="py-16 bg-slate-900 ml-10 mr-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
@@ -1324,7 +1318,7 @@ const Landing = () => {
       {/* FAQ Section */}
       <section
         id="faq"
-        className={`py-16 bg-slate-800 ml-10 mr-10 section-animate ${
+        className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${
           animatedSections.has("faq") ? "animate" : ""
         }`}
       >
@@ -1387,7 +1381,7 @@ const Landing = () => {
       {/* Contact Section */}
       <section
         id="contact"
-        className={`py-16 bg-slate-800 ml-10 mr-10 section-animate ${
+        className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${
           animatedSections.has("contact") ? "animate" : ""
         }`}
       >
@@ -1500,7 +1494,7 @@ const Landing = () => {
       {/* CTA Section */}
       <section
         id="cta"
-        className={`py-20 bg-slate-800 ml-10 mr-10 transition-all duration-1000 ${
+        className={`py-20 bg-slate-900 ml-10 mr-10 transition-all duration-1000 ${
           animatedSections.has("cta")
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-10"
@@ -1535,7 +1529,7 @@ const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
-                <div className="w-8 h-8 bg-[#f7c624] rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                   <Bus className="h-5 w-5 text-white" />
                 </div>
                 <span className="text-xl font-bold">LuxCub</span>
@@ -1598,14 +1592,7 @@ const Landing = () => {
                         +254 113281424
                       </a>
                     </p>
-                    <p className="text-slate-300 text-sm">
-                      <a
-                        href="tel:+254718099959"
-                        className="hover:text-[#f7c624] transition-colors"
-                      >
-                        +254 718099959
-                      </a>
-                    </p>
+                 
                   </div>
                 </div>
               </div>

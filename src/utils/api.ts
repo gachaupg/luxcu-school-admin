@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://api.eujimsolutions.com/api";
+export const API_BASE_URL = "https://apiv1.shuletrack.com/api";
 
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/login/`,

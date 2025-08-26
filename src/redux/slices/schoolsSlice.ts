@@ -104,6 +104,18 @@ export const fetchSchools = createAsyncThunk<
     const apiError = error as {
       response?: { data?: { message?: string }; status?: number };
     };
+    
+    // Check if it's an authentication error
+    if (apiError.response?.status === 401 || apiError.response?.status === 403) {
+      // Don't set an error for auth issues - let the auth system handle it
+      return rejectWithValue("Authentication failed");
+    }
+    
+    // For network errors or other issues, return a user-friendly message
+    if (!apiError.response) {
+      return rejectWithValue("Network error - please check your connection");
+    }
+    
     return rejectWithValue(
       apiError.response?.data?.message || "Failed to fetch schools"
     );
@@ -158,7 +170,11 @@ const schoolsSlice = createSlice({
       })
       .addCase(fetchSchools.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to fetch schools";
+        // Only set error for non-auth errors
+        const errorMessage = action.payload || "Failed to fetch schools";
+        if (!errorMessage.includes('Authentication failed')) {
+          state.error = errorMessage;
+        }
       })
       // Register School
       .addCase(registerSchool.pending, (state) => {

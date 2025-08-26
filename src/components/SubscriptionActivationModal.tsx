@@ -120,19 +120,19 @@ const SubscriptionActivationModal: React.FC<SubscriptionActivationModalProps> = 
                        <p className="text-xs text-gray-600">
                          <span className="font-medium">Inquiry:</span>{" "}
                          <a 
-                           href="mailto:info@eujimsloutions.com" 
+                           href="mailto:info@shuletrack.com " 
                            className="text-emerald-600 hover:underline"
                          >
-                           info@eujimsloutions.com
+                           info@shuletrack.com
                          </a>
                        </p>
                        <p className="text-xs text-gray-600">
                          <span className="font-medium">Support:</span>{" "}
                          <a 
-                           href="mailto:support@eujimsolutions.com" 
+                           href="mailto:support@shuletrack.com" 
                            className="text-emerald-600 hover:underline"
                          >
-                           support@eujimsolutions.com
+                           support@shuletrack.com
                          </a>
                        </p>
                      </div>

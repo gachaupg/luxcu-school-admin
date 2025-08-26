@@ -84,21 +84,6 @@ const AppRoutes = () => {
 
   const schoolId = schools.find((school) => school.admin === user?.id)?.id;
 
-  // Additional debugging
-  useEffect(() => {
-    try {
-      const persistAuth = localStorage.getItem("persist:auth");
-      if (persistAuth) {
-        const parsed = JSON.parse(persistAuth);
-        if (parsed.token) {
-          const tokenData = JSON.parse(parsed.token);
-        }
-      }
-    } catch (error) {
-      // console.error("Error parsing persist:auth:", error);
-    }
-  }, []);
-
   // Initialize auth state
   useEffect(() => {
     dispatch(initializeAuth());
@@ -119,21 +104,36 @@ const AppRoutes = () => {
     }
   }, [token, isInitialized, dispatch]);
 
-  // Fetch schools when component mounts and token is available
+  // Fetch schools only when user is properly authenticated
   React.useEffect(() => {
-    if (token && isInitialized) {
-      dispatch(fetchSchools()).catch((error) => {
-        // The API interceptor should handle token expiration automatically
-      });
+    if (token && isInitialized && user) {
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      const fetchSchoolsWithRetry = async () => {
+        try {
+          await dispatch(fetchSchools()).unwrap();
+        } catch (error) {
+          retryCount++;
+          const errorMessage = typeof error === 'string' ? error : 'Unknown error';
+          
+          if (retryCount < maxRetries) {
+            // Wait before retrying (exponential backoff)
+            setTimeout(() => {
+              fetchSchoolsWithRetry();
+            }, 1000 * retryCount);
+          } else {
+            // After max retries, only clear error if it's not an auth error
+            if (!errorMessage.includes('401') && !errorMessage.includes('403') && !errorMessage.includes('Unauthorized') && !errorMessage.includes('Authentication failed')) {
+              dispatch(clearSchoolsError());
+            }
+          }
+        }
+      };
+      
+      fetchSchoolsWithRetry();
     }
-  }, [token, isInitialized, dispatch]);
-
-  // Log schools data
-  React.useEffect(() => {
-    if (schools && schools.length > 0) {
-      // console.log("Schools data:", schools);
-    }
-  }, [schools]);
+  }, [token, isInitialized, user, dispatch]);
 
   // Clear schools error when token becomes null (logout)
   React.useEffect(() => {

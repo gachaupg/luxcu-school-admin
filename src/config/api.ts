@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { API_BASE_URL } from "@/utils/api";
 import { handleApiError } from "@/utils/errorHandler";
+import { getStoredToken, clearAuthData } from "@/utils/auth";
 
 interface ApiClientConfig {
   timeout?: number;
@@ -46,8 +47,6 @@ const createAxiosInstance = (
       requestConfig.timeout = endpointConfig.timeout || config.timeout;
     }
 
-  
-
     return requestConfig;
   });
 
@@ -57,76 +56,12 @@ const createAxiosInstance = (
 const addAuthInterceptor = (instance: AxiosInstance): AxiosInstance => {
   instance.interceptors.request.use(
     (config) => {
-      // Simple token extraction - try multiple sources
-      let token = null;
-
-      // Method 1: Try direct token storage
-      token = localStorage.getItem("token");
-
-      // Method 2: Try Redux Persist if direct method fails
-      if (!token) {
-        try {
-          const persistData = localStorage.getItem("persist:auth");
-          if (persistData) {
-            const parsed = JSON.parse(persistData);
-            if (parsed.token) {
-              token = JSON.parse(parsed.token);
-              // Handle double-stringification
-              if (typeof token === "string") {
-                try {
-                  token = JSON.parse(token);
-                } catch (e) {
-                  // Keep original if second parse fails
-                }
-              }
-            }
-          }
-        } catch (error) {
-          // console.warn("Error parsing persist data:", error);
-        }
-      }
-
-      // Force token extraction from multiple sources
-      if (!token) {
-        // Try Redux Persist directly
-        const persistData = localStorage.getItem("persist:auth");
-        if (persistData) {
-          try {
-            const parsed = JSON.parse(persistData);
-            if (parsed.token) {
-              token = JSON.parse(parsed.token);
-              if (typeof token === "string") {
-                try {
-                  token = JSON.parse(token);
-                } catch (e) {
-                  // Keep original if second parse fails
-                }
-              }
-            }
-          } catch (e) {
-            // console.warn("Error parsing persist data:", e);
-          }
-        }
-      }
+      // Use the utility function for token extraction
+      const token = getStoredToken();
 
       // Set Authorization header if token found
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-      } else {
-       
-        // Check if user is logged in
-        const persistData = localStorage.getItem("persist:auth");
-        if (persistData) {
-          // console.log(
-          //   "User appears to be logged in but token extraction failed"
-          // );
-          // console.log(
-          //   "Raw persist data:",
-          //   persistData.substring(0, 200) + "..."
-          // );
-        } else {
-          // console.log("User is NOT logged in - need to login first");
-        }
       }
 
       return config;
@@ -142,28 +77,47 @@ const api = createAxiosInstance();
 // Add auth interceptor
 addAuthInterceptor(api);
 
+// Track if we're already handling a 401 error to prevent loops
+let isHandlingAuthError = false;
+
 // Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Handle 401 Unauthorized errors (token expired)
-    if (error.response?.status === 401) {
-      // Clear auth data from localStorage
-      localStorage.removeItem("persist:auth");
-      localStorage.removeItem("schoolId");
-      localStorage.removeItem("token");
-      // Redirect to login page instead of home
-      window.location.href = "/login";
+    if (error.response?.status === 401 && !isHandlingAuthError) {
+      isHandlingAuthError = true;
+      
+      // Use utility function to clear auth data
+      clearAuthData();
+      
+      // Reset the flag after a short delay
+      setTimeout(() => {
+        isHandlingAuthError = false;
+      }, 1000);
+      
+      // Only redirect if we're not already on the login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = "/login";
+      }
       return Promise.reject(error);
     }
 
     // Handle other authentication errors
-    if (error.response?.status === 403) {
+    if (error.response?.status === 403 && !isHandlingAuthError) {
+      isHandlingAuthError = true;
       
-      localStorage.removeItem("persist:auth");
-      localStorage.removeItem("schoolId");
-      localStorage.removeItem("token");
-      window.location.href = "/login";
+      // Use utility function to clear auth data
+      clearAuthData();
+      
+      setTimeout(() => {
+        isHandlingAuthError = false;
+      }, 1000);
+      
+      // Only redirect if we're not already on the login page
+      if (window.location.pathname !== '/login') {
+        window.location.href = "/login";
+      }
       return Promise.reject(error);
     }
 

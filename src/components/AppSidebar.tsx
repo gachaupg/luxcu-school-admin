@@ -43,7 +43,7 @@ export function AppSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <Link to="/home">
-          <img className="w-40 h-30 ml-6" src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo_wfussl.png" alt="Smartshule" />
+          <img className="w-40 h-30 ml-6" src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo_wfussl.png" alt="shuletrack" />
       </Link>
 
       {/* Navigation */}

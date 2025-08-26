@@ -61,7 +61,7 @@ import { RootState } from "@/redux/store";
 import { SidebarProvider } from "../components/ui/sidebar";
 import { AppSidebar } from "../components/AppSidebar";
 import { HeaderBar } from "../components/HeaderBar";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { parseVehicleError } from "@/utils/errorHandler";
 import { ExportDropdown } from "@/components/ExportDropdown";
 import {
@@ -440,7 +440,7 @@ export default function Vehicles() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Action modals state
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -535,7 +535,7 @@ export default function Vehicles() {
   // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, itemsPerPage]);
 
   // Action handlers
   const handleView = (vehicle: Vehicle) => {
@@ -755,75 +755,76 @@ export default function Vehicles() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
-      <div className="flex-1">
-        <main className="flex-1 bg-background">
-          <div className="">
-            <Card className="mt-1">
-              <CardHeader className="pb-3 border-b border-border flex flex-row w-full items-center justify-between">
-                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <Car className="h-5 w-5" />
-                  Vehicle List
-                </CardTitle>
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
-                      disabled={!schoolId}
-                      title={
-                        !schoolId
-                          ? "No school found. Please contact your administrator."
-                          : ""
-                      }
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Add Vehicle
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Add New Vehicle</DialogTitle>
-                    </DialogHeader>
-                    <AddVehicleForm
-                      formData={formData}
-                      setFormData={setFormData}
-                      onSubmit={handleSubmit}
-                      loading={loading}
-                      filteredDrivers={filteredDrivers}
-                      driversLoading={driversLoading}
-                    />
-                  </DialogContent>
-                </Dialog>
-              </CardHeader>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="flex-1 flex flex-col min-h-screen">
+        <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
+          {/* Page Title Only */}
+          <div className="mb-2 flex justify-between">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Car className="w-8 h-8 text-green-500" /> Vehicles
+            </h1>
+            <div className="flex gap-2">
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                    disabled={!schoolId}
+                    title={
+                      !schoolId
+                        ? "No school found. Please contact your administrator."
+                        : ""
+                    }
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> Add Vehicle
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New Vehicle</DialogTitle>
+                  </DialogHeader>
+                  <AddVehicleForm
+                    formData={formData}
+                    setFormData={setFormData}
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                    filteredDrivers={filteredDrivers}
+                    driversLoading={driversLoading}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
 
-              {/* Search and Filter Controls */}
-              <div className="p-6 border-b border-border/50 bg-muted/10">
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex-1 relative">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                      <Input
-                        placeholder="Search vehicles by registration, manufacturer, model, or driver..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 h-10 bg-background border-border/50 focus:border-primary/50 transition-colors"
-                      />
-                    </div>
-                    {searchTerm && (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        Found {filteredAndSearchedVehicles.length} vehicle
-                        {filteredAndSearchedVehicles.length !== 1 ? "s" : ""}
+          {/* Vehicles Table */}
+          <Card className="bg-white border-0 rounded-xl">
+            <div className="mb-2">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2"></div>
+
+              {/* Search and Filter Toolbar */}
+              <div className="bg-white">
+                <CardContent className="">
+                  <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
+                    <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search vehicles by registration, manufacturer, model, or driver..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
+                        />
+                        {searchTerm && (
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            Found {filteredAndSearchedVehicles.length} vehicle
+                            {filteredAndSearchedVehicles.length !== 1 ? "s" : ""}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-muted-foreground" />
                       <Select
                         value={statusFilter}
                         onValueChange={setStatusFilter}
                       >
-                        <SelectTrigger className="w-[160px] h-10 bg-background border-border/50">
+                        <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
                           <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -833,423 +834,426 @@ export default function Vehicles() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("all");
+                          setCurrentPage(1);
+                        }}
+                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                      >
+                        Clear Filters
+                      </Button>
+                      <ExportDropdown
+                        data={{
+                          headers: [
+                            "Registration Number",
+                            "Driver",
+                            "Vehicle Type",
+                            "Capacity",
+                            "Manufacturer",
+                            "Model",
+                            "Year",
+                            "Fuel Type",
+                            "Status",
+                            "Mileage",
+                            "GPS",
+                            "Camera",
+                            "Emergency Button",
+                          ],
+                          data: filteredAndSearchedVehicles.map((vehicle) => ({
+                            registration_number:
+                              vehicle.registration_number || "",
+                            driver: filteredDrivers.find(
+                              (d) => d?.id === vehicle.driver
+                            )
+                              ? `${
+                                  filteredDrivers.find(
+                                    (d) => d?.id === vehicle.driver
+                                  )?.user_details?.first_name || ""
+                                } ${
+                                  filteredDrivers.find(
+                                    (d) => d?.id === vehicle.driver
+                                  )?.user_details?.last_name || ""
+                                }`
+                              : "Not Assigned",
+                            vehicle_type: vehicle.vehicle_type || "",
+                            capacity: vehicle.capacity?.toString() || "",
+                            manufacturer: vehicle.manufacturer || "",
+                            model: vehicle.model || "",
+                            year: vehicle.year?.toString() || "",
+                            fuel_type: vehicle.fuel_type || "",
+                            status: vehicle.is_active ? "Active" : "Inactive",
+                            mileage: vehicle.mileage?.toString() || "",
+                            gps: vehicle.has_gps ? "Yes" : "No",
+                            camera: vehicle.has_camera ? "Yes" : "No",
+                            emergency_button: vehicle.has_emergency_button
+                              ? "Yes"
+                              : "No",
+                          })),
+                          fileName: "vehicles_export",
+                          title: "Vehicles Directory",
+                        }}
+                        className="border-gray-200 hover:bg-gray-50 rounded-full shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+            </div>
 
-                    <ExportDropdown
-                      data={{
-                        headers: [
-                          "Registration Number",
-                          "Driver",
-                          "Vehicle Type",
-                          "Capacity",
-                          "Manufacturer",
-                          "Model",
-                          "Year",
-                          "Fuel Type",
-                          "Status",
-                          "Mileage",
-                          "GPS",
-                          "Camera",
-                          "Emergency Button",
-                        ],
-                        data: filteredAndSearchedVehicles.map((vehicle) => ({
-                          registration_number:
-                            vehicle.registration_number || "",
-                          driver: filteredDrivers.find(
-                            (d) => d?.id === vehicle.driver
-                          )
-                            ? `${
-                                filteredDrivers.find(
-                                  (d) => d?.id === vehicle.driver
-                                )?.user_details?.first_name || ""
-                              } ${
-                                filteredDrivers.find(
-                                  (d) => d?.id === vehicle.driver
-                                )?.user_details?.last_name || ""
-                              }`
-                            : "Not Assigned",
-                          vehicle_type: vehicle.vehicle_type || "",
-                          capacity: vehicle.capacity?.toString() || "",
-                          manufacturer: vehicle.manufacturer || "",
-                          model: vehicle.model || "",
-                          year: vehicle.year?.toString() || "",
-                          fuel_type: vehicle.fuel_type || "",
-                          status: vehicle.is_active ? "Active" : "Inactive",
-                          mileage: vehicle.mileage?.toString() || "",
-                          gps: vehicle.has_gps ? "Yes" : "No",
-                          camera: vehicle.has_camera ? "Yes" : "No",
-                          emergency_button: vehicle.has_emergency_button
-                            ? "Yes"
-                            : "No",
-                        })),
-                        fileName: "vehicles_export",
-                        title: "Vehicles Directory",
-                      }}
-                      className="h-10 bg-background border-border/50 hover:bg-accent/50 transition-colors"
-                    />
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-muted-foreground">
+                      Loading vehicles...
+                    </span>
                   </div>
                 </div>
-              </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <p className="text-destructive mb-4">{error}</p>
+                    <Button onClick={() => window.location.reload()}>
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              ) : vehicles.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <Car className="h-12 w-12 text-muted-foreground/50" />
+                    <div className="text-center">
+                      <h3 className="text-lg font-medium text-muted-foreground">
+                        No vehicles found
+                      </h3>
+                      <p className="text-sm text-muted-foreground/70 mt-1">
+                        Get started by adding your first vehicle
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => setIsDialogOpen(true)}
+                      className="mt-2"
+                      disabled={!schoolId}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Vehicle
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[800px]">
+                      <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Registration No.
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Driver
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Type
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Capacity
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {paginatedVehicles.map((vehicle, idx) => {
+                          if (!vehicle) return null;
 
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/50 bg-muted/30">
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Registration No.
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Driver
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Capacity
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="flex items-center justify-center gap-3">
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                          <span className="text-muted-foreground">
-                            Loading vehicles...
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="text-destructive font-medium">
-                            {error}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.location.reload()}
-                          >
-                            Try Again
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : vehicles.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <Car className="h-12 w-12 text-muted-foreground/50" />
-                          <div className="text-center">
-                            <h3 className="text-lg font-medium text-muted-foreground">
-                              No vehicles found
-                            </h3>
-                            <p className="text-sm text-muted-foreground/70 mt-1">
-                              Get started by adding your first vehicle
-                            </p>
-                          </div>
-                          <Button
-                            onClick={() => setIsDialogOpen(true)}
-                            className="mt-2"
-                            disabled={!schoolId}
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Vehicle
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    paginatedVehicles.map((vehicle) => {
-                      if (!vehicle) return null;
+                          const driver = filteredDrivers.find(
+                            (d) => d?.id === vehicle.driver
+                          );
+                          const driverName = driver
+                            ? `${driver.user_details?.first_name || ""} ${
+                                driver.user_details?.last_name || ""
+                              }`.trim()
+                            : "Not Assigned";
 
-                      const driver = filteredDrivers.find(
-                        (d) => d?.id === vehicle.driver
-                      );
-                      const driverName = driver
-                        ? `${driver.user_details?.first_name || ""} ${
-                            driver.user_details?.last_name || ""
-                          }`.trim()
-                        : "Not Assigned";
-
-                      return (
-                        <tr
-                          key={vehicle.id}
-                          className="group hover:bg-muted/50 transition-colors duration-200 cursor-pointer"
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                                  <Car className="h-4 w-4 text-primary" />
+                          return (
+                            <tr
+                              key={vehicle.id}
+                              className={`transition-colors duration-200 ${
+                                idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                              } hover:bg-green-50`}
+                            >
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                                    <Car className="h-4 w-4" />
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-gray-900 text-sm">
+                                      {vehicle.registration_number || "N/A"}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {vehicle.manufacturer} {vehicle.model}
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-sm font-medium text-foreground">
-                                  {vehicle.registration_number || "N/A"}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {vehicle.manufacturer} {vehicle.model}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-                                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
                                     {driverName
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join("")
                                       .toUpperCase()}
-                                  </span>
+                                  </div>
+                                  <div className="text-sm text-gray-900">
+                                    {driverName}
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-sm font-medium text-foreground">
-                                  {driverName}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Badge
+                                  variant="outline"
+                                  className="capitalize font-medium bg-gray-100 text-gray-700 border-gray-200"
+                                >
+                                  {vehicle.vehicle_type || "N/A"}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {vehicle.capacity || "N/A"}
+                                  </div>
+                                  <div className="text-xs text-gray-500 ml-1">
+                                    seats
+                                  </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Driver
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge
-                              variant="outline"
-                              className="capitalize font-medium"
-                            >
-                              {vehicle.vehicle_type || "N/A"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center">
-                              <div className="text-sm font-medium text-foreground">
-                                {vehicle.capacity || "N/A"}
-                              </div>
-                              <div className="text-xs text-muted-foreground ml-1">
-                                seats
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge
-                              variant={
-                                vehicle.is_active ? "default" : "secondary"
-                              }
-                              className={`font-medium ${
-                                vehicle.is_active
-                                  ? "bg-[#f7c624    ] text-[#f7c624] dark:bg-green-900/20 dark:text-green-400"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
-                              }`}
-                            >
-                              <div className="w-2 h-2 rounded-full mr-2 bg-current"></div>
-                              {vehicle.is_active ? "Active" : "Inactive"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                                  vehicle.is_active
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-700"
+                                }`}>
+                                  <span className={`w-2 h-2 rounded-full inline-block ${
+                                    vehicle.is_active ? "bg-green-500" : "bg-gray-500"
+                                  }`}></span>
+                                  {vehicle.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex gap-2">
                                   <Button
+                                    size="icon"
                                     variant="ghost"
-                                    className="h-8 w-8 p-0 hover:bg-accent"
-                                  >
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                  align="end"
-                                  className="w-48"
-                                >
-                                  <DropdownMenuItem
                                     onClick={() => handleView(vehicle)}
-                                    className="cursor-pointer"
+                                    title="View Details"
                                   >
-                                    <ViewIcon className="h-4 w-4 mr-2" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
+                                    <ViewIcon className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
                                     onClick={() => handleEdit(vehicle)}
-                                    className="cursor-pointer"
+                                    title="Edit Vehicle"
                                   >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit Vehicle
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="destructive"
                                     onClick={() => handleDelete(vehicle)}
-                                    className="text-red-600 cursor-pointer focus:text-red-600"
+                                    title="Delete Vehicle"
                                   >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete Vehicle
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-
-                              {/* Quick action buttons - always visible */}
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleView(vehicle)}
-                                  className="h-7 w-7 p-0 hover:bg-accent"
-                                  title="View Details"
-                                >
-                                  <ViewIcon className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(vehicle)}
-                                  className="h-7 w-7 p-0 hover:bg-accent"
-                                  title="Edit Vehicle"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(vehicle)}
-                                  className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                  title="Delete Vehicle"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-
-              {/* Pagination Controls - always show at the bottom */}
-              <div className="flex items-center justify-between p-6 border-t border-border/50 bg-muted/20">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing{" "}
-                    <span className="font-medium text-foreground">
-                      {startIndex + 1}
-                    </span>{" "}
-                    to{" "}
-                    <span className="font-medium text-foreground">
-                      {Math.min(endIndex, filteredAndSearchedVehicles.length)}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-medium text-foreground">
-                      {filteredAndSearchedVehicles.length}
-                    </span>{" "}
-                    vehicles
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                  {filteredAndSearchedVehicles.length > 0 && (
-                    <div className="text-xs text-muted-foreground/70">
-                      Page {currentPage} of {totalPages}
-                    </div>
-                  )}
-                </div>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="h-8 px-3"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
+                  {/* Enhanced Pagination */}
+                  <div className="bg-white border-t border-gray-200">
+                    <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      {/* Page Info */}
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Showing</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                            {startIndex + 1}
+                          </span>
+                          <span>to</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                            {Math.min(endIndex, filteredAndSearchedVehicles.length)}
+                          </span>
+                          <span>of</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                            {filteredAndSearchedVehicles.length}
+                          </span>
+                          <span>vehicles</span>
+                        </div>
+                        {filteredAndSearchedVehicles.length > 0 && (
+                          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
+                            <span>•</span>
+                            <span>Page {currentPage} of {totalPages}</span>
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="flex items-center gap-1">
-                      {/* Show first page */}
-                      {currentPage > 3 && (
-                        <>
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center gap-3">
+                          {/* First Page Button */}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setCurrentPage(1)}
-                            className="w-8 h-8 p-0"
+                            disabled={currentPage === 1}
+                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            1
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            <ChevronLeft className="h-4 w-4 -ml-2" />
                           </Button>
-                          {currentPage > 4 && (
-                            <span className="px-2 text-muted-foreground">
-                              ...
-                            </span>
-                          )}
-                        </>
-                      )}
 
-                      {/* Show current page and surrounding pages */}
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(
-                          (page) =>
-                            page === 1 ||
-                            page === totalPages ||
-                            Math.abs(page - currentPage) <= 1
-                        )
-                        .map((page) => (
+                          {/* Previous Button */}
                           <Button
-                            key={page}
-                            variant={
-                              currentPage === page ? "default" : "outline"
-                            }
+                            variant="outline"
                             size="sm"
-                            onClick={() => setCurrentPage(page)}
-                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {page}
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Previous
                           </Button>
-                        ))}
 
-                      {/* Show last page */}
-                      {currentPage < totalPages - 2 && (
-                        <>
-                          {currentPage < totalPages - 3 && (
-                            <span className="px-2 text-muted-foreground">
-                              ...
-                            </span>
-                          )}
+                          {/* Page Numbers */}
+                          <div className="flex items-center gap-1">
+                            {/* Show first page if not in range */}
+                            {currentPage > 3 && totalPages > 5 && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(1)}
+                                  className="h-9 w-9 p-0 border-gray-300 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                                >
+                                  1
+                                </Button>
+                                {currentPage > 4 && (
+                                  <span className="px-2 text-gray-400">...</span>
+                                )}
+                              </>
+                            )}
+
+                            {/* Current page range */}
+                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                              .filter((page) => {
+                                if (totalPages <= 5) return true;
+                                if (currentPage <= 3) return page <= 5;
+                                if (currentPage >= totalPages - 2) return page >= totalPages - 4;
+                                return Math.abs(page - currentPage) <= 1;
+                              })
+                              .map((page) => (
+                                <Button
+                                  key={page}
+                                  variant={currentPage === page ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setCurrentPage(page)}
+                                  className={`h-9 w-9 p-0 font-medium transition-all duration-200 ${
+                                    currentPage === page
+                                      ? "bg-green-600 hover:bg-green-700 text-white shadow-md"
+                                      : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                  }`}
+                                >
+                                  {page}
+                                </Button>
+                              ))}
+
+                            {/* Show last page if not in range */}
+                            {currentPage < totalPages - 2 && totalPages > 5 && (
+                              <>
+                                {currentPage < totalPages - 3 && (
+                                  <span className="px-2 text-gray-400">...</span>
+                                )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCurrentPage(totalPages)}
+                                  className="h-9 w-9 p-0 border-gray-300 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                                >
+                                  {totalPages}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Next Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Next
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+
+                          {/* Last Page Button */}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setCurrentPage(totalPages)}
-                            className="w-8 h-8 p-0"
+                            disabled={currentPage === totalPages}
+                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {totalPages}
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                            <ChevronRight className="h-4 w-4 -mr-2" />
                           </Button>
-                        </>
+                        </div>
                       )}
-                    </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="h-8 px-3"
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                      {/* Items Per Page Selector */}
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <span>Show:</span>
+                                                 <Select
+                           value={itemsPerPage.toString()}
+                           onValueChange={(value) => {
+                             setItemsPerPage(parseInt(value));
+                           }}
+                         >
+                          <SelectTrigger className="h-8 w-16 border-gray-300 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span>per page</span>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            </Card>
-          </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </main>
       </div>
 

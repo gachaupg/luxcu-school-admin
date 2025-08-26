@@ -33,6 +33,7 @@ import {
   Phone,
   Mail,
   MapPin as LocationIcon,
+  ChartBarIcon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import AppNavbar from "@/components/AppNavbar";
@@ -88,6 +89,8 @@ export default function SubscriptionSelection() {
     const name = planName.toLowerCase();
     if (name.includes("basic") || name.includes("starter")) {
       return { text: "Starter", variant: "secondary" as const };
+    } else if (name.includes("standard") || name.includes("medium")) {
+      return { text: "Standard", variant: "default" as const };
     } else if (name.includes("pro") || name.includes("professional")) {
       return { text: "Popular", variant: "default" as const };
     } else if (name.includes("enterprise") || name.includes("premium")) {
@@ -100,6 +103,8 @@ export default function SubscriptionSelection() {
     const name = planName.toLowerCase();
     if (name.includes("basic") || name.includes("starter")) {
       return <Users className="h-6 w-6" />;
+    } else if (name.includes("standard") || name.includes("medium")) {
+      return <ChartBarIcon className="h-6 w-6" />;  
     } else if (name.includes("pro") || name.includes("professional")) {
       return <TrendingUp className="h-6 w-6" />;
     } else if (name.includes("enterprise") || name.includes("premium")) {
@@ -162,11 +167,10 @@ export default function SubscriptionSelection() {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className="min-h-screen bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
             <h2 className="text-red-800 font-semibold text-xl mb-2">
               Error Loading Subscription Plans
@@ -187,7 +191,7 @@ export default function SubscriptionSelection() {
   return (
     <div className="min-h-screen bg-slate-900">
       {/* Navbar */}
-      <AppNavbar onMenuClick={() => {}} />
+      {/* <AppNavbar onMenuClick={() => {}} /> */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px- py-1">
         <div className="text-center mb-4">
@@ -340,8 +344,8 @@ export default function SubscriptionSelection() {
                   {/* Billing Cycle */}
                   <div className="pt-3 border-t border-slate-700 mb-4">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-300">Billing Cycle:</span>
-                      <Badge variant="outline" className="capitalize text-xs">
+                      <span className="text-slate-100">Billing Cycle:</span>
+                      <Badge variant="outline" className="capitalize text-slate-100 text-xs">
                         {plan.default_billing_cycle}
                       </Badge>
                     </div>
@@ -411,9 +415,9 @@ export default function SubscriptionSelection() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
                 <div className="w-8 h-8 bg-[#f7c624] rounded-lg flex items-center justify-center">
-                  <Bus className="h-5 w-5 text-white" />
+                <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/Shule_Track_favicon_logo-100_u2kc1z.jpg" alt="" />
                 </div>
-                <span className="text-xl font-bold">LuxCub</span>
+                <span className="text-xl font-bold">Shuletrack</span>
               </div>
               <p className="text-slate-300 mb-6 leading-relaxed max-w-md">
                 Modern school transportation management platform that helps
@@ -515,9 +519,9 @@ export default function SubscriptionSelection() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-800 mt-12 pt-8 text-center">
+          <div className="border-t border-slate-800  pt-8 text-center">
             <p className="text-slate-400">
-              © 2024 LuxCub. All rights reserved.
+              © {new Date().getFullYear()} shuletrack. All rights reserved.
             </p>
           </div>
         </div>
