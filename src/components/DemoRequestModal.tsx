@@ -108,8 +108,6 @@ const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
         message_type: "demo_request" as const,
       };
 
-      console.log("Submitting demo request with data:", messageData);
-
       await dispatch(createContactMessage(messageData)).unwrap();
 
       toast({
@@ -130,7 +128,6 @@ const DemoRequestModal = ({ isOpen, onClose }: DemoRequestModalProps) => {
       });
       onClose();
     } catch (error) {
-      console.error("Error submitting demo request:", error);
       toast({
         title: "Error",
         description:

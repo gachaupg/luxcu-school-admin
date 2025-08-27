@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import { generateSubscriptionPDF, downloadPDF } from "@/utils/pdfGenerator";
 
-const SchoolSubscriptionPage = () => {
+const SchoolSubscriptionPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { subscriptions, loading, error } = useAppSelector(
     (state) => state.schoolSubscriptions
@@ -121,12 +121,7 @@ const SchoolSubscriptionPage = () => {
         const testStartDate = "2025-07-31T23:07:35+03:00";
         const testBillingCycle = "quarterly";
         const calculatedEndDate = calculateEndDate(testStartDate, testBillingCycle);
-        console.log("Test calculation:", {
-          startDate: testStartDate,
-          billingCycle: testBillingCycle,
-          calculatedEndDate: calculatedEndDate?.toISOString(),
-          formattedEndDate: calculatedEndDate ? formatDate(calculatedEndDate.toISOString()) : "null"
-        });
+        // Test calculation data logged
       } catch (error) {
         const errorMessage =
           error instanceof Error

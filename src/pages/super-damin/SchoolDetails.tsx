@@ -46,7 +46,7 @@ const SchoolDetails = () => {
         setSchool(schoolData);
         setError(null);
       } catch (err) {
-        console.error("Error fetching school details:", err);
+        // Error fetching school details
         setError("Failed to load school details");
       } finally {
         setLoading(false);
@@ -65,7 +65,7 @@ const SchoolDetails = () => {
       const updatedSchool = await schoolsService.getSchoolById(school._id);
       setSchool(updatedSchool);
     } catch (error) {
-      console.error("Error toggling school status:", error);
+      // Error toggling school status
     }
   };
 

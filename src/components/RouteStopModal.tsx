@@ -250,7 +250,7 @@ export function RouteStopModal({
       setSearchTerm("");
       setSelectedLocation(null);
     } catch (err) {
-      console.error("Add route stop error:", err);
+      // Add route stop error
       let errorMessage = "Failed to add route stop";
 
       if (err instanceof Error) {

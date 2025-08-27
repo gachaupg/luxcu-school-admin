@@ -87,7 +87,7 @@ const Analytics = () => {
 
       // Set a timeout to prevent infinite loading
       const timeoutId = setTimeout(() => {
-        console.log("Analytics loading timeout - API calls taking too long");
+        // Analytics loading timeout - API calls taking too long
         setLoading(false);
         toast({
           title: "Loading Timeout",
@@ -98,7 +98,7 @@ const Analytics = () => {
       }, 10000); // 10 second timeout
 
       try {
-        console.log("Starting analytics data fetch...");
+        // Starting analytics data fetch...
 
         // Fetch all required data with individual error handling
         let allSchools = [];
@@ -110,30 +110,30 @@ const Analytics = () => {
             dispatch(fetchInvoices()),
             dispatch(fetchSchoolSubscriptions()),
           ]);
-          console.log("Redux data fetched successfully");
+          // Redux data fetched successfully
         } catch (error) {
-          console.warn("Redux data fetch failed:", error);
+          // Redux data fetch failed
         }
 
         try {
           allSchools = await schoolsService.getAllSchools();
-          console.log("Schools data fetched:", allSchools.length);
+          // Schools data fetched
           if (!allSchools || allSchools.length === 0) {
             throw new Error("No schools data received");
           }
         } catch (error) {
-          console.error("Schools fetch failed:", error);
+          // Schools fetch failed
           throw new Error(`Failed to fetch schools data: ${error.message}`);
         }
 
         try {
           allStaff = await staffService.getAllStaff();
-          console.log("Staff data fetched:", allStaff.length);
+          // Staff data fetched
           if (!allStaff || allStaff.length === 0) {
             throw new Error("No staff data received");
           }
         } catch (error) {
-          console.error("Staff fetch failed:", error);
+          // Staff fetch failed
           throw new Error(`Failed to fetch staff data: ${error.message}`);
         }
 
@@ -211,7 +211,7 @@ const Analytics = () => {
         }));
 
         clearTimeout(timeoutId);
-        console.log("Setting analytics data successfully");
+        // Setting analytics data successfully
 
         // Validate that we have sufficient data
         if (allSchools.length === 0 && allStaff.length === 0) {
@@ -243,7 +243,7 @@ const Analytics = () => {
           topSchools,
         });
       } catch (error) {
-        console.error("Error fetching analytics data:", error);
+        // Error fetching analytics data
         clearTimeout(timeoutId);
 
         toast({

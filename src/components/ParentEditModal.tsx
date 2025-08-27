@@ -172,7 +172,7 @@ export function ParentEditModal({
       await onSave(parent.id, formData);
       onClose();
     } catch (error) {
-      console.error("Error updating parent:", error);
+      // Error updating parent
     } finally {
       setLoading(false);
     }

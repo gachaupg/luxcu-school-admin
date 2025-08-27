@@ -140,7 +140,6 @@ const SchoolSubscriptions = () => {
         description: "Subscriptions report has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate PDF. Please try again.",
@@ -164,7 +163,6 @@ const SchoolSubscriptions = () => {
         description: "Subscription PDF has been downloaded successfully.",
       });
     } catch (error) {
-      console.error("Error generating subscription PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate subscription PDF. Please try again.",

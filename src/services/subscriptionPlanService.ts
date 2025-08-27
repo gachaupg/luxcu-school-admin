@@ -49,7 +49,7 @@ export const subscriptionPlanService = {
       const response = await api.get("/subscription-plans/");
       return response.data;
     } catch (error) {
-      console.error("Error fetching subscription plans:", error);
+      // Error fetching subscription plans
       throw error;
     }
   },
@@ -62,7 +62,7 @@ export const subscriptionPlanService = {
       const response = await api.post("/subscription-plans/", plan);
       return response.data;
     } catch (error) {
-      console.error("Error creating subscription plan:", error);
+      // Error creating subscription plan
       throw error;
     }
   },
@@ -76,7 +76,7 @@ export const subscriptionPlanService = {
       const response = await api.put(`/subscription-plans/${id}/`, plan);
       return response.data;
     } catch (error) {
-      console.error("Error updating subscription plan:", error);
+      // Error updating subscription plan
       throw error;
     }
   },
@@ -86,7 +86,7 @@ export const subscriptionPlanService = {
     try {
       await api.delete(`/subscription-plans/${id}/`);
     } catch (error) {
-      console.error("Error deleting subscription plan:", error);
+      // Error deleting subscription plan
       throw error;
     }
   },
@@ -98,7 +98,7 @@ export const subscriptionPlanService = {
       const response = await api.get(`/subscription-plans/${id}/`);
       return response.data;
     } catch (error) {
-      console.error("Error fetching subscription plan:", error);
+      // Error fetching subscription plan
       throw error;
     }
   },

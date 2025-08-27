@@ -619,7 +619,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       // If no CSV pattern found, return the raw text for pattern matching
       return text;
     } catch (error) {
-      console.error("Error extracting text from PDF:", error);
       throw new Error("Failed to extract text from PDF");
     }
   };
@@ -643,7 +642,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       // Try to detect if it's space-separated or other delimiters
       return parseFlexibleFormat(lines);
     } catch (error) {
-      console.error("Error parsing text to structured data:", error);
       return [];
     }
   };

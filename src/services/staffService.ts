@@ -106,7 +106,7 @@ class StaffService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching staff:", error);
+      // Error fetching staff
       throw error;
     }
   }
@@ -129,7 +129,7 @@ class StaffService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error adding staff:", error);
+      // Error adding staff
       throw error;
     }
   }
@@ -152,7 +152,7 @@ class StaffService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error updating staff:", error);
+      // Error updating staff
       throw error;
     }
   }
@@ -171,7 +171,7 @@ class StaffService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
-      console.error("Error deleting staff:", error);
+      // Error deleting staff
       throw error;
     }
   }
@@ -193,7 +193,7 @@ class StaffService {
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching staff by ID:", error);
+      // Error fetching staff by ID
       throw error;
     }
   }

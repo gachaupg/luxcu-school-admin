@@ -230,7 +230,7 @@ export const parseApiError = (
           : "Please check the form for errors";
     }
   } catch (parseError) {
-    console.error("Error parsing API error data:", parseError);
+    // Error parsing API error data
     message =
       typeof error === "string" ? error : "An unexpected error occurred";
   }
@@ -267,7 +267,7 @@ export const parseStaffError = (error: unknown) => {
 export const handleFormError = (error: unknown, entityType: string) => {
   const { message, fieldErrors } = parseDatabaseError(error, entityType);
 
-  console.error(`${entityType} error:`, error);
+  // Error logged for entityType
 
   return {
     message,
@@ -376,7 +376,7 @@ export const parseReduxError = (
       message = String(error);
     }
   } catch (parseError) {
-    console.error("Error parsing Redux error data:", parseError);
+    // Error parsing Redux error data
     message =
       typeof error === "string" ? error : "An unexpected error occurred";
   }

@@ -128,7 +128,7 @@ const Users = () => {
         const response = await staffService.getAllStaff();
         setUsers(response);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        // Error fetching users
         toast({
           title: "Error",
           description: "Failed to fetch users. Please try again.",

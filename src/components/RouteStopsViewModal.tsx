@@ -42,7 +42,7 @@ export function RouteStopsViewModal({
       const response = await dispatch(fetchRouteStops(routeId)).unwrap();
       setRouteStops(response);
     } catch (err) {
-      console.error("Error fetching route stops:", err);
+      // Error fetching route stops
       setError(
         err instanceof Error ? err.message : "Failed to fetch route stops"
       );

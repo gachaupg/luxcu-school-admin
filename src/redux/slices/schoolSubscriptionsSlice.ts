@@ -124,7 +124,7 @@ export const fetchSchoolSubscriptionById = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error fetching school subscription:", error);
+      // Error fetching school subscription
       return rejectWithValue("Failed to fetch school subscription");
     }
   }
@@ -154,7 +154,7 @@ export const createSchoolSubscription = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error creating school subscription:", error);
+      // Error creating school subscription
       return rejectWithValue("Failed to create school subscription");
     }
   }
@@ -190,7 +190,7 @@ export const updateSchoolSubscription = createAsyncThunk(
       const data = await response.json();
       return data.data || data;
     } catch (error) {
-      console.error("Error updating school subscription:", error);
+      // Error updating school subscription
       return rejectWithValue("Failed to update school subscription");
     }
   }

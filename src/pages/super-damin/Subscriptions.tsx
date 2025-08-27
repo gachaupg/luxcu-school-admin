@@ -154,12 +154,10 @@ const Subscriptions = () => {
     try {
       setLoading(true);
       const data = await subscriptionPlanService.getSubscriptionPlans();
-      console.log("API Response:", data);
       // Handle different API response formats
       const plans = Array.isArray(data)
         ? data
         : (data as any)?.results || (data as any)?.data || [];
-      console.log("Processed plans:", plans);
       setSubscriptionPlans(plans || []);
       if (plans && plans.length > 0) {
         toast({
@@ -168,7 +166,6 @@ const Subscriptions = () => {
         });
       }
     } catch (error) {
-      console.error("Error fetching subscription plans:", error);
       toast({
         title: "Error",
         description: "Failed to load subscription plans. Using mock data.",
@@ -327,7 +324,6 @@ const Subscriptions = () => {
         },
       });
     } catch (error) {
-      console.error("Error creating subscription plan:", error);
       toast({
         title: "Error",
         description: "Failed to create subscription plan. Please try again.",
@@ -371,7 +367,6 @@ const Subscriptions = () => {
         description: "Subscription plan updated successfully!",
       });
     } catch (error) {
-      console.error("Error updating subscription plan:", error);
       toast({
         title: "Error",
         description: "Failed to update subscription plan. Please try again.",
@@ -393,7 +388,6 @@ const Subscriptions = () => {
         description: "Subscription plan deleted successfully!",
       });
     } catch (error) {
-      console.error("Error deleting subscription plan:", error);
       toast({
         title: "Error",
         description: "Failed to delete subscription plan. Please try again.",
@@ -436,7 +430,6 @@ const Subscriptions = () => {
         description: "School subscription updated successfully!",
       });
     } catch (error) {
-      console.error("Error updating school subscription:", error);
       toast({
         title: "Error",
         description: "Failed to update school subscription. Please try again.",
@@ -461,7 +454,6 @@ const Subscriptions = () => {
         description: "School subscription deleted successfully!",
       });
     } catch (error) {
-      console.error("Error deleting school subscription:", error);
       toast({
         title: "Error",
         description: "Failed to delete school subscription. Please try again.",
@@ -492,7 +484,6 @@ const Subscriptions = () => {
         description: "School subscription cancelled successfully!",
       });
     } catch (error) {
-      console.error("Error cancelling school subscription:", error);
       toast({
         title: "Error",
         description: "Failed to cancel school subscription. Please try again.",

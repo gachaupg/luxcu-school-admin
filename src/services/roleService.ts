@@ -81,7 +81,7 @@ export const roleService = {
       const roles = await roleService.getRoles(schoolId);
       return roles.some((role: Role) => role.name === "school_admin");
     } catch (error) {
-      console.error("Error checking school admin role:", error);
+      // Error checking school admin role
       return false;
     }
   },

@@ -100,7 +100,7 @@ const SubscriptionDetailsModal: React.FC<SubscriptionDetailsModalProps> = ({
         }.pdf`
       );
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      // Error generating PDF
     }
   };
 

@@ -180,9 +180,7 @@ export function StudentModal({
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    console.log(
-      `handleSelectChange - name: ${name}, value: ${value}, type: ${typeof value}`
-    );
+    // Log data: handleSelectChange - name, value, type
     const convertedValue =
       name === "grade" || name === "parent" ? Number(value) : value;
    

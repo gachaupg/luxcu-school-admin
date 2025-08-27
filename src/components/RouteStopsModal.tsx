@@ -299,7 +299,7 @@ export function RouteStopsModal({
       form.reset();
       setIsAddingStop(false);
     } catch (err) {
-      console.error("Add stop error:", err);
+      // Add stop error
       let errorMessage = "Failed to add route stop";
 
       if (err instanceof Error) {
@@ -350,7 +350,7 @@ export function RouteStopsModal({
       setSelectedStop(null);
       setIsEditMode(false);
     } catch (err) {
-      console.error("Update stop error:", err);
+      // Update stop error
       let errorMessage = "Failed to update route stop";
 
       if (err instanceof Error) {
@@ -384,7 +384,7 @@ export function RouteStopsModal({
         description: "Route stop deleted successfully",
       });
     } catch (err) {
-      console.error("Delete stop error:", err);
+      // Delete stop error
       toast({
         title: "Error",
         description: "Failed to delete route stop",

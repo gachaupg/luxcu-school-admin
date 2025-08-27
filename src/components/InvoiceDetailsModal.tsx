@@ -91,7 +91,7 @@ const InvoiceDetailsModal: React.FC<InvoiceDetailsModalProps> = ({
         `invoice-${invoice.id}-${new Date().toISOString().split("T")[0]}.pdf`
       );
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      // Error generating PDF
     }
   };
 
