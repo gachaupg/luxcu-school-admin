@@ -146,7 +146,7 @@ export default function AdminSubscription() {
                       .replace(/\b\w/g, (l) => l.toUpperCase())}
                   </CardTitle>
                   {plan.is_active && (
-                    <Badge variant="default" className="bg-green-500">
+                    <Badge variant="default" className="bg-[#f7c624]">
                       Active
                     </Badge>
                   )}
@@ -228,7 +228,7 @@ export default function AdminSubscription() {
                           >
                             <div className="flex items-center gap-2">
                               {value ? (
-                                <Check className="h-4 w-4 text-green-500" />
+                                <Check className="h-4 w-4 text-[#f7c624]" />
                               ) : (
                                 <X className="h-4 w-4 text-red-500" />
                               )}

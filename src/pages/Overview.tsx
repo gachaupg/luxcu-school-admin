@@ -310,7 +310,7 @@ const Overview = () => {
                                     {notification.notification_type || "INFO"}
                                   </Badge>
                                   {notification.is_read && (
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                    <CheckCircle className="w-3 h-3 text-[#f7c624]" />
                                   )}
                                 </div>
                                 <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
@@ -333,7 +333,7 @@ const Overview = () => {
                                       </span>
                                     )}
                                     {notification.drivers?.length > 0 && (
-                                      <span className="text-xs text-green-600">
+                                      <span className="text-xs text-[#f7c624]">
                                         Drivers:{" "}
                                         {notification.drivers
                                           .map(getDriverName)

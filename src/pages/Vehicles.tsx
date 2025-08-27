@@ -405,7 +405,7 @@ const AddVehicleForm = ({
       <Button
         type="submit"
         disabled={loading}
-        className="w-full bg-green-600 hover:bg-green-700 text-white mt-1"
+        className="w-full bg-[#f7c624] hover:bg-[#f7c624]/90 text-white mt-1"
       >
         {loading ? "Adding Vehicle..." : "Add Vehicle"}
       </Button>
@@ -761,7 +761,7 @@ export default function Vehicles() {
           {/* Page Title Only */}
           <div className="mb-2 flex justify-between">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Car className="w-8 h-8 text-green-500" /> Vehicles
+              <Car className="w-8 h-8 text-[#f7c624]" /> Vehicles
             </h1>
             <div className="flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -811,7 +811,7 @@ export default function Vehicles() {
                           placeholder="Search vehicles by registration, manufacturer, model, or driver..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
+                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
                         />
                         {searchTerm && (
                           <div className="mt-2 text-xs text-muted-foreground">
@@ -989,7 +989,7 @@ export default function Vehicles() {
                               key={vehicle.id}
                               className={`transition-colors duration-200 ${
                                 idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                              } hover:bg-green-50`}
+                              } hover:bg-[#f7c624]`}
                             >
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
@@ -1008,7 +1008,7 @@ export default function Vehicles() {
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                                  <div className="w-8 h-8 rounded-full bg-[#f7c624]/20 flex items-center justify-center text-[#f7c624] font-bold">
                                     {driverName
                                       .split(" ")
                                       .map((n) => n[0])
@@ -1041,11 +1041,11 @@ export default function Vehicles() {
                               <td className="px-4 py-3">
                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
                                   vehicle.is_active
-                                    ? "bg-green-100 text-green-700"
+                                    ? "bg-[#f7c624]/20 text-[#f7c624]"
                                     : "bg-gray-100 text-gray-700"
                                 }`}>
                                   <span className={`w-2 h-2 rounded-full inline-block ${
-                                    vehicle.is_active ? "bg-green-500" : "bg-gray-500"
+                                    vehicle.is_active ? "bg-[#f7c624]" : "bg-gray-500"
                                   }`}></span>
                                   {vehicle.is_active ? "Active" : "Inactive"}
                                 </span>
@@ -1175,7 +1175,7 @@ export default function Vehicles() {
                                   onClick={() => setCurrentPage(page)}
                                   className={`h-9 w-9 p-0 font-medium transition-all duration-200 ${
                                     currentPage === page
-                                      ? "bg-green-600 hover:bg-green-700 text-white shadow-md"
+                                      ? "bg-[#f7c624] hover:bg-[#f7c624]/90 text-white shadow-md"
                                       : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
                                   }`}
                                 >

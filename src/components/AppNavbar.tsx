@@ -117,6 +117,9 @@ const AppNavbar = ({ onMenuClick, isScrolled = false }: AppNavbarProps) => {
               <DropdownMenuItem onClick={() => navigate("/settings")}>
                 Settings
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/terms-and-policies")}>
+                Terms and Policies
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

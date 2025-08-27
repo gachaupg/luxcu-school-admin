@@ -389,7 +389,7 @@ export default function SettingsPage() {
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 px-8 py-6 bg-background overflow-y-auto">
           <div className="mb-4 flex items-center gap-3">
-            <Settings className="text-green-500" size={32} />
+            <Settings style={{ color: '#f7c624' }} size={32} />
             <h2 className="text-2xl font-bold text-foreground">Settings</h2>
           </div>
           {/* Tabs */}
@@ -399,9 +399,23 @@ export default function SettingsPage() {
                 key={tab}
                 className={`pb-2 text-lg font-medium transition-colors whitespace-nowrap ${
                   i === activeTab
-                    ? "border-b-2 border-green-400 text-green-400"
-                    : "text-muted-foreground hover:text-green-400"
+                    ? "border-b-2"
+                    : "text-muted-foreground"
                 }`}
+                style={{
+                  borderColor: i === activeTab ? '#f7c624' : undefined,
+                  color: i === activeTab ? '#f7c624' : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (i !== activeTab) {
+                    e.currentTarget.style.color = '#f7c624';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (i !== activeTab) {
+                    e.currentTarget.style.color = '';
+                  }
+                }}
                 onClick={() => setActiveTab(i)}
               >
                 {tab}
@@ -415,7 +429,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Building2 className="text-green-500" size={24} />
+                    <Building2 style={{ color: '#f7c624' }} size={24} />
                     School Information
                   </CardTitle>
                 </CardHeader>
@@ -445,7 +459,7 @@ export default function SettingsPage() {
                       {/* School Location Search */}
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-green-500" />
+                          <MapPin className="h-5 w-5" style={{ color: '#f7c624' }} />
                           <h3 className="text-lg font-semibold text-gray-800">
                             School Location Search
                           </h3>
@@ -477,7 +491,7 @@ export default function SettingsPage() {
                         schoolFormData.longitude_point) && (
                         <div className="space-y-4">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 text-green-500" />
+                            <MapPin className="h-4 w-4" style={{ color: '#f7c624' }} />
                             <span>General coordinates set</span>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -593,9 +607,12 @@ export default function SettingsPage() {
                               <span
                                 className={`px-2 py-1 rounded text-sm font-medium ${
                                   schoolFormData.notification_enabled
-                                    ? "bg-green-100 text-green-800"
+                                    ? "text-green-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
+                                style={{
+                                  backgroundColor: schoolFormData.notification_enabled ? '#f7c624' : undefined,
+                                }}
                               >
                                 {schoolFormData.notification_enabled
                                   ? "Enabled"
@@ -617,9 +634,12 @@ export default function SettingsPage() {
                               <span
                                 className={`px-2 py-1 rounded text-sm font-medium ${
                                   schoolFormData.allow_parent_tracking
-                                    ? "bg-green-100 text-green-800"
+                                    ? "text-green-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
+                                style={{
+                                  backgroundColor: schoolFormData.allow_parent_tracking ? '#f7c624' : undefined,
+                                }}
                               >
                                 {schoolFormData.allow_parent_tracking
                                   ? "Enabled"
@@ -638,9 +658,12 @@ export default function SettingsPage() {
                               <span
                                 className={`px-2 py-1 rounded text-sm font-medium ${
                                   schoolFormData.is_active
-                                    ? "bg-green-100 text-green-800"
+                                    ? "text-green-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
+                                style={{
+                                  backgroundColor: schoolFormData.is_active ? '#f7c624' : undefined,
+                                }}
                               >
                                 {schoolFormData.is_active
                                   ? "Active"
@@ -686,7 +709,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-3">
                     {NOTIF_TYPES.map((type) => (
                       <div key={type.label} className="flex items-center gap-3">
-                        <span className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: '#f7c624' }}>
                           <span className="w-3 h-3 bg-white rounded-full block" />
                         </span>
                         <span className="text-gray-700">{type.label}</span>
@@ -708,7 +731,8 @@ export default function SettingsPage() {
                           type="checkbox"
                           checked={i < 2}
                           readOnly
-                          className="accent-green-500 w-4 h-4"
+                          className="w-4 h-4"
+                          style={{ accentColor: '#f7c624' }}
                         />
                         <span className="text-gray-700">{rec.label}</span>
                       </label>
@@ -716,7 +740,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="flex-1 flex justify-end items-start">
-                  <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+                  <button className="text-white px-4 py-2 rounded transition" style={{ backgroundColor: '#f7c624' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6b91a'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f7c624'}>
                     New Message
                   </button>
                 </div>
@@ -728,9 +752,12 @@ export default function SettingsPage() {
                     key={card.title + card.recipient}
                     className={`border rounded-lg p-4 flex justify-between items-center cursor-pointer transition ${
                       selectedCard === i
-                        ? "border-green-400 shadow-lg"
+                        ? "shadow-lg"
                         : "border-gray-200"
                     }`}
+                    style={{
+                      borderColor: selectedCard === i ? '#f7c624' : undefined,
+                    }}
                     onClick={() => setSelectedCard(i)}
                   >
                     <div>
@@ -741,7 +768,7 @@ export default function SettingsPage() {
                         {card.recipient}
                       </div>
                     </div>
-                    <button className="flex items-center gap-1 text-green-500 hover:underline">
+                    <button className="flex items-center gap-1 hover:underline" style={{ color: '#f7c624' }}>
                       Edit <Edit2 size={16} />
                     </button>
                   </div>
@@ -760,7 +787,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <button className="bg-white border border-green-500 text-green-500 px-8 py-2 rounded hover:bg-green-50 transition">
+                <button className="bg-white border px-8 py-2 rounded transition" style={{ borderColor: '#f7c624', color: '#f7c624' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f7c624'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                   Save
                 </button>
               </div>
@@ -773,7 +800,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="text-green-500" size={24} />
+                    <Settings style={{ color: '#f7c624' }} size={24} />
                     Email Configuration
                   </CardTitle>
                 </CardHeader>
@@ -850,7 +877,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white">
+                    <Button className="text-white" style={{ backgroundColor: '#f7c624' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6b91a'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f7c624'}>
                       Save Email Settings
                     </Button>
                   </div>
@@ -865,7 +892,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="text-green-500" size={24} />
+                    <Settings style={{ color: '#f7c624' }} size={24} />
                     Push Notification Settings
                   </CardTitle>
                 </CardHeader>
@@ -948,7 +975,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white">
+                    <Button className="text-white" style={{ backgroundColor: '#f7c624' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6b91a'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f7c624'}>
                       Save Push Settings
                     </Button>
                   </div>
@@ -963,7 +990,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="text-green-500" size={24} />
+                    <Settings style={{ color: '#f7c624' }} size={24} />
                     School Policies
                   </CardTitle>
                 </CardHeader>
@@ -1045,7 +1072,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button className="bg-green-500 hover:bg-green-600 text-white">
+                    <Button className="text-white" style={{ backgroundColor: '#f7c624' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e6b91a'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f7c624'}>
                       Save Policies
                     </Button>
                   </div>
@@ -1060,7 +1087,7 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Settings className="text-green-500" size={24} />
+                    <Settings style={{ color: '#f7c624' }} size={24} />
                     Personalization Settings
                   </CardTitle>
                 </CardHeader>
@@ -1086,7 +1113,8 @@ export default function SettingsPage() {
                             </p>
                             <select
                               id="theme"
-                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 ring-green-200 outline-none bg-background border-border text-foreground"
+                              className="w-full px-3 py-2 border rounded-lg focus:ring-2 outline-none bg-background border-border text-foreground"
+                              style={{ '--tw-ring-color': '#f7c624' } as React.CSSProperties}
                               value={theme}
                               onChange={(e) =>
                                 setTheme(

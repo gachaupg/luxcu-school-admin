@@ -453,9 +453,7 @@ export default function RoutesPage() {
         "friday",
       ],
       traffic_factor: route.traffic_factor || 1.3,
-      path:
-        route.path ||
-        JSON.stringify({
+      path: typeof route.path === 'string' ? route.path : JSON.stringify({
           type: "LineString",
           coordinates: [
             [0, 0],
@@ -1204,7 +1202,7 @@ export default function RoutesPage() {
           <Card className="bg-white shadow-lg border-0 rounded-xl">
             <CardHeader className="border-b border-gray-100 flex flex-row w-full items-center justify-between py-4">
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Map className="w-6 h-6 text-green-500" />
+                <Map className="w-6 h-6 text-[#f7c624]" />
                 Routes List
               </CardTitle>
               <div className="flex gap-3">
@@ -1498,7 +1496,7 @@ export default function RoutesPage() {
                                         {stop.is_pickup && (
                                           <Badge
                                             variant="outline"
-                                            className="text-xs bg-green-50 text-green-700 border-green-200"
+                                            className="text-xs bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/20"
                                           >
                                             Pickup
                                           </Badge>
@@ -1506,7 +1504,7 @@ export default function RoutesPage() {
                                         {stop.is_dropoff && (
                                           <Badge
                                             variant="outline"
-                                            className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                                            className="text-xs bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/20"
                                           >
                                             Dropoff
                                           </Badge>
@@ -1630,7 +1628,7 @@ export default function RoutesPage() {
                         <div className="flex justify-end">
                           <Button
                             type="submit"
-                            className="bg-green-500 hover:bg-green-600"
+                            className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                           >
                             Assign Route
                           </Button>
@@ -1949,7 +1947,7 @@ export default function RoutesPage() {
                         <div className="flex justify-end">
                           <Button
                             type="submit"
-                            className="bg-green-500 hover:bg-green-600"
+                            className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                           >
                             Create Route
                           </Button>
@@ -2061,7 +2059,7 @@ export default function RoutesPage() {
                     <tr>
                       <td colSpan={6} className="px-6 py-8 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f7c624]"></div>
                           <span className="text-gray-600 font-medium">
                             Loading routes...
                           </span>
@@ -2128,7 +2126,7 @@ export default function RoutesPage() {
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                              <div className="w-2 h-2 bg-[#f7c624] rounded-full mr-3"></div>
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
                                   {route.name}
@@ -2190,7 +2188,7 @@ export default function RoutesPage() {
                                 <Badge
                                   key={day}
                                   variant="outline"
-                                  className="text-xs px-2 py-1 bg-blue-50 text-blue-700 border-blue-200"
+                                  className="text-xs px-2 py-1 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/20"
                                 >
                                   {day.slice(0, 3)}
                                 </Badge>
@@ -2225,7 +2223,7 @@ export default function RoutesPage() {
                               }
                               className={`${
                                 route.is_active
-                                  ? "bg-green-100 text-green-800 border-green-200"
+                                  ? "bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/20"
                                   : "bg-gray-100 text-gray-800 border-gray-200"
                               } font-medium`}
                             >
@@ -2233,7 +2231,7 @@ export default function RoutesPage() {
                                 <div
                                   className={`w-2 h-2 rounded-full ${
                                     route.is_active
-                                      ? "bg-green-500"
+                                      ? "bg-[#f7c624]"
                                       : "bg-gray-400"
                                   }`}
                                 ></div>
@@ -2265,14 +2263,14 @@ export default function RoutesPage() {
                                   onClick={() => handleEdit(route)}
                                   className="cursor-pointer"
                                 >
-                                  <Edit className="h-4 w-4 mr-2 text-green-600" />
+                                  <Edit className="h-4 w-4 mr-2 text-[#f7c624]" />
                                   <span>Edit Route</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleAddRouteStop(route)}
                                   className="cursor-pointer"
                                 >
-                                  <MapPin className="h-4 w-4 mr-2 text-purple-600" />
+                                  <MapPin className="h-4 w-4 mr-2 text-[#f7c624]" />
                                   <span>Add Route Stop</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -2822,7 +2820,7 @@ export default function RoutesPage() {
               <div className="flex justify-end">
                 <Button
                   type="submit"
-                  className="bg-green-500 hover:bg-green-600"
+                  className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                 >
                   Update Route
                 </Button>

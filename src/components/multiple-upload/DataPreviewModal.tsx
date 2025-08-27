@@ -47,7 +47,7 @@ export const DataPreviewModal: React.FC<DataPreviewModalProps> = ({
     if (!errors || errors.length === 0) {
       return {
         status: "valid",
-        icon: <Check className="w-4 h-4 text-green-500" />,
+        icon: <Check className="w-4 h-4 text-[#f7c624]" />,
       };
     }
     return { status: "error", icon: <X className="w-4 h-4 text-red-500" /> };
@@ -96,7 +96,7 @@ export const DataPreviewModal: React.FC<DataPreviewModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-[#f7c624]">
                   {data.length - Object.keys(validationErrors).length}
                 </div>
               </CardContent>

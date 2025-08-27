@@ -25,12 +25,13 @@ import {
 } from "lucide-react";
 import { schoolsService, DashboardStats } from "@/services/schoolsService";
 import { staffService } from "@/services/staffService";
-import { toast, useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { generateTablePDF, downloadPDF } from "@/utils/pdfGenerator";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const { invoices } = useAppSelector((state) => state.invoices);
   const { subscriptions } = useAppSelector(
     (state) => state.schoolSubscriptions

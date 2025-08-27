@@ -552,24 +552,24 @@ const SchoolRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-emerald-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-[#f7c624]/10 p-4">
       <Card className="w-full max-w-4xl shadow-xl">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
-            <Building2 className="h-6 w-6 text-emerald-600" />
+          <div className="mx-auto w-12 h-12 bg-[#f7c624]/20 rounded-full flex items-center justify-center mb-3">
+            <Building2 className="h-6 w-6 text-[#f7c624]" />
           </div>
           <CardTitle className="text-2xl font-bold text-slate-900">
             Register Your School
           </CardTitle>
           <CardDescription className="text-base text-slate-600">
-            Join LuxCub and transform your school transportation management
+            Join Shuletrack and transform your school transportation management
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-3">
               <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                <Building2 className="h-4 w-4 mr-2 text-emerald-600" />
+                <Building2 className="h-4 w-4 mr-2 text-[#f7c624]" />
                 School Information
               </h3>
 
@@ -778,42 +778,42 @@ const SchoolRegistration = () => {
             {selectedPlan && (
               <div className="space-y-3">
                 <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                  <Package className="h-4 w-4 mr-2 text-emerald-600" />
+                  <Package className="h-4 w-4 mr-2 text-[#f7c624]" />
                   Selected Subscription Plan
                 </h3>
-                <Card className="border-emerald-200 bg-emerald-50">
+                <Card className="border-[#f7c624]/30 bg-[#f7c624]/10">
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-emerald-800 text-sm">
+                      <h4 className="font-semibold text-[#f7c624]/80 text-sm">
                         {selectedPlan.name
                           .replace(/_/g, " ")
                           .replace(/\b\w/g, (l: string) => l.toUpperCase())}
                       </h4>
-                      <Badge className="bg-emerald-600 text-white text-xs">
+                      <Badge className="bg-[#f7c624] text-white text-xs">
                         {formatPrice(selectedPlan.base_price)}/month
                       </Badge>
                     </div>
-                    <p className="text-xs text-emerald-700 mb-2">
+                    <p className="text-xs text-[#f7c624]/70 mb-2">
                       {selectedPlan.description}
                     </p>
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div className="text-center">
-                        <div className="font-semibold text-emerald-600">
+                        <div className="font-semibold text-[#f7c624]">
                           {selectedPlan.features_json.max_students}
                         </div>
-                        <div className="text-emerald-600 text-xs">Students</div>
+                        <div className="text-[#f7c624] text-xs">Students</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-semibold text-emerald-600">
+                        <div className="font-semibold text-[#f7c624]">
                           {selectedPlan.features_json.max_buses}
                         </div>
-                        <div className="text-emerald-600 text-xs">Buses</div>
+                        <div className="text-[#f7c624] text-xs">Buses</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-semibold text-emerald-600">
+                        <div className="font-semibold text-[#f7c624]">
                           {selectedPlan.default_billing_cycle}
                         </div>
-                        <div className="text-emerald-600 text-xs">Billing</div>
+                        <div className="text-[#f7c624] text-xs">Billing</div>
                       </div>
                     </div>
                   </CardContent>
@@ -823,7 +823,7 @@ const SchoolRegistration = () => {
 
                          <div className="space-y-3">
                <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                 <User className="h-4 w-4 mr-2 text-emerald-600" />
+                 <User className="h-4 w-4 mr-2 text-[#f7c624]" />
                  Admin Information
                </h3>
 
@@ -1052,7 +1052,7 @@ const SchoolRegistration = () => {
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                className="flex-1 bg-[#f7c624] hover:bg-[#f7c624]/80"
                 disabled={registrationLoading}
               >
                 {registrationLoading ? (

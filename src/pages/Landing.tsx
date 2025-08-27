@@ -54,6 +54,7 @@ import {
   Target,
   Eye,
   Rocket,
+  Fingerprint,
 } from "lucide-react";
 import SubscriptionPlansDisplay from "@/components/SubscriptionPlansDisplay";
 import { tokens } from "@/utils/tokens";
@@ -137,36 +138,78 @@ const Landing = () => {
       title: "Real-time GPS Tracking",
       description:
         "Track every school bus in real-time with precise location data and live updates for parents and administrators.",
+      ticks: [
+        "Live location updates every 30 seconds",
+        "Route deviation alerts",
+        "ETA predictions",
+        "Historical route tracking",
+        "Multi-device access"
+      ]
     },
     {
       icon: <Shield className="h-8 w-8 text-[#f7c624]" />,
       title: "Advanced Safety Features",
       description:
         "Comprehensive safety monitoring including speed alerts, route compliance, and emergency response systems.",
+      ticks: [
+        "Speed monitoring & alerts",
+        "Emergency SOS system",
+        "Driver behavior tracking",
+        "Weather condition alerts",
+        "Real-time incident reporting"
+      ]
     },
     {
-      icon: <Zap className="h-8 w-8 text-[#f7c624]" />,
-      title: "AI Route Optimization",
+      icon: <Fingerprint className="h-8 w-8 text-[#f7c624]" />,
+      title: "Biometric Login for Students",
       description:
-        "Intelligent route planning that reduces fuel costs, travel time, and ensures optimal efficiency.",
+        "Secure biometric authentication for students to check in when dropped off and picked up, ensuring accurate attendance tracking.",
+      ticks: [
+        "Fingerprint & facial recognition",
+        "Automatic attendance tracking",
+        "Drop-off & pick-up verification",
+        "Parent notification system",
+        "Secure data encryption"
+      ]
     },
     {
       icon: <Users className="h-8 w-8 text-[#f7c624]" />,
       title: "Parent Portal",
       description:
         "Dedicated mobile app for parents to track their child's bus location and receive real-time notifications.",
+      ticks: [
+        "Real-time bus tracking",
+        "Push notifications",
+        "Multiple child support",
+        "Schedule management",
+        "Direct communication with drivers"
+      ]
     },
     {
       icon: <Clock className="h-8 w-8 text-[#f7c624]" />,
       title: "Live Updates",
       description:
         "Instant notifications for delays, route changes, and arrival times to keep everyone informed.",
+      ticks: [
+        "Delay notifications",
+        "Route change alerts",
+        "Arrival time updates",
+        "Weather-related updates",
+        "Emergency announcements"
+      ]
     },
     {
       icon: <TrendingUp className="h-8 w-8 text-[#f7c624]" />,
       title: "Analytics Dashboard",
       description:
         "Comprehensive reporting and analytics to optimize operations and improve efficiency.",
+      ticks: [
+        "Performance metrics",
+        "Cost analysis reports",
+        "Route optimization data",
+        "Safety incident tracking",
+        "Custom report generation"
+      ]
     },
   ];
 
@@ -238,8 +281,8 @@ const Landing = () => {
   ];
 
   const stats = [
-    { number: "500+", label: "Schools Trust Us" },
-    { number: "50,000+", label: "Students Transported" },
+    { number: "50+", label: "Schools Trust Us" },
+    { number: "5000+", label: "Students Transported" },
     { number: "99.9%", label: "Uptime Reliability" },
     { number: "4.9/5", label: "Customer Rating" },
   ];
@@ -435,7 +478,7 @@ const Landing = () => {
             <Link to="/home">
               <div className="flex items-center space-x-2">
                 <span className="text-xl w-40 h-30 font-bold transition-colors duration-300">
-                  <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo_wfussl.png" alt="" />
+                  <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo-100_gcmpht.jpg" alt="" />
                 </span>
               </div>
             </Link>
@@ -527,7 +570,7 @@ const Landing = () => {
           ></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
+        <div className="max-w-7xl mx-auto mt-5 px-4 sm:px-6 lg:px-8 w-full relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left Content */}
             <div className="text-left space-y-6">
@@ -538,7 +581,7 @@ const Landing = () => {
                   className="inline-flex items-center bg-[#f7c624] text-white px-4 py-2 rounded-full font-medium"
                 >
                   <Star className="h-4 w-4 mr-2" />
-                  Trusted by 500+ Schools Nationwide
+                  Trusted by 50+ Schools Nationwide
                 </Badge>
               </div>
 
@@ -600,7 +643,7 @@ const Landing = () => {
                       </div>
                     ))}
                   </div>
-                  <span className="text-white/70 text-sm">Join 500+ schools</span>
+                  <span className="text-white/70 text-sm">Join 50+ schools</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="flex space-x-1">
@@ -621,9 +664,9 @@ const Landing = () => {
               <div className="relative w-full max-w-xl">
                 {/* Simple image container */}
                 <div className="relative">
-                  <div className="relative bg-white/5 rounded-2xl p-8 border border-white/10 shadow-lg">
+                  <div className="relative  rounded-2xl p-8  ">
                     <img
-                      src="https://res.cloudinary.com/pitz/image/upload/v1753867118/images__1_-removebg-preview_mbnod8.png"
+                      src="https://res.cloudinary.com/pitz/image/upload/v1756278735/Yellow_School_Bus_on_White_Background_iihnb2.png"
                       alt="School Bus Transportation"
                       className="w-full h-auto object-contain"
                     />
@@ -675,7 +718,7 @@ const Landing = () => {
                 <div className="text-4xl md:text-5xl font-bold text-[#f7c624] mb-3 group-hover:text-[#f7c624]/80 transition-colors">
                   {stat.number}
                 </div>
-                <div className="text-slate-600 group-hover:text-slate-800 transition-colors font-medium">
+                <div className="text-slate-100 group-hover:text-slate-600 transition-colors font-medium">
                   {stat.label}
                 </div>
               </div>
@@ -730,15 +773,15 @@ const Landing = () => {
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
                   <p className="text-slate-300 text-sm">
                     Enhance student safety
                   </p>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624]/20 rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                  <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
                   <p className="text-slate-300 text-sm">
                     Improve operational efficiency
@@ -746,7 +789,7 @@ const Landing = () => {
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
                   <p className="text-slate-300 text-sm">
                     Provide peace of mind
@@ -765,7 +808,7 @@ const Landing = () => {
                   Our Vision
                 </h3>
               </div>
-              <p className="text-lg text-slate-300 leading-relaxed">
+              <p className="text-lg text-slate-100 leading-relaxed">
                 To become the leading provider of school transportation
                 technology in Africa, making safe and efficient school
                 transportation accessible to every educational institution while
@@ -773,24 +816,24 @@ const Landing = () => {
               </p>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">
+                  <p className="text-slate-100 text-sm">
                     Lead African innovation
                   </p>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">Set global standards</p>
+                  <p className="text-slate-100 text-sm">Set global standards</p>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-5 h-5 bg-cyan-100 rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-cyan-600" />
+                  <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">
+                  <p className="text-slate-100 text-sm">
                     Universal accessibility
                   </p>
                 </div>
@@ -803,11 +846,11 @@ const Landing = () => {
                 <div className="w-12 h-12 bg-gradient-to-r from-[#f7c624] to-[#10213f] rounded-xl flex items-center justify-center">
                   <Rocket className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900">
+                <h3 className="text-2xl font-bold text-slate-100">
                   Our Future
                 </h3>
               </div>
-              <p className="text-lg text-slate-600 leading-relaxed">
+              <p className="text-lg text-slate-100 leading-relaxed">
                 We envision a future where every school in Africa has access to
                 world-class transportation technology, creating safer, more
                 efficient, and environmentally sustainable school transportation
@@ -816,21 +859,21 @@ const Landing = () => {
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">AI-powered solutions</p>
+                  <p className="text-slate-100 text-sm">AI-powered solutions</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">Green transportation</p>
+                  <p className="text-slate-100 text-sm">Green transportation</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
-                    <CheckCircle className="h-3 w-3 text-[#f7c624]" />
+                    <CheckCircle className="h-3 w-3 text-[#ffffff]" />
                   </div>
-                  <p className="text-slate-600 text-sm">Global expansion</p>
+                  <p className="text-slate-100 text-sm">Global expansion</p>
                 </div>
               </div>
             </div>
@@ -838,15 +881,15 @@ const Landing = () => {
 
           {/* Why Choose LuxCub Section */}
           <div className="mt-16">
-            <h3 className="text-2xl font-bold text-slate-900 mb-8 text-center">
-              Why Choose LuxCub?
+            <h3 className="text-2xl font-bold text-slate-100 mb-8 text-center">
+              Why Choose Shuletrack?
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 w-6 h-6 bg-[#f7c624] rounded-full flex items-center justify-center">
                   <CheckCircle className="h-4 w-4 text-[#f7c624]" />
                 </div>
-                <p className="text-slate-600">
+                <p className="text-slate-100">
                   Local expertise with global standards
                 </p>
               </div>
@@ -854,7 +897,7 @@ const Landing = () => {
                 <div className="flex-shrink-0 w-6 h-6 bg-[#f7c624] rounded-full flex items-center justify-center">
                   <CheckCircle className="h-4 w-4 text-[#f7c624]" />
                 </div>
-                <p className="text-slate-600">
+                <p className="text-slate-100">
                   24/7 customer support in your timezone
                 </p>
               </div>
@@ -862,7 +905,7 @@ const Landing = () => {
                 <div className="flex-shrink-0 w-6 h-6 bg-[#f7c624]/20 rounded-full flex items-center justify-center">
                   <CheckCircle className="h-4 w-4 text-[#f7c624]" />
                 </div>
-                <p className="text-slate-600">
+                <p className="text-slate-100">
                   Customized solutions for African schools
                 </p>
               </div>
@@ -907,17 +950,31 @@ const Landing = () => {
                 }}
               >
                 <CardHeader className="pb-4">
-                  <div className="mb-6 group-hover:scale-110 transition-transform duration-300">
-                    {feature.icon}
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="group-hover:scale-110 transition-transform duration-300">
+                      {feature.icon}
+                    </div>
+                    <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold text-white">
+                      {feature.title}
+                    </CardTitle>
                   </div>
-                  <CardTitle className="text-xl group-hover:text-[#f7c624] transition-colors font-semibold text-white">
-                    {feature.title}
-                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-base group-hover:text-slate-600 transition-colors leading-relaxed text-slate-300">
+                  <CardDescription className="text-base group-hover:text-slate-300 transition-colors leading-relaxed text-slate-400 mb-6">
                     {feature.description}
                   </CardDescription>
+                  <div className="space-y-3">
+                    {feature.ticks.map((tick, tickIndex) => (
+                      <div key={tickIndex} className="flex items-start space-x-3">
+                        <div className="flex-shrink-0 w-5 h-5 bg-[#f7c624] rounded-full flex items-center justify-center mt-0.5">
+                          <CheckCircle className="h-3 w-3 text-white" />
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed">
+                          {tick}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -980,9 +1037,9 @@ const Landing = () => {
               <Card className="absolute -bottom-8 -right-8 p-8 shadow-2xl bg-slate-800 rounded-2xl border border-slate-700">
                 <div className="text-center">
                   <div className="text-4xl font-bold text-[#f7c624] mb-2">
-                    500+
+                    50+
                   </div>
-                  <div className="text-lg text-slate-300 mb-3">
+                  <div className="text-lg text-slate-100 mb-3">
                     Schools Trust Us
                   </div>
                   <div className="flex justify-center space-x-1 mb-2">

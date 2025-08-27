@@ -254,7 +254,7 @@ export default function Trips() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f7c624]"></div>
               <span>Loading trips...</span>
             </div>
           </div>
@@ -292,7 +292,7 @@ export default function Trips() {
                       {stat.value}
                     </p>
                   </div>
-                  <stat.icon className="h-8 w-8 text-green-500" />
+                  <stat.icon className="h-8 w-8 text-[#f7c624]" />
                 </div>
               </CardContent>
             </Card>

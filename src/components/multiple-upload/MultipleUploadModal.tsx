@@ -1199,7 +1199,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           <div className="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
         );
       case "completed":
-        return <Check className="w-4 h-4 text-green-500" />;
+        return <Check className="w-4 h-4 text-[#f7c624]" />;
       case "error":
         return <AlertCircle className="w-4 h-4 text-red-500" />;
       default:
@@ -1456,7 +1456,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
                     <Button
                       onClick={handleUpload}
                       disabled={isSubmitting}
-                      className="bg-green-500 hover:bg-green-600"
+                      className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                     >
                       {isSubmitting ? (
                         <>
@@ -1555,7 +1555,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
                   setIsPreviewOpen(false);
                   handleUpload();
                 }}
-                className="bg-green-500 hover:bg-green-600"
+                className="bg-[#f7c624] hover:bg-[#f7c624]/90"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload All Records

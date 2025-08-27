@@ -1138,7 +1138,7 @@ export default function Parents() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#f7c624] mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg font-medium">
             Loading parents...
           </p>
@@ -1170,7 +1170,7 @@ export default function Parents() {
                   dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
                 }
               }}
-              className="bg-green-500 hover:bg-green-600"
+              className="bg-[#f7c624] hover:bg-[#f7c624]/90"
             >
               Try Again
             </Button>
@@ -1187,7 +1187,7 @@ export default function Parents() {
           {/* Page Title Only */}
           <div className="mb-2 flex justify-between">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <Users className="w-8 h-8 text-green-500" /> Parents
+              <Users className="w-8 h-8 text-[#f7c624]" /> Parents
             </h1>
             <div className="flex gap-2">
               <Button
@@ -1671,7 +1671,7 @@ export default function Parents() {
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-green-500 hover:bg-green-600"
+                        className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                       >
                         Add Parent
                       </Button>
@@ -1698,7 +1698,7 @@ export default function Parents() {
                           placeholder="Search parents by name, email, or phone..."
                           value={searchTerm}
                           onChange={(e) => handleSearch(e.target.value)}
-                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-green-500 focus:ring-green-500 rounded-full shadow-sm"
+                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
                         />
                       </div>
                       <Select
@@ -1813,7 +1813,7 @@ export default function Parents() {
                                 currentParents.length > 0
                               }
                               onChange={toggleSelectAll}
-                              className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                              className="rounded border-gray-300 text-[#f7c624] focus:ring-[#f7c624]"
                             />
                           </th>
                           <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
@@ -1842,19 +1842,19 @@ export default function Parents() {
                             key={parent.id}
                             className={`transition-colors duration-200 ${
                               idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                            } hover:bg-green-50`}
+                            } hover:bg-[#f7c624]`}
                           >
                             <td className="w-10 px-4 py-3">
                               <input
                                 type="checkbox"
                                 checked={selected.includes(parent.id)}
                                 onChange={() => toggleSelect(parent.id)}
-                                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                className="rounded border-gray-300 text-[#f7c624] focus:ring-[#f7c624]"
                               />
                             </td>
                             <td className="px-4 py-3 flex items-center gap-2">
                               {/* Avatar or initials */}
-                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                              <div className="w-8 h-8 rounded-full bg-[#f7c624]/20 flex items-center justify-center text-[#f7c624] font-bold">
                                 {parent.user_data?.first_name?.[0] ||
                                   parent.user_full_name?.[0] ||
                                   "?"}
@@ -1892,8 +1892,8 @@ export default function Parents() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-                                <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#f7c624]/20 text-[#f7c624] text-xs font-semibold">
+                                <span className="w-2 h-2 rounded-full bg-[#f7c624] inline-block"></span>
                                 Active
                               </span>
                             </td>
@@ -1979,7 +1979,7 @@ export default function Parents() {
                                 onClick={() => handlePageChange(pageNum)}
                                 className={
                                   currentPage === pageNum
-                                    ? "bg-green-500 hover:bg-green-600 text-white h-8 w-8 p-0 rounded-full"
+                                    ? "bg-[#f7c624] hover:bg-[#f7c624]/90 text-white h-8 w-8 p-0 rounded-full"
                                     : "border-gray-200 hover:bg-gray-50 h-8 w-8 p-0 rounded-full"
                                 }
                               >
@@ -2018,7 +2018,7 @@ export default function Parents() {
                       ? "Try adjusting your search or filter criteria."
                       : "There are no parents registered in your school yet. Add the first parent to get started."}
                   </p>
-                  {searchTerm || statusFilter !== "all" ? (
+                    {searchTerm || statusFilter !== "all" ? (
                     <Button
                       onClick={clearFilters}
                       variant="outline"
@@ -2029,7 +2029,7 @@ export default function Parents() {
                   ) : (
                     <Button
                       onClick={() => setIsDialogOpen(true)}
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                      className="bg-[#f7c624] hover:bg-[#f7c624]/90 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
                     >
                       <Plus className="mr-2 h-4 w-4" />
                       Add First Parent

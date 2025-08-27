@@ -79,8 +79,11 @@ export function AppSidebar() {
         <Link
           to="/settings"
           className={`flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-700 dark:text-gray-300 w-full ${
-            isActive("/settings") ? "bg-green-500/90 text-white" : ""
+            isActive("/settings") ? "text-white" : ""
           }`}
+          style={{
+            backgroundColor: isActive("/settings") ? '#f7c624' : undefined,
+          }}
         >
           <Settings
             size={20}

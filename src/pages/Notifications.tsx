@@ -248,7 +248,7 @@ export default function NotificationsPage() {
         <div className="flex-1 flex flex-col min-h-screen">
           <main className="flex-1 px-2 sm:px-1 py-0 w-full max-w-[98vw] mx-auto">
             <div className="flex items-center justify-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f7c624]"></div>
             </div>
           </main>
         </div>
@@ -388,7 +388,7 @@ export default function NotificationsPage() {
           <Card className="bg-white shadow-lg border-0 rounded-xl">
             <CardHeader className="border-b border-gray-100 flex flex-row w-full items-center justify-between py-4">
               <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Bell className="w-6 h-6 text-green-500" />
+                <Bell className="w-6 h-6 text-[#f7c624]" />
                 Notifications
               </CardTitle>
               <div className="flex gap-3">
@@ -403,7 +403,7 @@ export default function NotificationsPage() {
                 >
                   <DialogTrigger asChild>
                     <Button
-                      className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      className="bg-[#f7c624] hover:bg-[#f7c624]/90 text-white font-semibold px-6 py-2 rounded-lg shadow disabled:bg-gray-400 disabled:cursor-not-allowed"
                       disabled={error && error.includes("not available")}
                     >
                       <Plus className="mr-2 h-4 w-4" />
@@ -654,7 +654,7 @@ export default function NotificationsPage() {
                         <div className="flex justify-end">
                           <Button
                             type="submit"
-                            className="bg-green-500 hover:bg-green-600"
+                            className="bg-[#f7c624] hover:bg-[#f7c624]/90"
                           >
                             Create Notification
                           </Button>
@@ -763,7 +763,7 @@ export default function NotificationsPage() {
                     <tr>
                       <td colSpan={5} className="px-6 py-8 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f7c624]"></div>
                           <span className="text-gray-600 font-medium">
                             Loading notifications...
                           </span>
@@ -828,7 +828,7 @@ export default function NotificationsPage() {
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                              <div className="w-2 h-2 bg-[#f7c624] rounded-full mr-3"></div>
                               <div>
                                 <div className="text-sm font-medium text-gray-900">
                                   {notification.message || "Notification"}
@@ -875,7 +875,7 @@ export default function NotificationsPage() {
                                 )}
                               {notification.drivers &&
                                 notification.drivers.length > 0 && (
-                                  <div className="text-xs text-green-600 mt-1">
+                                  <div className="text-xs text-[#f7c624] mt-1">
                                     Drivers:{" "}
                                     {notification.drivers
                                       .map((driverId) => {
@@ -901,7 +901,7 @@ export default function NotificationsPage() {
                                     : "N/A"}
                                 </div>
                                 {notification.is_read && (
-                                  <div className="text-xs text-green-500">
+                                  <div className="text-xs text-[#f7c624]">  
                                     ✓ Read
                                   </div>
                                 )}
@@ -957,7 +957,7 @@ export default function NotificationsPage() {
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-green-500" />
+              <Bell className="w-5 h-5 text-[#f7c624]" />
               Notification Details
             </DialogTitle>
           </DialogHeader>
@@ -993,7 +993,7 @@ export default function NotificationsPage() {
               <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-2">School</h3>
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-gray-900">{selectedNotification.school_name || "Unknown School"}</p>
+                  <p className="text-gray-900">{(selectedNotification as any).school_name || "Unknown School"}</p>
                 </div>
               </div>
 
@@ -1020,7 +1020,7 @@ export default function NotificationsPage() {
                     
                     {selectedNotification.drivers && selectedNotification.drivers.length > 0 && (
                       <div>
-                        <h4 className="text-xs font-medium text-green-600 mb-1">Drivers:</h4>
+                        <h4 className="text-xs font-medium text-[#f7c624] mb-1">Drivers:</h4>
                         <div className="pl-3">
                           {selectedNotification.drivers.map((driverId) => {
                             const driver = drivers?.find((d) => d.id === driverId);
@@ -1054,8 +1054,8 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-2">
                       {selectedNotification.is_read ? (
                         <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-green-600">Read</span>
+                            <CheckCircle className="w-4 h-4 text-[#f7c624]" />
+                          <span className="text-[#f7c624]">Read</span>
                         </>
                       ) : (
                         <>
@@ -1076,10 +1076,10 @@ export default function NotificationsPage() {
                     <span className="text-sm text-gray-600">School ID:</span>
                     <span className="text-sm text-gray-900">{selectedNotification.school || "N/A"}</span>
                   </div>
-                  {selectedNotification.read_at && (
+                  {(selectedNotification as any).read_at && (
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Read At:</span>
-                      <span className="text-sm text-gray-900">{formatDate(selectedNotification.read_at)}</span>
+                      <span className="text-sm text-gray-900">{formatDate((selectedNotification as any).read_at)}</span>
                     </div>
                   )}
                 </div>

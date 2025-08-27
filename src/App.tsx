@@ -31,6 +31,7 @@ import Subscription from "./pages/Subscription";
 import AdminSubscription from "./pages/admin/subscription.tsx";
 import SchoolSubscriptionPage from "./pages/admin/schoolsubscription.tsx";
 import Notifications from "./pages/Notifications";
+import TermsAndPolicies from "./pages/TermsAndPolicies";
 import NotFound from "./pages/NotFound";
 // Super Admin imports
 import SuperAdminLayout from "./pages/super-damin/SuperAdminLayout";
@@ -153,6 +154,7 @@ const AppRoutes = () => {
       />
       <Route path="/register" element={<SchoolRegistration />} />
       <Route path="/verification" element={<Verification />} />
+      <Route path="/terms-and-policies" element={<TermsAndPolicies />} />
       <Route
         path="/"
         element={token ? <Index /> : <Navigate to={hasLoggedInBefore ? "/login" : "/home"} replace />}

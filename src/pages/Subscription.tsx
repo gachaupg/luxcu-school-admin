@@ -76,7 +76,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     price: 7900,
     billingCycle: "month",
     icon: Users,
-    color: "bg-green-500",
+    color: "bg-[#f7c624]",
     maxStudents: 200,
     maxDrivers: 15,
     maxVehicles: 10,
@@ -101,7 +101,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     price: 19900,
     billingCycle: "month",
     icon: Crown,
-    color: "bg-purple-500",
+    color: "bg-[#f7c624]",
     maxStudents: 1000,
     maxDrivers: 50,
     maxVehicles: 30,
@@ -125,7 +125,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     price: 39900,
     billingCycle: "month",
     icon: Star,
-    color: "bg-yellow-500",
+    color: "bg-[#f7c624]",
     maxStudents: 2500,
     maxDrivers: 100,
     maxVehicles: 75,
@@ -149,7 +149,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     price: 79900,
     billingCycle: "month",
     icon: Zap,
-    color: "bg-red-500",
+    color: "bg-[#f7c624]",
     maxStudents: -1, // Unlimited
     maxDrivers: -1,
     maxVehicles: -1,
@@ -173,7 +173,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     price: 0,
     billingCycle: "custom",
     icon: Settings,
-    color: "bg-gray-500",
+    color: "bg-[#f7c624]",
     features: [
       "Custom pricing",
       "Custom features",
@@ -334,7 +334,7 @@ export default function Subscription() {
                 onClick={() => setBillingCycle("month")}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                   billingCycle === "month"
-                    ? "bg-blue-500 text-white"
+                    ? "bg-[#f7c624] text-white"
                     : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -344,7 +344,7 @@ export default function Subscription() {
                 onClick={() => setBillingCycle("year")}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                   billingCycle === "year"
-                    ? "bg-blue-500 text-white"
+                    ? "bg-[#f7c624] text-white"
                     : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
               >
@@ -364,12 +364,12 @@ export default function Subscription() {
               key={plan.id}
               className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105 flex flex-col h-full ${
                 plan.popular
-                  ? "ring-2 ring-green-500 shadow-lg bg-gradient-to-br from-green-50 to-white"
+                  ? "ring-2 ring-[#f7c624] shadow-lg bg-gradient-to-br from-[#f7c624]/20 to-white"
                   : "hover:ring-2 hover:ring-blue-200"
               }`}
             >
               {plan.popular && (
-                <div className="absolute top-0 mb-3 right-0 bg-green-500 text-white px-3 py-1 text-xs font-medium rounded-bl-lg">
+                <div className="absolute top-0 mb-3 right-0 bg-[#f7c624] text-white px-3 py-1 text-xs font-medium rounded-bl-lg">
                   Most Popular
                 </div>
               )}
@@ -403,7 +403,7 @@ export default function Subscription() {
                     {getBillingText(plan)}
                   </div>
                   {billingCycle === "year" && plan.id !== "custom" && (
-                    <div className="text-sm text-green-600 font-medium mt-1">
+                    <div className="text-sm text-[#f7c624] font-medium mt-1">
                       Save KSH{" "}
                       {(
                         plan.price * 12 -
@@ -452,7 +452,7 @@ export default function Subscription() {
                   <ul className="space-y-2">
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <Check className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <Check className="h-4 w-4 text-[#f7c624] mt-0.5 flex-shrink-0" />
                         <span className="text-sm text-gray-600 dark:text-gray-300">
                           {feature}
                         </span>
@@ -467,8 +467,8 @@ export default function Subscription() {
                   onClick={() => handleSubscribe(plan.id)}
                   className={`w-full ${
                     plan.popular
-                      ? "bg-green-500 hover:bg-green-600"
-                      : "bg-blue-500 hover:bg-blue-600"
+                      ? "bg-[#f7c624] hover:bg-[#f7c624]/90"
+                          : "bg-[#f7c624] hover:bg-[#f7c624]/90"
                   }`}
                   variant={plan.popular ? "default" : "default"}
                 >
@@ -487,7 +487,7 @@ export default function Subscription() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-center gap-3">
-                <Shield className="h-6 w-6 text-green-500" />
+                <Shield className="h-6 w-6 text-[#f7c624]" />
                 <div>
                   <div className="font-semibold text-gray-900 dark:text-white">
                     Security
@@ -498,7 +498,7 @@ export default function Subscription() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Map className="h-6 w-6 text-blue-500" />
+                <Map className="h-6 w-6 text-[#f7c624]" />
                 <div>
                   <div className="font-semibold text-gray-900 dark:text-white">
                     Real-time Tracking
@@ -509,7 +509,7 @@ export default function Subscription() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6 text-purple-500" />
+                <FileText className="h-6 w-6 text-[#f7c624]" />
                 <div>
                   <div className="font-semibold text-gray-900 dark:text-white">
                     Reports
