@@ -135,6 +135,13 @@ const Login = () => {
           }}
         />
         <CardHeader className="space-y-1">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo_yc2rnq.svg" 
+              alt="ShuleTrack Logo" 
+              className="h-12 w-auto"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold text-center">
             Welcome Back
           </CardTitle>

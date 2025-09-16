@@ -1,5 +1,5 @@
 export const API_BASE_URL = "https://apiv1.shuletrack.com/api";
-
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyAUyDgDkMwd1R73aUAurKiu8OQsZxK08ZY';
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/login/`,
   VERIFY_OTP: `${API_BASE_URL}/verify-otp/`,
@@ -27,6 +27,9 @@ export const API_ENDPOINTS = {
   SCHOOL_SUBSCRIPTIONS: `${API_BASE_URL}/school-subscriptions/`,
   INVOICES: `${API_BASE_URL}/invoices/`,
   ACTIVATE_SCHOOL: `${API_BASE_URL}/activate-school/`,
+  ALL_USERS: `${API_BASE_URL}/all-users/`,
+  DELETE_USER: `${API_BASE_URL}/delete-user/`,
+  RESTORE_USER: `${API_BASE_URL}/restore-user/`,
   // Add other endpoints as needed
 };
 

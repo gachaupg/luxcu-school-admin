@@ -37,7 +37,7 @@ export const ThemeToggle = () => {
           className={theme === "light" ? "bg-accent" : ""}
         >
           <Sun className="mr-2 h-4 w-4" />
-          <span>Force Light</span>
+          <span> Light</span>
           {theme === "light" && (
             <span className="ml-auto text-xs text-muted-foreground">
               Active
@@ -49,7 +49,7 @@ export const ThemeToggle = () => {
           className={theme === "dark" ? "bg-accent" : ""}
         >
           <Moon className="mr-2 h-4 w-4" />
-          <span>Force Dark</span>
+          <span> Dark</span>
           {theme === "dark" && (
             <span className="ml-auto text-xs text-muted-foreground">
               Active

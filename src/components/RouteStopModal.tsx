@@ -25,6 +25,7 @@ import { useAppDispatch } from "@/redux/hooks";
 import { addRouteStop, type RouteStop } from "@/redux/slices/routesSlice";
 import { Search, MapPin, Clock, Users, CheckCircle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
 
 const formSchema = z.object({
   name: z.string().min(2, "Stop name must be at least 2 characters"),
@@ -117,12 +118,12 @@ export function RouteStopModal({
       setNextSequenceNumber(currentSequenceNumber);
     }
   }, [isOpen, routeId, currentSequenceNumber, form]);
-
+const googleMapsApiKey =GOOGLE_MAPS_API_KEY;
   useEffect(() => {
     if (isOpen && !isMapLoaded) {
       // Load Google Maps script
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
       script.async = true;
       script.defer = true;
       script.onload = () => {

@@ -575,7 +575,7 @@ const Landing = () => {
             {/* Left Content */}
             <div className="text-left space-y-6">
               {/* Simple Badge */}
-              <div className="opacity-100 mt-8">
+              <div className="opacity-100 mt-16 sm:mt-8 x:mt-16">
                 <Badge
                   variant="secondary"
                   className="inline-flex items-center bg-[#f7c624] text-white px-4 py-2 rounded-full font-medium"
@@ -882,7 +882,7 @@ const Landing = () => {
           {/* Why Choose LuxCub Section */}
           <div className="mt-16">
             <h3 className="text-2xl font-bold text-slate-100 mb-8 text-center">
-              Why Choose Shuletrack?
+              Why Choose Shule Track?
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="flex items-start space-x-3">
@@ -993,7 +993,7 @@ const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <Badge className="mb-6 bg-[#f7c624] text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
-                Why Choose LuxCub?
+                Why Choose Shule Track?
               </Badge>
               <h2 className="text-4xl md:text-5xl font-bold text-white mb-8 leading-tight">
                 Join hundreds of schools that have
@@ -1315,7 +1315,7 @@ const Landing = () => {
             <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Hear from school administrators, transportation directors, and
               parents who have transformed their school transportation with
-              LuxCub.
+              Shuletrack.
             </p>
           </div>
 
@@ -1460,7 +1460,7 @@ const Landing = () => {
                   Let's Start a Conversation
                 </h3>
                 <p className="text-lg text-slate-300 leading-relaxed mb-8">
-                  Our team is here to help you understand how LuxCub can
+                  Our team is here to help you understand how Shuletrack can
                   transform your school transportation operations. We'll provide
                   a personalized demo and answer all your questions.
                 </p>
@@ -1564,7 +1564,7 @@ const Landing = () => {
           </h2>
           <p className="text-xl text-slate-300 mb-10 leading-relaxed max-w-2xl mx-auto">
             Join hundreds of schools that have already improved their
-            transportation operations with LuxCub. Get started today and see the
+            transportation operations with Shuletrack. Get started today and see the
             difference.
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -1586,10 +1586,9 @@ const Landing = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
-                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <Bus className="h-5 w-5 text-white" />
+                  <div className="w-28  bg-white rounded-lg flex items-center justify-center">
+                  <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo-100_gcmpht.jpg" alt="" />
                 </div>
-                <span className="text-xl font-bold">LuxCub</span>
               </div>
               <p className="text-slate-300 mb-6 leading-relaxed max-w-md">
                 Modern school transportation management platform that helps
@@ -1745,7 +1744,7 @@ const Landing = () => {
           </div>
           <div className="border-t border-slate-800 mt-12 pt-8 text-center">
             <p className="text-slate-400">
-              © {new Date().getFullYear()} LuxCub. All rights reserved.
+              © {new Date().getFullYear()} Shule Track. Powered by <a href="https://eujimsolutions.com" target="_blank" rel="noopener noreferrer" className="text-[#f7c624] hover:text-[#f7c624]/80 transition-colors">EUJIM SOLUTIONS</a>.
             </p>
           </div>
         </div>

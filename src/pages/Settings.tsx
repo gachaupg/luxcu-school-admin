@@ -21,7 +21,7 @@ import {
 } from "@/redux/slices/preferencesSlice";
 import { useTheme } from "@/contexts/ThemeContext";
 import api from "@/config/api";
-import { API_ENDPOINTS } from "@/utils/api";
+import { API_ENDPOINTS, GOOGLE_MAPS_API_KEY } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,10 +109,10 @@ export default function SettingsPage() {
   } = useAppSelector((state) => state.preferences);
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
-
+  const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
   // Get current school for the logged-in admin
   const currentSchool = schools.find((school) => school.admin === user?.id);
-
+  
   useEffect(() => {
     dispatch(fetchSchools());
     dispatch(fetchUserPreferences());
@@ -127,7 +127,7 @@ export default function SettingsPage() {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
@@ -1123,13 +1123,13 @@ export default function SettingsPage() {
                               }
                             >
                               <option value="light">
-                                Light Theme (Force Light Mode)
+                                Light Theme 
                               </option>
                               <option value="dark">
-                                Dark Theme (Force Dark Mode)
+                                Dark Theme 
                               </option>
                               <option value="auto">
-                                System (Follow OS Setting)
+                                System 
                               </option>
                             </select>
                           </div>

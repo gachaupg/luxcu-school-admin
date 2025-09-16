@@ -331,19 +331,12 @@ export const QueryAnalytics = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            System Overview
+            School Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {analytics.totalSchools}
-              </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">
-                Schools
-              </div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+           
             <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {analytics.totalStudents}

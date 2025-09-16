@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Building2, User, Package, Check, MapPin, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
 
 const SchoolRegistration = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -260,7 +261,7 @@ const SchoolRegistration = () => {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
-
+ const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -308,7 +309,7 @@ const SchoolRegistration = () => {
         `https://api.allorigins.win/raw?url=${encodeURIComponent(
           `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
             query
-          )}&types=establishment&components=country:ke&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+          )}&types=establishment&components=country:ke&key=${googleMapsApiKey}`
         )}`
       );
 
@@ -332,7 +333,7 @@ const SchoolRegistration = () => {
           `https://corsproxy.io/?${encodeURIComponent(
             `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
               query
-            )}&types=establishment&components=country:ke&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+            )}&types=establishment&components=country:ke&key=${googleMapsApiKey}`
           )}`
         );
 
@@ -367,7 +368,7 @@ const SchoolRegistration = () => {
       // Use Google Places Details API with CORS proxy
       const response = await fetch(
         `https://api.allorigins.win/raw?url=${encodeURIComponent(
-          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+          `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=${googleMapsApiKey}`
         )}`
       );
 
@@ -408,7 +409,7 @@ const SchoolRegistration = () => {
       try {
         const altResponse = await fetch(
           `https://corsproxy.io/?${encodeURIComponent(
-            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs`
+            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=formatted_address,geometry&key=${googleMapsApiKey}`
           )}`
         );
 

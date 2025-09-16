@@ -111,8 +111,13 @@ const checkSubscriptionRestrictions = (user: User): string | null => {
     return null; // Allow login regardless of status
   }
 
-  // If school_to_pay is false and status is not active, restrict login
-  if (!subscription.school_to_pay && subscription.status !== "active") {
+  // If parents_to_pay is true, don't restrict even if status is not active
+  if (subscription.parents_to_pay) {
+    return null; // Allow login regardless of status
+  }
+
+  // If both school_to_pay and parents_to_pay are false and status is not active, restrict login
+  if (!subscription.school_to_pay && !subscription.parents_to_pay && subscription.status !== "active") {
     let errorMessage = "Access denied. ";
     
     switch (subscription.status) {

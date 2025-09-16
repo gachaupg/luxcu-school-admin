@@ -14,6 +14,7 @@ const TermsAndPolicies = () => {
     { id: "system", label: "System Policies", icon: Shield },
     { id: "payment", label: "Payment & Use Terms", icon: CreditCard },
     { id: "privacy", label: "Privacy & Data", icon: Settings },
+    { id: "updates", label: "Policy Updates", icon: FileText },
   ];
 
   const renderContent = () => {
@@ -76,6 +77,51 @@ const TermsAndPolicies = () => {
                     All content, features, and functionality of the Service are owned by Shule Track and are protected by international copyright, trademark, and other intellectual property laws. You may not reproduce, distribute, or create derivative works without our express written consent.
                   </p>
                 </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">6. Liability and Disclaimers</h3>
+                  <p className="text-muted-foreground mb-3">
+                    The Service is provided "as is" without warranties of any kind. Shule Track disclaims all warranties, express or implied, including but not limited to:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Warranties of merchantability and fitness for a particular purpose</li>
+                    <li>Warranties regarding accuracy, reliability, or completeness of data</li>
+                    <li>Warranties that the Service will be uninterrupted or error-free</li>
+                    <li>Warranties regarding third-party content or services</li>
+                  </ul>
+                  <p className="text-muted-foreground mt-3">
+                    In no event shall Shule Track be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, or business opportunities, arising from your use of the Service.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">7. Termination and Suspension</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Either party may terminate this agreement at any time with 30 days written notice. Shule Track reserves the right to suspend or terminate your access immediately if:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>You breach any terms of this agreement</li>
+                    <li>You engage in fraudulent or illegal activities</li>
+                    <li>You fail to pay fees when due</li>
+                    <li>You pose a security risk to the Service or other users</li>
+                  </ul>
+                  <p className="text-muted-foreground mt-3">
+                    Upon termination, your right to use the Service ceases immediately, and we may delete your data after a 90-day grace period.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">8. Governing Law and Dispute Resolution</h3>
+                  <p className="text-muted-foreground mb-3">
+                    This agreement shall be governed by the laws of Kenya. Any disputes arising from this agreement shall be resolved through:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>First, through good faith negotiations between the parties</li>
+                    <li>If negotiations fail, through binding arbitration in Nairobi, Kenya</li>
+                    <li>Arbitration shall be conducted in English and governed by Kenyan arbitration law</li>
+                    <li>Each party shall bear their own legal costs unless otherwise determined by the arbitrator</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -136,6 +182,49 @@ const TermsAndPolicies = () => {
                   <p className="text-muted-foreground">
                     The system must be used in accordance with educational best practices and applicable laws. Any misuse, including attempts to circumvent security measures or access unauthorized data, will result in immediate account suspension and may be reported to relevant authorities.
                   </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Compliance and Legal Requirements</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Shule Track is committed to maintaining compliance with applicable laws and regulations:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li><strong>FERPA Compliance:</strong> Family Educational Rights and Privacy Act compliance for student data protection</li>
+                    <li><strong>COPPA Compliance:</strong> Children's Online Privacy Protection Act compliance for users under 13</li>
+                    <li><strong>GDPR Compliance:</strong> General Data Protection Regulation compliance for EU data subjects</li>
+                    <li><strong>Kenyan Data Protection Act:</strong> Compliance with local data protection regulations</li>
+                    <li><strong>Educational Standards:</strong> Adherence to national and international educational technology standards</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Support and Service Level Agreement</h3>
+                  <p className="text-muted-foreground mb-3">
+                    We provide comprehensive support to ensure your success with our platform:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li><strong>Uptime Guarantee:</strong> 99.9% uptime with 24/7 monitoring</li>
+                    <li><strong>Response Times:</strong> Critical issues within 2 hours, general support within 24 hours</li>
+                    <li><strong>Support Channels:</strong> Email, phone, and in-app chat support</li>
+                    <li><strong>Training Resources:</strong> Comprehensive documentation, video tutorials, and webinars</li>
+                    <li><strong>Dedicated Support:</strong> Enterprise customers receive dedicated account managers</li>
+                    <li><strong>Maintenance Windows:</strong> Scheduled maintenance with advance notice</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">System Monitoring and Performance</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Our systems are continuously monitored to ensure optimal performance:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Real-time performance monitoring and alerting</li>
+                    <li>Automated scaling based on usage patterns</li>
+                    <li>Regular performance optimization and updates</li>
+                    <li>Capacity planning and resource management</li>
+                    <li>Incident response and resolution procedures</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -202,12 +291,55 @@ const TermsAndPolicies = () => {
                     Shule Track reserves the right to modify pricing with 60 days advance notice. Existing subscribers will maintain their current pricing for the remainder of their billing period.
                   </p>
                 </div>
-
+                {/* AIzaSyAUyDgDkMwd1R73aUAurKiu8OQsZxK08ZY */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3">Cancellation</h3>
                   <p className="text-muted-foreground">
                     Subscriptions may be cancelled at any time with 30 days notice. Upon cancellation, you will retain access to the service until the end of your current billing period. Data export options are available for 90 days post-cancellation.
                   </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Taxes and Fees</h3>
+                  <p className="text-muted-foreground mb-3">
+                    All prices are exclusive of applicable taxes. You are responsible for:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Value Added Tax (VAT) and other applicable taxes</li>
+                    <li>Bank transfer fees and currency conversion charges</li>
+                    <li>Late payment penalties and interest charges</li>
+                    <li>Any additional fees imposed by payment processors</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Usage Limits and Overages</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Each subscription plan includes specific usage limits:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Student capacity limits based on your plan</li>
+                    <li>Storage limits for documents and media</li>
+                    <li>API call limits for integrations</li>
+                    <li>Support ticket limits per month</li>
+                  </ul>
+                  <p className="text-muted-foreground mt-3">
+                    Overage charges may apply if you exceed your plan limits. We will notify you before applying overage charges and provide options to upgrade your plan.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Enterprise and Custom Agreements</h3>
+                  <p className="text-muted-foreground mb-3">
+                    For large institutions and custom requirements, we offer:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Custom pricing based on specific needs</li>
+                    <li>Dedicated support and account management</li>
+                    <li>Custom integrations and development work</li>
+                    <li>On-premise deployment options</li>
+                    <li>Volume discounts for multiple schools or districts</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -288,6 +420,153 @@ const TermsAndPolicies = () => {
                     <li>Right to data portability</li>
                     <li>Right to opt-out of non-essential communications</li>
                   </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Data Export and Migration</h3>
+                  <p className="text-muted-foreground mb-3">
+                    We understand that data portability is important for educational institutions. We provide comprehensive data export capabilities:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li><strong>Export Formats:</strong> CSV, Excel, JSON, and PDF formats available</li>
+                    <li><strong>Data Categories:</strong> Student records, financial data, reports, and system configurations</li>
+                    <li><strong>Export Frequency:</strong> On-demand exports or scheduled automated exports</li>
+                    <li><strong>Migration Support:</strong> Assistance with data migration to other systems</li>
+                    <li><strong>Data Validation:</strong> Export validation to ensure data integrity</li>
+                    <li><strong>Retention Period:</strong> Export data available for 90 days post-cancellation</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Third-Party Services and Integrations</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Our platform may integrate with third-party services to enhance functionality. These integrations are subject to their own privacy policies:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li><strong>Payment Processors:</strong> Secure payment processing through certified providers</li>
+                    <li><strong>Communication Services:</strong> SMS and email services for notifications</li>
+                    <li><strong>Analytics Services:</strong> Usage analytics to improve our services</li>
+                    <li><strong>Cloud Storage:</strong> Secure cloud storage for data backup and redundancy</li>
+                    <li><strong>Educational Tools:</strong> Integration with learning management systems and educational software</li>
+                  </ul>
+                  <p className="text-muted-foreground mt-3">
+                    We carefully vet all third-party providers to ensure they meet our security and privacy standards. Data shared with third parties is limited to what is necessary for service functionality.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">International Data Transfers</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Your data may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Standard Contractual Clauses (SCCs) for EU data transfers</li>
+                    <li>Adequacy decisions where applicable</li>
+                    <li>Data processing agreements with all service providers</li>
+                    <li>Regular audits of international data handling practices</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Breach Notification</h3>
+                  <p className="text-muted-foreground mb-3">
+                    In the unlikely event of a data breach, we have comprehensive response procedures:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Immediate containment and assessment of the breach</li>
+                    <li>Notification to affected users within 72 hours</li>
+                    <li>Cooperation with relevant authorities and regulators</li>
+                    <li>Detailed incident reports and remediation plans</li>
+                    <li>Credit monitoring services for affected individuals when appropriate</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "updates":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Policy Updates and Changes</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Policy Modification Rights</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Shule Track reserves the right to modify these Terms and Policies at any time. We will notify users of significant changes through:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Email notifications to registered users</li>
+                    <li>In-app notifications and banners</li>
+                    <li>Updates to our website and documentation</li>
+                    <li>Direct communication for enterprise customers</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Change Notification Timeline</h3>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li><strong>Minor Changes:</strong> 7 days advance notice for clarifications and minor updates</li>
+                    <li><strong>Moderate Changes:</strong> 30 days advance notice for policy modifications</li>
+                    <li><strong>Major Changes:</strong> 60 days advance notice for significant policy changes</li>
+                    <li><strong>Emergency Changes:</strong> Immediate implementation for security or legal compliance</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Acceptance of Changes</h3>
+                  <p className="text-muted-foreground mb-3">
+                    Continued use of our services after policy changes constitutes acceptance of the new terms. If you do not agree with the changes, you may:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Cancel your subscription within the notice period</li>
+                    <li>Contact us to discuss alternative arrangements</li>
+                    <li>Request a data export before cancellation</li>
+                    <li>Negotiate custom terms for enterprise customers</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Version Control and History</h3>
+                  <p className="text-muted-foreground mb-3">
+                    We maintain a complete history of all policy changes:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Versioned policy documents with change tracking</li>
+                    <li>Detailed change logs with effective dates</li>
+                    <li>Archive of previous policy versions</li>
+                    <li>Summary of changes for each update</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Feedback and Suggestions</h3>
+                  <p className="text-muted-foreground mb-3">
+                    We welcome feedback on our policies and procedures:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    <li>Submit feedback through our support channels</li>
+                    <li>Participate in user surveys and focus groups</li>
+                    <li>Join our user advisory board (for enterprise customers)</li>
+                    <li>Provide input during policy review periods</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Recent Updates</h3>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      <strong>Last Updated:</strong> {new Date().toLocaleDateString()}
+                    </p>
+                    <ul className="text-sm space-y-1">
+                      <li>• Enhanced data protection measures in compliance with new regulations</li>
+                      <li>• Updated payment terms to include new payment methods</li>
+                      <li>• Improved support response times and escalation procedures</li>
+                      <li>• Added new data export formats and migration tools</li>
+                      <li>• Clarified international data transfer procedures</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>

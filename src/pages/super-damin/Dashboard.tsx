@@ -46,6 +46,8 @@ const Dashboard = () => {
     activeUsers: 0,
     inactiveUsers: 0,
     premiumSchools: 0,
+    activeSchools: 0,
+    inactiveSchools: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -228,7 +230,7 @@ const Dashboard = () => {
     title: string;
     value: string | number;
     description?: string;
-    icon: React.ComponentType<{ size?: number; className?: string }>;
+    icon: React.ComponentType<any>;
     trend?: { value: number; isPositive: boolean };
     color?: "default" | "success" | "warning" | "danger";
   }) => (
@@ -496,7 +498,11 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex flex-col gap-2">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col gap-2"
+              onClick={() => navigate("/super-admin/users")}
+            >
               <Users size={24} />
               <span>Manage Users</span>
             </Button>

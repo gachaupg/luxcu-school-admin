@@ -284,3 +284,7 @@ import ColorUsageExample from '@/components/ColorUsageExample';
 ```
 
 This component demonstrates all the different methods of using the `#f7c624` color in your project.
+
+
+
+

@@ -59,7 +59,7 @@ const AppNavbar = ({ onMenuClick, isScrolled = false }: AppNavbarProps) => {
               shouldUseBlackText ? "text-black" : "text-foreground"
             }`}
           >
-            School Admin
+            Hello, {user?.first_name} {user?.last_name}
           </h1>
         </div>
 

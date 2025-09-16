@@ -38,6 +38,7 @@ import {
   type RouteStop,
 } from "@/redux/slices/routesSlice";
 import { useToast } from "@/components/ui/use-toast";
+import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
 
 declare global {
   interface Window {
@@ -95,13 +96,13 @@ export function RouteStopsModal({
       estimated_time: "00:05:00",
     },
   });
-
+const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
   // Load Google Maps
   useEffect(() => {
     if (!isOpen) return;
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyA4HtS4auqymgQwjbXKXRr1tyBEVFAyOzs&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
     script.async = true;
     script.defer = true;
     script.onload = () => {
