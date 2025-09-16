@@ -90,6 +90,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { RouteStopModal } from "@/components/RouteStopModal";
 import { RouteStopsViewModal } from "@/components/RouteStopsViewModal";
 import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
+import { loadGoogleMaps, isGoogleMapsReady } from "@/utils/googleMapsLoader";
 
 declare global {
   interface Window {
@@ -409,6 +410,14 @@ export default function RoutesPage() {
       return matchesSearch && matchesStatus;
     }) || [];
 
+  // Debug logging
+  if (searchTerm) {
+    console.log('Search term:', searchTerm);
+    console.log('Total routes:', routes?.length || 0);
+    console.log('Filtered routes:', filteredAndSearchedRoutes.length);
+    console.log('Sample route data:', routes?.[0]);
+  }
+
   // Pagination logic
   const totalPages = Math.ceil(filteredAndSearchedRoutes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -655,31 +664,28 @@ export default function RoutesPage() {
   const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
-    // Load Google Maps script
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      setIsMapLoaded(true);
-      if (startInputRef.current && endInputRef.current) {
-        const startAutocomplete = new google.maps.places.Autocomplete(
-          startInputRef.current,
-          {
-            types: ["geocode", "establishment"],
-            fields: ["geometry", "formatted_address", "name"],
-            componentRestrictions: { country: "ke" },
-          }
-        );
+    // Load Google Maps script using centralized loader
+    loadGoogleMaps(googleMapsApiKey)
+      .then(() => {
+        setIsMapLoaded(true);
+        if (startInputRef.current && endInputRef.current) {
+          const startAutocomplete = new google.maps.places.Autocomplete(
+            startInputRef.current,
+            {
+              types: ["geocode", "establishment"],
+              fields: ["geometry", "formatted_address", "name"],
+              componentRestrictions: { country: "ke" },
+            }
+          );
 
-        const endAutocomplete = new google.maps.places.Autocomplete(
-          endInputRef.current,
-          {
-            types: ["geocode", "establishment"],
-            fields: ["geometry", "formatted_address", "name"],
-            componentRestrictions: { country: "ke" },
-          }
-        );
+          const endAutocomplete = new google.maps.places.Autocomplete(
+            endInputRef.current,
+            {
+              types: ["geocode", "establishment"],
+              fields: ["geometry", "formatted_address", "name"],
+              componentRestrictions: { country: "ke" },
+            }
+          );
 
         // Add custom styling to the autocomplete dropdown
         const style = document.createElement("style");
@@ -916,13 +922,16 @@ export default function RoutesPage() {
           observer.disconnect();
         };
       }
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, [startPlace]);
+    })
+    .catch((error) => {
+        console.error('Failed to load Google Maps:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load Google Maps. Please check your API key.",
+          variant: "destructive",
+        });
+      });
+  }, [googleMapsApiKey]);
 
   const handleAddRoute = async (values: FormValues) => {
     const schoolId = localStorage.getItem("schoolId");

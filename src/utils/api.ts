@@ -1,5 +1,6 @@
 export const API_BASE_URL = "https://apiv1.shuletrack.com/api";
-export const GOOGLE_MAPS_API_KEY = 'AIzaSyAUyDgDkMwd1R73aUAurKiu8OQsZxK08ZY';
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/login/`,
   VERIFY_OTP: `${API_BASE_URL}/verify-otp/`,

@@ -16,21 +16,16 @@ export default defineConfig(({ mode }) => ({
         rewrite: (path) => path.replace(/^\/api/, ""),
         configure: (proxy, _options) => {
           proxy.on("error", (err, _req, _res) => {
-            console.log("proxy error", err);
+            // console.log("proxy error", err);
           });
           proxy.on("proxyReq", (proxyReq, req, _res) => {
             // Remove any CORS headers from the request
             proxyReq.removeHeader("access-control-allow-methods");
             proxyReq.removeHeader("access-control-allow-headers");
             proxyReq.removeHeader("access-control-allow-origin");
-            console.log("Sending Request to the Target:", req.method, req.url);
           });
           proxy.on("proxyRes", (proxyRes, req, _res) => {
-            console.log(
-              "Received Response from the Target:",
-              proxyRes.statusCode,
-              req.url
-            );
+            
           });
         },
       },
