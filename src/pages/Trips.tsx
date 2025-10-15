@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import * as React from "react";
+import { useState, useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
 import { fetchTrips, deleteTrip } from "@/redux/slices/tripsSlice";
+import { createNotification } from "@/redux/slices/notificationsSlice";
 import { fetchRoutes } from "@/redux/slices/routesSlice";
 import { fetchDrivers } from "@/redux/slices/driversSlice";
 import { fetchVehicles } from "@/redux/slices/vehiclesSlice";
+import { fetchStudents } from "@/redux/slices/studentsSlice";
+import { fetchParents } from "@/redux/slices/parentsSlice";
 import { TripModal } from "@/components/TripModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,12 +46,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, Bell, AlertTriangle, XCircle } from "lucide-react";
 import { ExportDropdown } from "@/components/ExportDropdown";
 
 export default function Trips() {
@@ -56,12 +67,18 @@ export default function Trips() {
   const { trips, loading, error } = useAppSelector((state) => state.trips);
   const { user } = useAppSelector((state) => state.auth);
   const { schools } = useAppSelector((state) => state.schools);
+  const { students } = useAppSelector((state) => state.students);
+  const { parents } = useAppSelector((state) => state.parents);
 
   // Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notificationType, setNotificationType] = useState<'delay' | 'cancellation' | 'emergency'>('delay');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [sendingNotification, setSendingNotification] = useState(false);
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,6 +105,8 @@ export default function Trips() {
       try {
         if (schoolId) {
           await dispatch(fetchTrips({ schoolId })).unwrap();
+          await dispatch(fetchStudents({ schoolId })).unwrap();
+          await dispatch(fetchParents({ schoolId })).unwrap();
         }
         await dispatch(fetchRoutes());
         await dispatch(fetchDrivers());
@@ -142,6 +161,170 @@ export default function Trips() {
   const handleDeleteTrip = (trip: Trip) => {
     setSelectedTrip(trip);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleSendNotification = (trip: Trip, type: 'delay' | 'cancellation' | 'emergency') => {
+    setSelectedTrip(trip);
+    setNotificationType(type);
+    setNotificationMessage('');
+    setIsNotificationModalOpen(true);
+  };
+
+  const confirmSendNotification = async () => {
+    if (!selectedTrip || !notificationMessage.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a notification message",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSendingNotification(true);
+
+    try {
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        toast({
+          title: "Error",
+          description: "School ID not found",
+          variant: "destructive",
+        });
+        setSendingNotification(false);
+        return;
+      }
+      
+      console.log("═══════════════════════════════════════");
+      console.log("📨 SENDING TRIP NOTIFICATION");
+      console.log("═══════════════════════════════════════");
+      console.log("Trip ID:", selectedTrip.id);
+      console.log("Route:", selectedTrip.route_name || `Route ${selectedTrip.route}`);
+      console.log("Driver:", selectedTrip.driver_name || `Driver ${selectedTrip.driver}`);
+      console.log("Vehicle:", selectedTrip.vehicle_registration || `Vehicle ${selectedTrip.vehicle}`);
+      console.log("Notification Type:", notificationType);
+      console.log("Message:", notificationMessage);
+      console.log("School ID:", schoolId);
+      console.log("───────────────────────────────────────");
+
+      // Determine alert type and severity based on notification type
+      let alertType = "parent_notification";
+      let severity: "low" | "medium" | "high" = "low";
+      let title = "";
+
+      switch (notificationType) {
+        case 'emergency':
+          alertType = "SOS";
+          severity = "high";
+          title = `🚨 Emergency Alert - ${selectedTrip.route_name || `Route ${selectedTrip.route}`}`;
+          break;
+        case 'cancellation':
+          alertType = "traffic_delay";
+          severity = "high";
+          title = `Trip Cancelled - ${selectedTrip.route_name || `Route ${selectedTrip.route}`}`;
+          break;
+        case 'delay':
+          alertType = "traffic_delay";
+          severity = "medium";
+          title = `Trip Delayed - ${selectedTrip.route_name || `Route ${selectedTrip.route}`}`;
+          break;
+      }
+
+      // Create notification using the same API as Notifications.tsx
+      const notificationData = {
+        alert_type: alertType,
+        severity: severity,
+        title: title,
+        message: notificationMessage,
+        description: `Driver: ${selectedTrip.driver_name || `Driver ${selectedTrip.driver}`} | Vehicle: ${selectedTrip.vehicle_registration || `Vehicle ${selectedTrip.vehicle}`}`,
+        trip_id: selectedTrip.id,
+        recipients: [], // Empty recipients = broadcast to all school users
+        requires_immediate_action: notificationType === 'emergency',
+        metadata: {
+          trip_type: selectedTrip.trip_type,
+          route_name: selectedTrip.route_name,
+          driver_name: selectedTrip.driver_name,
+          vehicle_registration: selectedTrip.vehicle_registration,
+          scheduled_start_time: selectedTrip.scheduled_start_time,
+          notification_type: notificationType,
+        },
+      };
+
+      // Get parent IDs for students on this trip
+      const tripStudentIds = selectedTrip.students || [];
+      console.log("Trip Student IDs:", tripStudentIds);
+      
+      // Filter students that are on this trip
+      const tripStudents = students?.filter((student) => 
+        tripStudentIds.includes(student.id)
+      ) || [];
+      console.log("Trip Students:", tripStudents);
+      
+      // Get unique parent IDs from those students
+      const parentIds = [...new Set(
+        tripStudents
+          .map((student) => student.parent)
+          .filter((parentId): parentId is number => parentId !== undefined && parentId !== null)
+      )];
+      console.log("Parent IDs for notification:", parentIds);
+      
+      // Update recipients with parent IDs
+      notificationData.recipients = parentIds;
+      
+      console.log("Creating notification with data:", notificationData);
+      console.log("Dispatching createNotification to Redux...");
+      
+      const result = await dispatch(createNotification(notificationData)).unwrap();
+
+      console.log("───────────────────────────────────────");
+      console.log("✅ Notification created successfully");
+      console.log("📊 Notification Status:");
+      console.log("  - Notification ID:", result.id);
+      console.log("  - Type:", notificationType);
+      console.log("  - Title:", title);
+      console.log("  - Alert Type:", alertType);
+      console.log("  - Severity:", severity);
+      console.log("  - Recipients:", parentIds.length > 0 ? `${parentIds.length} parents on this route` : "No parents found");
+      console.log("  - Parent IDs:", parentIds);
+      console.log("═══════════════════════════════════════");
+      
+      toast({
+        title: "Success",
+        description: parentIds.length > 0 
+          ? `${notificationType.charAt(0).toUpperCase() + notificationType.slice(1)} notification sent to ${parentIds.length} parent(s)`
+          : "Notification created (no parents found for this route)",
+      });
+      
+      setIsNotificationModalOpen(false);
+      setSelectedTrip(null);
+      setNotificationMessage('');
+    } catch (err) {
+      console.log("═══════════════════════════════════════");
+      console.log("❌ NOTIFICATION FAILED");
+      console.log("═══════════════════════════════════════");
+      console.error("Error type:", typeof err);
+      console.error("Error details:", err);
+      if (err instanceof Error) {
+        console.error("Error message:", err.message);
+        console.error("Error stack:", err.stack);
+      }
+      console.log("═══════════════════════════════════════");
+      
+      let errorMessage = "Failed to send notification";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "string") {
+        errorMessage = err;
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSendingNotification(false);
+    }
   };
 
   const confirmDeleteTrip = async () => {
@@ -204,8 +387,6 @@ export default function Trips() {
         return "bg-orange-100 text-orange-800";
       case "afternoon":
         return "bg-purple-100 text-purple-800";
-      case "evening":
-        return "bg-indigo-100 text-indigo-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -267,7 +448,7 @@ export default function Trips() {
 
   if (error) {
     return (
-      <div className="h-full w-full bg-gray-100 p-8">
+      <div className="h-full w-full bg-background p-8">
         <div className="max-w-7xl mx-auto">
           <Alert variant="destructive">
             <AlertDescription>Failed to load trips: {error}</AlertDescription>
@@ -278,13 +459,13 @@ export default function Trips() {
   }
 
   return (
-    <div className="h-full w-full bg-gray-100 p-4">
+    <div className="h-full w-full bg-background p-4">
       <div className="max-w-7xl mx-auto space-y-2">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Trips</h1>
-            <p className="text-gray-600">Manage and monitor school bus trips</p>
+            <h1 className="text-2xl font-bold text-foreground">Trips</h1>
+            <p className="text-muted-foreground">Manage and monitor school bus trips</p>
           </div>
           <Button
             onClick={handleCreateTrip}
@@ -302,10 +483,10 @@ export default function Trips() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {stat.label}
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-foreground">
                       {stat.value}
                     </p>
                   </div>
@@ -321,7 +502,7 @@ export default function Trips() {
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search trips..."
                   value={searchTerm}
@@ -333,7 +514,7 @@ export default function Trips() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
                 >
                   <option value="all">All Status</option>
                   <option value="scheduled">Scheduled</option>
@@ -346,12 +527,11 @@ export default function Trips() {
                 <select
                   value={tripTypeFilter}
                   onChange={(e) => setTripTypeFilter(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
                 >
                   <option value="all">All Types</option>
                   <option value="morning">Morning</option>
                   <option value="afternoon">Afternoon</option>
-                  <option value="evening">Evening</option>
                 </select>
                 <ExportDropdown
                   data={{
@@ -379,13 +559,13 @@ export default function Trips() {
                         : "",
                       status: trip.status.replace("_", " "),
                       students_count: trip.students?.length?.toString() || "0",
-                      distance: trip.distance?.toString() || "",
-                      duration: trip.duration?.toString() || "",
+                      distance: (trip as any).distance?.toString() || "",
+                      duration: (trip as any).duration?.toString() || "",
                     })),
                     fileName: "trips_export",
                     title: "Trips Report",
                   }}
-                  className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                  className="border-border hover:bg-muted/30 px-3 py-2"
                 />
               </div>
             </div>
@@ -413,9 +593,9 @@ export default function Trips() {
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8">
                         <div className="flex flex-col items-center space-y-2">
-                          <Car className="h-8 w-8 text-gray-400" />
-                          <p className="text-gray-500">No trips found</p>
-                          <p className="text-sm text-gray-400">
+                          <Car className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-muted-foreground">No trips found</p>
+                          <p className="text-sm text-muted-foreground">
                             Create your first trip to get started
                           </p>
                         </div>
@@ -462,6 +642,27 @@ export default function Trips() {
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                onClick={() => handleSendNotification(trip, 'delay')}
+                                className="text-orange-600"
+                              >
+                                <Bell className="h-4 w-4 mr-2" />
+                                Send Delay Notice
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleSendNotification(trip, 'cancellation')}
+                                className="text-red-600"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Send Cancellation
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleSendNotification(trip, 'emergency')}
+                                className="text-red-700"
+                              >
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Emergency Alert
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
                                 onClick={() => handleDeleteTrip(trip)}
                                 className="text-red-600"
                               >
@@ -480,7 +681,7 @@ export default function Trips() {
 
             {/* Pagination Controls - always show at the bottom */}
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Showing {startIndex + 1}-
                 {Math.min(endIndex, filteredAndSearchedTrips.length)} of{" "}
                 {filteredAndSearchedTrips.length} trips
@@ -554,6 +755,172 @@ export default function Trips() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Notification Modal */}
+      <Dialog open={isNotificationModalOpen} onOpenChange={setIsNotificationModalOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {notificationType === 'emergency' ? (
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              ) : notificationType === 'cancellation' ? (
+                <XCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Bell className="h-5 w-5 text-orange-500" />
+              )}
+              Send {notificationType === 'delay' ? 'Delay Notice' : 
+                    notificationType === 'cancellation' ? 'Cancellation Notice' : 
+                    'Emergency Alert'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Trip Information Card */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">Trip Information</Label>
+              <div className="p-4 bg-muted/50 rounded-lg border space-y-2">
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">Route</span>
+                    <p className="text-sm font-medium text-foreground">
+                      {selectedTrip?.route_name || `Route ${selectedTrip?.route}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">Driver</span>
+                    <p className="text-sm font-medium text-foreground">
+                      {selectedTrip?.driver_name || `Driver ${selectedTrip?.driver}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Car className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">Vehicle</span>
+                    <p className="text-sm font-medium text-foreground">
+                      {selectedTrip?.vehicle_registration || `Vehicle ${selectedTrip?.vehicle}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">Trip Type</span>
+                    <Badge className={getTripTypeColor(selectedTrip?.trip_type || '')}>
+                      {selectedTrip?.trip_type}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notification Type Badge */}
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">Notification Type:</Label>
+              <Badge 
+                className={
+                  notificationType === 'emergency' 
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400' 
+                    : notificationType === 'cancellation'
+                    ? 'bg-red-50 text-red-700 dark:bg-red-900/10 dark:text-red-300'
+                    : 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400'
+                }
+              >
+                {notificationType === 'emergency' && '🚨 '}
+                {notificationType.toUpperCase()}
+              </Badge>
+            </div>
+
+            {/* Message Input */}
+            <div>
+              <Label htmlFor="notification-message" className="text-sm font-medium">
+                Notification Message *
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-2">
+                This message will be sent to all parents with students on this trip
+              </p>
+              <Input
+                id="notification-message"
+                placeholder={
+                  notificationType === 'delay' 
+                    ? 'e.g., Traffic delay expected, arrival will be 15 minutes late' 
+                    : notificationType === 'cancellation'
+                    ? 'e.g., Trip cancelled due to weather conditions'
+                    : 'e.g., Emergency situation, all students are safe'
+                }
+                value={notificationMessage}
+                onChange={(e) => setNotificationMessage(e.target.value)}
+                className="mt-1"
+                disabled={sendingNotification}
+              />
+              {notificationMessage.trim().length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {notificationMessage.length} characters
+                </p>
+              )}
+            </div>
+
+            {/* Warning for emergency */}
+            {notificationType === 'emergency' && (
+              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-400">
+                      Emergency Alert
+                    </p>
+                    <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                      This will send a high-priority notification to all parents. Use only for urgent situations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsNotificationModalOpen(false);
+                setNotificationMessage('');
+              }}
+              disabled={sendingNotification}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmSendNotification}
+              disabled={sendingNotification || !notificationMessage.trim()}
+              className={
+                notificationType === 'emergency' 
+                  ? 'bg-red-600 hover:bg-red-700' 
+                  : notificationType === 'cancellation'
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-orange-500 hover:bg-orange-600'
+              }
+            >
+              {sendingNotification ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Bell className="h-4 w-4 mr-2" />
+              Send {notificationType === 'delay' ? 'Delay Notice' : 
+                    notificationType === 'cancellation' ? 'Cancellation' : 
+                    'Emergency Alert'}
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -21,6 +21,7 @@ export interface Student {
     phone: string;
   }>;
   transport_enabled: boolean;
+  route_stops?: number[];
 }
 
 interface StudentsState {

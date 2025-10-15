@@ -23,11 +23,13 @@ import {
   CommandItem,
   CommandList,
 } from "./ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, MapPin } from "lucide-react";
 import { Student } from "../redux/slices/studentsSlice";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../redux/store";
+import { fetchAllRouteStops } from "../redux/slices/routesSlice";
 import { cn } from "@/lib/utils";
+import { useModalErrorHandler } from "../hooks/useModalErrorHandler";
 
 interface StudentModalProps {
   isOpen: boolean;
@@ -48,12 +50,24 @@ export function StudentModal({
   editMode = false,
   student = null,
 }: StudentModalProps) {
-
+  const dispatch = useDispatch();
+  const { handleModalSubmit, showValidationError } = useModalErrorHandler({
+    onSuccess: onClose,
+    successMessage: editMode ? "Student updated successfully" : "Student created successfully",
+  });
   const { parents } = useSelector((state: RootState) => state.parents);
   const { grades } = useSelector((state: RootState) => state.grades);
+  const { allRouteStops } = useSelector((state: RootState) => state.routes);
   const schoolId1 = localStorage.getItem("schoolId");
   const [parentsId, setParentsId] = useState(0);
   const [open, setOpen] = useState(false);
+  const [routeStopOpen, setRouteStopOpen] = useState(false);
+  const [routeStopSearchTerm, setRouteStopSearchTerm] = useState("");
+  
+  // Popover states for searchable selects
+  const [gradePopoverOpen, setGradePopoverOpen] = useState(false);
+  const [sectionPopoverOpen, setSectionPopoverOpen] = useState(false);
+  const [genderPopoverOpen, setGenderPopoverOpen] = useState(false);
   const filteredParents = (parents || []).filter(
     (parent) => parent.school === Number(schoolId)
   );
@@ -75,6 +89,7 @@ export function StudentModal({
     medical_conditions: "",
     emergency_contacts: [{ name: "", phone: "" }],
     transport_enabled: true,
+    route_stops: [],
   });
 
   // Initialize form data when editing
@@ -97,6 +112,7 @@ export function StudentModal({
           { name: "", phone: "" },
         ],
         transport_enabled: student.transport_enabled ?? true,
+        route_stops: student.route_stops || [],
       };
       setFormData(newFormData);
       setParentsId(student.parent || 0);
@@ -116,6 +132,7 @@ export function StudentModal({
         medical_conditions: "",
         emergency_contacts: [{ name: "", phone: "" }],
         transport_enabled: true,
+        route_stops: [],
       };
       setFormData(resetFormData);
       setParentsId(0);
@@ -129,49 +146,64 @@ export function StudentModal({
     }
   }, [parentsId]);
 
+  // Fetch route stops when modal opens
+  useEffect(() => {
+    if (isOpen && schoolId) {
+      dispatch(fetchAllRouteStops(schoolId));
+    }
+  }, [isOpen, schoolId, dispatch]);
+
+  // Filter route stops based on search term
+  const filteredRouteStops = (allRouteStops || []).filter((stop) =>
+    stop.name.toLowerCase().includes(routeStopSearchTerm.toLowerCase())
+  );
+
   // Debug form data changes
   useEffect(() => {
     // console.log("Form data changed:", formData);
   }, [formData]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-   
 
     // Basic validation
-    if (!formData.first_name || !formData.last_name) {
-      alert("First name and last name are required");
+    if (!formData.first_name) {
+      showValidationError("First name is required");
       return;
     }
 
     if (!formData.admission_number) {
-      alert("Admission number is required");
+      showValidationError("Admission number is required");
       return;
     }
 
     if (!formData.grade || formData.grade === 0) {
       if (filteredGrades.length === 0) {
-        alert(
-          "No grades are available for this school. Please add grades first in the Grades tab."
-        );
+        showValidationError("No grades are available for this school. Please add grades first in the Grades tab.");
       } else {
-        alert("Please select a grade");
+        showValidationError("Please select a grade");
       }
       return;
     }
 
     if (!formData.parent || formData.parent === 0) {
-      alert("Please select a parent");
+      showValidationError("Please select a parent");
       return;
     }
 
-    if (editMode && student?.id) {
-      // console.log("Submitting update for student ID:", student.id);
-      onSubmit({ id: student.id, data: formData });
-    } else {
-      // console.log("Submitting create request");
-      onSubmit(formData);
+    if (!formData.route_stops || formData.route_stops.length === 0) {
+      showValidationError("Please select a route stop");
+      return;
     }
+
+    // Use the modal error handler for consistent error handling
+    await handleModalSubmit(async () => {
+      if (editMode && student?.id) {
+        await onSubmit({ id: student.id, data: formData });
+      } else {
+        await onSubmit(formData);
+      }
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,23 +269,21 @@ export function StudentModal({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="middle_name">Middle Name</Label>
+              <Label htmlFor="middle_name">Middle Name (Optional)</Label>
               <Input
                 id="middle_name"
                 name="middle_name"
                 value={formData.middle_name}
                 onChange={handleChange}
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="last_name">Last Name</Label>
+              <Label htmlFor="last_name">Last Name (Optional)</Label>
               <Input
                 id="last_name"
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                required
               />
             </div>
           </div>
@@ -267,6 +297,7 @@ export function StudentModal({
                 type="date"
                 value={formData.date_of_birth}
                 onChange={handleChange}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 2)).toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -299,7 +330,7 @@ export function StudentModal({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
+                <PopoverContent className="w-[calc(100%-3rem)] p-0" align="start" side="bottom">
                   <Command>
                     <CommandInput placeholder="Search parent..." />
                     <CommandList>
@@ -336,37 +367,57 @@ export function StudentModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="grade">Grade</Label>
-              <Select
-                value={formData.grade ? formData.grade.toString() : ""}
-                onValueChange={(value) => handleSelectChange("grade", value)}
-                disabled={filteredGrades.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      filteredGrades.length > 0
-                        ? "Select grade"
-                        : "No grades available"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredGrades.length > 0 ? (
-                    filteredGrades.map((grade) => (
-                      <SelectItem
-                        key={grade.id}
-                        value={grade.id?.toString() || ""}
-                      >
-                        {grade.name} - {grade.level}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      No grades available for this school
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <Popover open={gradePopoverOpen} onOpenChange={setGradePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={gradePopoverOpen}
+                    className="w-full justify-between"
+                    disabled={filteredGrades.length === 0}
+                  >
+                    {formData.grade
+                      ? (() => {
+                          const grade = filteredGrades.find((g) => g.id === formData.grade);
+                          return grade ? `${grade.name} - ${grade.level}` : "Select grade";
+                        })()
+                      : filteredGrades.length > 0 ? "Select grade" : "No grades available"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[calc(100%-3rem)] p-0" align="start" side="bottom">
+                  <Command>
+                    <CommandInput placeholder="Search grades..." />
+                    <CommandList>
+                      <CommandEmpty>
+                        {filteredGrades.length === 0
+                          ? "No grades available for this school"
+                          : "No grade found."}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {filteredGrades.map((grade) => (
+                          <CommandItem
+                            key={grade.id}
+                            value={`${grade.name} ${grade.level}`}
+                            onSelect={() => {
+                              handleSelectChange("grade", grade.id?.toString() || "");
+                              setGradePopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.grade === grade.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {grade.name} - {grade.level}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               {filteredGrades.length === 0 && (
                 <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
                   ⚠️ No grades have been created for this school yet. Please add
@@ -379,53 +430,175 @@ export function StudentModal({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="section">Section</Label>
-              <Select
-                value={formData.section || ""}
-                onValueChange={(value) => handleSelectChange("section", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {["A", "B", "C", "D"].map((section) => (
-                    <SelectItem key={section} value={section}>
-                      Section {section}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={sectionPopoverOpen} onOpenChange={setSectionPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={sectionPopoverOpen}
+                    className="w-full justify-between"
+                  >
+                    {formData.section ? `Section ${formData.section}` : "Select section"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[calc(100%-3rem)] p-0" align="start" side="bottom">
+                  <Command>
+                    <CommandInput placeholder="Search sections..." />
+                    <CommandList>
+                      <CommandEmpty>No section found.</CommandEmpty>
+                      <CommandGroup>
+                        {["A", "B", "C", "D"].map((section) => (
+                          <CommandItem
+                            key={section}
+                            value={`Section ${section}`}
+                            onSelect={() => {
+                              handleSelectChange("section", section);
+                              setSectionPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.section === section ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Section {section}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Gender</Label>
-              <Select
-                value={formData.gender || ""}
-                onValueChange={(value) => handleSelectChange("gender", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Popover open={genderPopoverOpen} onOpenChange={setGenderPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={genderPopoverOpen}
+                    className="w-full justify-between"
+                  >
+                    {formData.gender 
+                      ? formData.gender.charAt(0).toUpperCase() + formData.gender.slice(1)
+                      : "Select gender"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[calc(100%-3rem)] p-0" align="start" side="bottom">
+                  <Command>
+                    <CommandInput placeholder="Search gender..." />
+                    <CommandList>
+                      <CommandEmpty>No gender found.</CommandEmpty>
+                      <CommandGroup>
+                        {[
+                          { value: "male", label: "Male" },
+                          { value: "female", label: "Female" },
+                          { value: "other", label: "Other" }
+                        ].map((gender) => (
+                          <CommandItem
+                            key={gender.value}
+                            value={gender.label}
+                            onSelect={() => {
+                              handleSelectChange("gender", gender.value);
+                              setGenderPopoverOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                formData.gender === gender.value ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {gender.label}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="medical_conditions">Medical Conditions</Label>
+            <Label htmlFor="route_stops">Route Stop *</Label>
+            <Popover open={routeStopOpen} onOpenChange={setRouteStopOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={routeStopOpen}
+                  className="w-full justify-between"
+                >
+                  {formData.route_stops && formData.route_stops.length > 0
+                    ? filteredRouteStops.find((stop) => stop.id === formData.route_stops[0])?.name || "Unknown Stop"
+                    : "Select route stop..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Search route stops..." 
+                    value={routeStopSearchTerm}
+                    onValueChange={setRouteStopSearchTerm}
+                  />
+                  <CommandList>
+                    <CommandEmpty>No route stop found.</CommandEmpty>
+                    <CommandGroup>
+                      {filteredRouteStops.map((stop) => (
+                        <CommandItem
+                          key={stop.id}
+                          value={`${stop.name} - Route ${stop.route}`}
+                          onSelect={() => {
+                            setFormData((prev) => ({ ...prev, route_stops: [stop.id || 0] }));
+                            setRouteStopOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              formData.route_stops.includes(stop.id || 0) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <MapPin className="mr-2 h-4 w-4" />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{stop.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Route {stop.route} • {stop.is_pickup && stop.is_dropoff ? "Pickup & Dropoff" : stop.is_pickup ? "Pickup" : "Dropoff"}
+                            </span>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {allRouteStops.length === 0 && (
+              <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-md">
+                ⚠️ No route stops are available for this school yet. Please add routes and route stops first.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="medical_conditions">Medical Conditions (Optional)</Label>
             <Input
               id="medical_conditions"
               name="medical_conditions"
               value={formData.medical_conditions}
               onChange={handleChange}
-              placeholder="Enter any medical conditions or 'None'"
+              placeholder="Enter any medical conditions or leave blank"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="transport_enabled">Transport Status</Label>
+            <Label htmlFor="transport_enabled">Transport Status (Optional)</Label>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"

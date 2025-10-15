@@ -236,18 +236,18 @@ const Overview = () => {
               </div>
             )}
 
-            {/* Trips and Analytics Section */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              <TripsOverview />
+            Trips and Analytics Section
+            <div className=" w-full  gap-6">
+              {/* <TripsOverview /> */}
               <QueryAnalytics />
             </div>
-
+{/* 
             {/* Recent Trips - Show only if recent activity is enabled */}
-            {preferences.showRecentActivity && (
+            {/* {preferences.showRecentActivity && (
               <div className="mb-4">
                 <RecentTripsTable />
-              </div>
-            )}
+              </div> */}
+            {/* // )} */} 
 
             {/* Notifications Panel - Show only if notifications panel is enabled */}
             {preferences.showNotificationsPanel && (

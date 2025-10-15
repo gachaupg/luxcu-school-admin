@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import {
   fetchVehicles,
   addVehicle,
+  updateVehicle,
   deleteVehicle,
   Vehicle,
 } from "../redux/slices/vehiclesSlice";
@@ -20,6 +21,7 @@ import {
   Eye as ViewIcon,
   Plus,
   Loader2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +80,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
+import {
+  MultipleUploadModal,
+  DataPreviewModal,
+} from "@/components/multiple-upload";
+import { uploadCSVFile } from "@/services/csvUploadService";
 
 // Form component moved outside to prevent recreation on every render
 interface VehicleFormData {
@@ -120,6 +127,7 @@ const AddVehicleForm = ({
   loading,
   filteredDrivers,
   driversLoading,
+  isEditing = false,
 }: {
   formData: VehicleFormData;
   setFormData: React.Dispatch<React.SetStateAction<VehicleFormData>>;
@@ -127,6 +135,7 @@ const AddVehicleForm = ({
   loading: boolean;
   filteredDrivers: Driver[];
   driversLoading: boolean;
+  isEditing?: boolean;
 }) => {
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -407,7 +416,16 @@ const AddVehicleForm = ({
         disabled={loading}
         className="w-full bg-[#f7c624] hover:bg-[#f7c624]/90 text-white mt-1"
       >
-        {loading ? "Adding Vehicle..." : "Add Vehicle"}
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {isEditing ? "Updating Vehicle..." : "Adding Vehicle..."}
+          </>
+        ) : (
+          <>
+            {isEditing ? "Update Vehicle" : "Add Vehicle"}
+          </>
+        )}
       </Button>
     </form>
   );
@@ -447,6 +465,12 @@ export default function Vehicles() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Bulk upload state
+  const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
+  const [isDataPreviewOpen, setIsDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
 
   // Filter schools for the current admin
   const filteredSchools =
@@ -622,6 +646,95 @@ export default function Vehicles() {
     }
   };
 
+  // Bulk upload handlers
+  const handleMultipleUpload = async (files: File[]) => {
+    try {
+      const schoolId = localStorage.getItem("schoolId");
+      if (!schoolId) {
+        throw new Error("School ID not found");
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        try {
+          // Upload file to CSV upload endpoint
+          const response = await uploadCSVFile(file, "vehicles");
+
+          if (response.success) {
+            totalSuccess += response.created_count || 0;
+            totalFailed += response.skipped_count || 0;
+
+            // Add any errors from the response
+            if (response.errors && response.errors.length > 0) {
+              response.errors.forEach((error) => {
+                if (typeof error === "string") {
+                  allErrors.push(error);
+                } else if (error.row && error.field && error.message) {
+                  allErrors.push(
+                    `Row ${error.row}, ${error.field}: ${error.message}`
+                  );
+                } else {
+                  allErrors.push(JSON.stringify(error));
+                }
+              });
+            }
+          } else {
+            totalFailed += 1;
+            allErrors.push(`File ${file.name}: ${response.message}`);
+          }
+        } catch (error: any) {
+          totalFailed += 1;
+          allErrors.push(
+            `File ${file.name}: ${error.message || "Upload failed"}`
+          );
+        }
+      }
+
+      // Refresh the vehicles list
+      if (schoolId) {
+        await dispatch(fetchVehicles({ schoolId: parseInt(schoolId) }));
+      }
+
+      // Show result toast
+      if (totalSuccess > 0) {
+        toast({
+          title: "Upload Complete",
+          description: `Successfully uploaded ${totalSuccess} vehicle(s). ${
+            totalFailed > 0 ? `${totalFailed} failed.` : ""
+          }`,
+        });
+      }
+
+      if (allErrors.length > 0) {
+        console.error("Upload errors:", allErrors);
+        toast({
+          title: "Upload Errors",
+          description: `${allErrors.length} error(s) occurred. Check console for details.`,
+          variant: "destructive",
+        });
+      }
+
+      setIsMultipleUploadOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload vehicles",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDataPreview = (data: Record<string, unknown>[]) => {
+    setPreviewData(data);
+    setIsDataPreviewOpen(true);
+  };
+
   const [formData, setFormData] = useState<VehicleFormData>({
     registration_number: "",
     vehicle_type: "bus",
@@ -652,6 +765,15 @@ export default function Vehicles() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring request");
+      return;
+    }
+
+    setIsSubmitting(true);
+    console.log("Starting vehicle submission...");
+
     // Validate that we have a valid school ID
     if (!schoolId) {
       toast({
@@ -659,17 +781,36 @@ export default function Vehicles() {
         description: "No school found. Please contact your administrator.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      await dispatch(addVehicle(formData)).unwrap();
-      toast({
-        title: "Success",
-        description: "Vehicle added successfully",
-      });
-      setIsDialogOpen(false);
-      // Reset form
+      console.log("Submitting vehicle data:", formData);
+      
+      // Check if we're editing or adding
+      if (selectedVehicle && selectedVehicle.id) {
+        // Update existing vehicle
+        console.log("Updating vehicle with ID:", selectedVehicle.id);
+        await dispatch(updateVehicle({ id: selectedVehicle.id, data: formData })).unwrap();
+        toast({
+          title: "Success",
+          description: "Vehicle updated successfully",
+        });
+        setIsEditModalOpen(false);
+        setSelectedVehicle(null);
+      } else {
+        // Add new vehicle
+        console.log("Adding new vehicle...");
+        await dispatch(addVehicle(formData)).unwrap();
+        toast({
+          title: "Success",
+          description: "Vehicle added successfully",
+        });
+        setIsDialogOpen(false);
+      }
+      
+      // Reset form only on success
       setFormData({
         registration_number: "",
         vehicle_type: "bus",
@@ -686,35 +827,59 @@ export default function Vehicles() {
         has_camera: true,
         has_emergency_button: true,
       });
+      
+      console.log("Vehicle submission successful");
     } catch (error) {
+      console.error("Vehicle submission error:", error);
+      
+      // Parse error message for better user experience
+      let errorMessage = selectedVehicle ? "Failed to update vehicle" : "Failed to add vehicle";
 
-      // Show the actual database error response
-      let errorMessage = "Failed to add vehicle";
-
-      if (error instanceof Error) {
-        try {
-          // Try to parse the error message as JSON to get field-specific errors
-          const errorData = JSON.parse(error.message);
-
-          // If it's an object with field errors, display the raw data
-          if (typeof errorData === "object" && errorData !== null) {
-            errorMessage = JSON.stringify(errorData, null, 2);
-          } else {
-            errorMessage = error.message;
+      if (error && typeof error === "object") {
+        const errorObj = error as any;
+        
+        // Handle different error formats
+        if (errorObj.message) {
+          try {
+            // Try to parse the error message as JSON to get field-specific errors
+            const errorData = JSON.parse(errorObj.message);
+            
+            // If it's an object with field errors, format them nicely
+            if (typeof errorData === "object" && errorData !== null) {
+              const fieldErrors = Object.entries(errorData).map(([field, messages]) => {
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                return `${fieldName}: ${Array.isArray(messages) ? messages.join(', ') : messages}`;
+              });
+              errorMessage = fieldErrors.join("; ");
+            } else {
+              errorMessage = errorObj.message;
+            }
+          } catch (parseError) {
+            // If JSON parsing fails, use the original error message
+            errorMessage = errorObj.message;
           }
-        } catch (parseError) {
-          // If JSON parsing fails, use the original error message
-          errorMessage = error.message;
+        } else if (errorObj.detail) {
+          errorMessage = errorObj.detail;
         }
-      } else {
-        errorMessage = String(error);
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
 
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
+        duration: 6000, // Show error longer for complex validation messages
       });
+      
+      console.log("Error occurred, modal should stay open");
+      // DO NOT CLOSE THE MODAL - let user fix the error and try again
+      // Modal stays open so user can correct the issue
+    } finally {
+      setIsSubmitting(false);
+      console.log("Submission process completed, isSubmitting set to false");
     }
   };
 
@@ -755,15 +920,27 @@ export default function Vehicles() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
           {/* Page Title Only */}
           <div className="mb-2 flex justify-between">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
               <Car className="w-8 h-8 text-[#f7c624]" /> Vehicles
             </h1>
             <div className="flex gap-2">
+              <Button
+                onClick={() => setIsMultipleUploadOpen(true)}
+                className="bg-[#10213f] hover:bg-[#10213f] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                disabled={!schoolId}
+                title={
+                  !schoolId
+                    ? "No school found. Please contact your administrator."
+                    : ""
+                }
+              >
+                <Download className="mr-2 h-4 w-4" /> Bulk Upload
+              </Button>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -786,9 +963,10 @@ export default function Vehicles() {
                     formData={formData}
                     setFormData={setFormData}
                     onSubmit={handleSubmit}
-                    loading={loading}
+                    loading={isSubmitting}
                     filteredDrivers={filteredDrivers}
                     driversLoading={driversLoading}
+                    isEditing={false}
                   />
                 </DialogContent>
               </Dialog>
@@ -796,22 +974,22 @@ export default function Vehicles() {
           </div>
 
           {/* Vehicles Table */}
-          <Card className="bg-white border-0 rounded-xl">
+          <Card className="bg-card border-0 rounded-xl">
             <div className="mb-2">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2"></div>
 
               {/* Search and Filter Toolbar */}
-              <div className="bg-white">
+              <div className="bg-card">
                 <CardContent className="">
                   <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
                     <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
                       <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
                           placeholder="Search vehicles by registration, manufacturer, model, or driver..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
+                          className="pl-10 pr-4 py-2 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
                         />
                         {searchTerm && (
                           <div className="mt-2 text-xs text-muted-foreground">
@@ -824,7 +1002,7 @@ export default function Vehicles() {
                         value={statusFilter}
                         onValueChange={setStatusFilter}
                       >
-                        <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
+                        <SelectTrigger className="w-full sm:w-40 rounded-full shadow-sm">
                           <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -842,7 +1020,7 @@ export default function Vehicles() {
                           setStatusFilter("all");
                           setCurrentPage(1);
                         }}
-                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                        className="px-3 py-2 rounded-full shadow-sm"
                       >
                         Clear Filters
                       </Button>
@@ -896,7 +1074,7 @@ export default function Vehicles() {
                           fileName: "vehicles_export",
                           title: "Vehicles Directory",
                         }}
-                        className="border-gray-200 hover:bg-gray-50 rounded-full shadow-sm"
+                        className="rounded-full shadow-sm"
                       />
                     </div>
                   </div>
@@ -949,29 +1127,29 @@ export default function Vehicles() {
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[800px]">
-                      <thead className="bg-gray-50 sticky top-0 z-10">
+                      <thead className="bg-muted/50 sticky top-0 z-10">
                         <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Registration No.
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Driver
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Type
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Capacity
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-border">
                         {paginatedVehicles.map((vehicle, idx) => {
                           if (!vehicle) return null;
 
@@ -988,19 +1166,19 @@ export default function Vehicles() {
                             <tr
                               key={vehicle.id}
                               className={`transition-colors duration-200 ${
-                                idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                              } hover:bg-[#f7c624]`}
+                                idx % 2 === 0 ? "bg-card" : "bg-muted/30"
+                              } hover:bg-[#f7c624]/10`}
                             >
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold">
                                     <Car className="h-4 w-4" />
                                   </div>
                                   <div>
-                                    <div className="font-medium text-gray-900 text-sm">
+                                    <div className="font-medium text-foreground text-sm">
                                       {vehicle.registration_number || "N/A"}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-muted-foreground">
                                       {vehicle.manufacturer} {vehicle.model}
                                     </div>
                                   </div>
@@ -1015,7 +1193,7 @@ export default function Vehicles() {
                                       .join("")
                                       .toUpperCase()}
                                   </div>
-                                  <div className="text-sm text-gray-900">
+                                  <div className="text-sm text-foreground">
                                     {driverName}
                                   </div>
                                 </div>
@@ -1023,17 +1201,17 @@ export default function Vehicles() {
                               <td className="px-4 py-3">
                                 <Badge
                                   variant="outline"
-                                  className="capitalize font-medium bg-gray-100 text-gray-700 border-gray-200"
+                                  className="capitalize font-medium"
                                 >
                                   {vehicle.vehicle_type || "N/A"}
                                 </Badge>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center">
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-sm font-medium text-foreground">
                                     {vehicle.capacity || "N/A"}
                                   </div>
-                                  <div className="text-xs text-gray-500 ml-1">
+                                  <div className="text-xs text-muted-foreground ml-1">
                                     seats
                                   </div>
                                 </div>
@@ -1042,10 +1220,10 @@ export default function Vehicles() {
                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
                                   vehicle.is_active
                                     ? "bg-[#f7c624]/20 text-[#f7c624]"
-                                    : "bg-gray-100 text-gray-700"
+                                    : "bg-muted text-muted-foreground"
                                 }`}>
                                   <span className={`w-2 h-2 rounded-full inline-block ${
-                                    vehicle.is_active ? "bg-[#f7c624]" : "bg-gray-500"
+                                    vehicle.is_active ? "bg-[#f7c624]" : "bg-muted-foreground"
                                   }`}></span>
                                   {vehicle.is_active ? "Active" : "Inactive"}
                                 </span>
@@ -1069,6 +1247,7 @@ export default function Vehicles() {
                                     <Edit className="h-4 w-4" />
                                   </Button>
                                   <Button
+                                  className="h-6 mt-2 w-6"
                                     size="icon"
                                     variant="destructive"
                                     onClick={() => handleDelete(vehicle)}
@@ -1086,27 +1265,27 @@ export default function Vehicles() {
                   </div>
 
                   {/* Enhanced Pagination */}
-                  <div className="bg-white border-t border-gray-200">
+                  <div className="bg-card border-t border-border">
                     <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                       {/* Page Info */}
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">Showing</span>
-                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                          <span className="bg-muted px-2 py-1 rounded-md font-semibold text-foreground">
                             {startIndex + 1}
                           </span>
                           <span>to</span>
-                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                          <span className="bg-muted px-2 py-1 rounded-md font-semibold text-foreground">
                             {Math.min(endIndex, filteredAndSearchedVehicles.length)}
                           </span>
                           <span>of</span>
-                          <span className="bg-gray-100 px-2 py-1 rounded-md font-semibold text-gray-900">
+                          <span className="bg-muted px-2 py-1 rounded-md font-semibold text-foreground">
                             {filteredAndSearchedVehicles.length}
                           </span>
                           <span>vehicles</span>
                         </div>
                         {filteredAndSearchedVehicles.length > 0 && (
-                          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-500">
+                          <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
                             <span>•</span>
                             <span>Page {currentPage} of {totalPages}</span>
                           </div>
@@ -1122,7 +1301,7 @@ export default function Vehicles() {
                             size="sm"
                             onClick={() => setCurrentPage(1)}
                             disabled={currentPage === 1}
-                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ChevronLeft className="h-4 w-4 mr-1" />
                             <ChevronLeft className="h-4 w-4 -ml-2" />
@@ -1134,7 +1313,7 @@ export default function Vehicles() {
                             size="sm"
                             onClick={() => setCurrentPage(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ChevronLeft className="h-4 w-4 mr-1" />
                             Previous
@@ -1149,12 +1328,12 @@ export default function Vehicles() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setCurrentPage(1)}
-                                  className="h-9 w-9 p-0 border-gray-300 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                                  className="h-9 w-9 p-0 font-medium"
                                 >
                                   1
                                 </Button>
                                 {currentPage > 4 && (
-                                  <span className="px-2 text-gray-400">...</span>
+                                  <span className="px-2 text-muted-foreground">...</span>
                                 )}
                               </>
                             )}
@@ -1176,7 +1355,7 @@ export default function Vehicles() {
                                   className={`h-9 w-9 p-0 font-medium transition-all duration-200 ${
                                     currentPage === page
                                       ? "bg-[#f7c624] hover:bg-[#f7c624]/90 text-white shadow-md"
-                                      : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                                      : ""
                                   }`}
                                 >
                                   {page}
@@ -1187,13 +1366,13 @@ export default function Vehicles() {
                             {currentPage < totalPages - 2 && totalPages > 5 && (
                               <>
                                 {currentPage < totalPages - 3 && (
-                                  <span className="px-2 text-gray-400">...</span>
+                                  <span className="px-2 text-muted-foreground">...</span>
                                 )}
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setCurrentPage(totalPages)}
-                                  className="h-9 w-9 p-0 border-gray-300 hover:bg-gray-50 hover:border-gray-400 font-medium"
+                                  className="h-9 w-9 p-0 font-medium"
                                 >
                                   {totalPages}
                                 </Button>
@@ -1207,7 +1386,7 @@ export default function Vehicles() {
                             size="sm"
                             onClick={() => setCurrentPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             Next
                             <ChevronRight className="h-4 w-4 ml-1" />
@@ -1219,7 +1398,7 @@ export default function Vehicles() {
                             size="sm"
                             onClick={() => setCurrentPage(totalPages)}
                             disabled={currentPage === totalPages}
-                            className="h-9 px-3 border-gray-300 hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-9 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <ChevronRight className="h-4 w-4 ml-1" />
                             <ChevronRight className="h-4 w-4 -mr-2" />
@@ -1228,7 +1407,7 @@ export default function Vehicles() {
                       )}
 
                       {/* Items Per Page Selector */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span>Show:</span>
                                                  <Select
                            value={itemsPerPage.toString()}
@@ -1236,7 +1415,7 @@ export default function Vehicles() {
                              setItemsPerPage(parseInt(value));
                            }}
                          >
-                          <SelectTrigger className="h-8 w-16 border-gray-300 text-xs">
+                          <SelectTrigger className="h-8 w-16 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1353,9 +1532,10 @@ export default function Vehicles() {
             formData={formData}
             setFormData={setFormData}
             onSubmit={handleSubmit}
-            loading={loading}
+            loading={isSubmitting}
             filteredDrivers={filteredDrivers}
             driversLoading={driversLoading}
+            isEditing={true}
           />
         </DialogContent>
       </Dialog>
@@ -1385,6 +1565,42 @@ export default function Vehicles() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Multiple Upload Modal */}
+      <MultipleUploadModal
+        isOpen={isMultipleUploadOpen}
+        onClose={() => setIsMultipleUploadOpen(false)}
+        title="Bulk Upload Vehicles"
+        description="Upload multiple vehicles at once using CSV document. Download the template to see the correct format. Required fields: registration_number, school_id, vehicle_type, capacity, model, year, fuel_type, manufacturer, is_active, has_gps, has_camera, has_emergency_button, driver_phone_number."
+        acceptedFileTypes={[".csv"]}
+        maxFileSize={10}
+        maxFiles={5}
+        onUpload={handleMultipleUpload}
+        onPreview={handleDataPreview}
+        uploadType="vehicles"
+      />
+
+      {/* Data Preview Modal */}
+      <DataPreviewModal
+        isOpen={isDataPreviewOpen}
+        onClose={() => setIsDataPreviewOpen(false)}
+        data={previewData}
+        title="Vehicle Data Preview"
+        columns={[
+          "Registration Number",
+          "Vehicle Type",
+          "Capacity",
+          "Model",
+          "Year",
+          "Fuel Type",
+          "Manufacturer",
+          "Is Active",
+          "Has GPS",
+          "Has Camera",
+          "Has Emergency Button",
+          "Driver Phone Number",
+        ]}
+      />
     </div>
   );
 }

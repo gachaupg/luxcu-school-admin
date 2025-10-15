@@ -37,18 +37,18 @@ function StatusPill({ status }: { status: string | null | undefined }) {
   // Handle null or undefined status
   if (!status) {
     return (
-      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
         Unknown
       </span>
     );
   }
 
   let color = "";
-  if (status === "ongoing") color = "bg-yellow-200 text-yellow-800";
-  else if (status === "completed") color = "bg-green-100 text-green-700";
-  else if (status === "cancelled") color = "bg-red-100 text-red-600";
-  else if (status === "delayed") color = "bg-orange-100 text-orange-700";
-  else color = "bg-gray-100 text-gray-600"; // Default for unknown status
+  if (status === "ongoing") color = "bg-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
+  else if (status === "completed") color = "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
+  else if (status === "cancelled") color = "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400";
+  else if (status === "delayed") color = "bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400";
+  else color = "bg-muted text-muted-foreground"; // Default for unknown status
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${color}`}>
@@ -69,11 +69,11 @@ function MetricCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-lg p-6 shadow border border-gray-200">
+    <div className="bg-card rounded-lg p-6 shadow border border-border">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
         </div>
         <div className={`p-3 rounded-full ${color}`}>
           <Icon className="h-6 w-6 text-white" />
@@ -162,36 +162,36 @@ export default function Reports() {
     <div className="p-8">
       <div className="mb-4 flex items-center gap-3">
         <FileText className="text-[#f7c624]" size={32} />
-        <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
+        <h2 className="text-2xl font-bold text-foreground">Reports</h2>
       </div>
 
       {/* Search/Filter Bar */}
       <div className="flex flex-wrap gap-4 items-center mb-6">
-        <div className="flex items-center bg-white rounded-full px-4 py-2 shadow w-80 border border-gray-200">
-          <Search className="text-gray-400 mr-2" size={18} />
+        <div className="flex items-center bg-card rounded-full px-4 py-2 shadow w-80 border border-border">
+          <Search className="text-muted-foreground mr-2" size={18} />
           <input
-            className="outline-none bg-transparent flex-1 text-sm placeholder-gray-400"
+            className="outline-none bg-transparent flex-1 text-sm placeholder-muted-foreground text-foreground"
             placeholder="Search reports, trips, students..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow border border-gray-200">
-          <span className="text-xs text-gray-500 mr-1">From:</span>
-          <Calendar className="text-gray-400 mr-1" size={16} />
+        <div className="flex items-center gap-2 bg-card rounded-lg px-4 py-2 shadow border border-border">
+          <span className="text-xs text-muted-foreground mr-1">From:</span>
+          <Calendar className="text-muted-foreground mr-1" size={16} />
           <input
             type="date"
-            className="text-xs bg-transparent outline-none w-28"
+            className="text-xs bg-transparent outline-none w-28 text-foreground"
             value={filters.start_date}
             onChange={(e) => handleFilterChange("start_date", e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-lg px-4 py-2 shadow border border-gray-200">
-          <span className="text-xs text-gray-500 mr-1">To:</span>
-          <Calendar className="text-gray-400 mr-1" size={16} />
+        <div className="flex items-center gap-2 bg-card rounded-lg px-4 py-2 shadow border border-border">
+          <span className="text-xs text-muted-foreground mr-1">To:</span>
+          <Calendar className="text-muted-foreground mr-1" size={16} />
           <input
             type="date"
-            className="text-xs bg-transparent outline-none w-28"
+            className="text-xs bg-transparent outline-none w-28 text-foreground"
             value={filters.end_date}
             onChange={(e) => handleFilterChange("end_date", e.target.value)}
           />
@@ -204,7 +204,7 @@ export default function Reports() {
           {loading ? "Loading..." : "Run Query"} <Play size={16} />
         </button>
         <button
-          className="bg-gray-500 hover:bg-gray-600 text-white rounded-lg px-4 py-2 text-sm font-semibold shadow"
+          className="bg-muted hover:bg-muted/80 text-muted-foreground rounded-lg px-4 py-2 text-sm font-semibold shadow"
           onClick={handleClearFilters}
         >
           Clear Filters
@@ -213,7 +213,7 @@ export default function Reports() {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded mb-6">
           {error}
         </div>
       )}
@@ -250,32 +250,32 @@ export default function Reports() {
 
       {/* Performance Metrics */}
       {metrics && (
-        <div className="bg-white rounded-xl shadow p-6 mb-8 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        <div className="bg-card rounded-xl shadow p-6 mb-8 border border-border">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
             Performance Overview
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-sm text-gray-600">Avg Efficiency Score</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-muted-foreground">Avg Efficiency Score</p>
+              <p className="text-2xl font-bold text-foreground">
                 {metrics.performance.avg_efficiency_score.toFixed(1)}%
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600">On-time Pickup Rate</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-muted-foreground">On-time Pickup Rate</p>
+              <p className="text-2xl font-bold text-foreground">
                 {metrics.performance.on_time_pickup_rate.toFixed(1)}%
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600">On-time Dropoff Rate</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-muted-foreground">On-time Dropoff Rate</p>
+              <p className="text-2xl font-bold text-foreground">
                 {metrics.performance.on_time_dropoff_rate.toFixed(1)}%
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600">Duration Efficiency</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-muted-foreground">Duration Efficiency</p>
+              <p className="text-2xl font-bold text-foreground">
                 {metrics.performance.duration_efficiency.toFixed(1)}%
               </p>
             </div>
@@ -284,11 +284,11 @@ export default function Reports() {
       )}
 
       {/* Reports Table */}
-      <div className="bg-white rounded-xl shadow border border-gray-200 mb-8">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Trip Reports</h3>
+      <div className="bg-card rounded-xl shadow border border-border mb-8">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">Trip Reports</h3>
           {pagination && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Showing {reports.length} of {pagination.total_reports} reports
             </p>
           )}
@@ -297,18 +297,18 @@ export default function Reports() {
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f7c624] mx-auto"></div>
-            <p className="text-gray-600 mt-2">Loading reports...</p>
+            <p className="text-muted-foreground mt-2">Loading reports...</p>
           </div>
         ) : reports.length === 0 ? (
           <div className="p-8 text-center">
-            <FileText className="text-gray-400 mx-auto mb-2" size={48} />
-            <p className="text-gray-600">No reports found</p>
+            <FileText className="text-muted-foreground mx-auto mb-2" size={48} />
+            <p className="text-muted-foreground">No reports found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-gray-600">
+                <tr className="bg-muted/50 text-muted-foreground">
                   <th className="px-6 py-3 text-left">Trip ID</th>
                   <th className="px-6 py-3 text-left">Route</th>
                   <th className="px-6 py-3 text-left">School</th>
@@ -324,11 +324,11 @@ export default function Reports() {
                 {reports.map((report) => (
                   <tr
                     key={report.id}
-                    className="border-b last:border-0 hover:bg-gray-50"
+                    className="border-b border-border last:border-0 hover:bg-muted/30"
                   >
-                    <td className="px-6 py-4 font-medium">{report.trip}</td>
-                    <td className="px-6 py-4">{report.trip_route || "N/A"}</td>
-                    <td className="px-6 py-4">{report.school_name || "N/A"}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">{report.trip}</td>
+                    <td className="px-6 py-4 text-foreground">{report.trip_route || "N/A"}</td>
+                    <td className="px-6 py-4 text-foreground">{report.school_name || "N/A"}</td>
                     <td className="px-6 py-4">
                       <StatusPill
                         status={report.is_complete ? "completed" : "ongoing"}
@@ -341,10 +341,10 @@ export default function Reports() {
                       <span
                         className={`font-semibold ${
                           report.efficiency_score >= 80
-                            ? "text-green-600"
+                            ? "text-green-600 dark:text-green-400"
                             : report.efficiency_score >= 60
-                            ? "text-yellow-600"
-                            : "text-red-600"
+                            ? "text-yellow-600 dark:text-yellow-400"
+                            : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {report.efficiency_score}%
@@ -360,7 +360,7 @@ export default function Reports() {
                     <td className="px-6 py-4">
                       {formatSpeed(report.max_speed)}
                     </td>
-                    <td className="px-6 py-4 text-gray-500">
+                    <td className="px-6 py-4 text-muted-foreground">
                       {formatTime(report.generated_at)}
                     </td>
                   </tr>
@@ -373,13 +373,13 @@ export default function Reports() {
 
       {/* Pagination */}
       {pagination && pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-sm text-gray-600">
+        <div className="flex items-center justify-between bg-card rounded-lg shadow p-4 border border-border">
+          <div className="text-sm text-muted-foreground">
             Page {pagination.current_page} of {pagination.total_pages}
           </div>
           <div className="flex gap-2">
             <button
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded disabled:opacity-50 bg-background text-foreground hover:bg-muted/30"
               disabled={!pagination.has_previous}
               onClick={() =>
                 dispatch(
@@ -393,7 +393,7 @@ export default function Reports() {
               Previous
             </button>
             <button
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded disabled:opacity-50 bg-background text-foreground hover:bg-muted/30"
               disabled={!pagination.has_next}
               onClick={() =>
                 dispatch(

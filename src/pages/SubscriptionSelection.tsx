@@ -203,6 +203,15 @@ export default function SubscriptionSelection() {
             Choose the plan that best fits your school's needs. You can always
             upgrade or downgrade later.
           </p>
+          <div className="mt-6">
+            <Button
+              className="bg-[#f7c624] hover:bg-[#f7c624]/90 text-white font-semibold px-8 py-3 transition-all duration-200 hover:scale-105"
+              onClick={() => navigate("/register")}
+            >
+              Get Started
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

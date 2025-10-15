@@ -17,11 +17,19 @@ export const setAuthCallback = (callback: AuthCallback) => {
   authCallback = callback;
 };
 
-export const handleApiError = (error: unknown) => {
+export const handleApiError = (error: unknown, options: {
+  showToast?: boolean;
+  component?: string;
+  action?: string;
+} = {}) => {
+  const { showToast: shouldShowToast = true, component, action } = options;
+
   if (error instanceof AxiosError) {
     // Handle network errors
     if (!error.response) {
-      showToast.error("Network Error", "Please check your connection");
+      if (shouldShowToast) {
+        showToast.error("Network Error", "Please check your connection");
+      }
       throw new Error("Network error - please check your connection");
     }
 
@@ -31,10 +39,12 @@ export const handleApiError = (error: unknown) => {
 
     switch (status) {
       case 400:
-        showToast.error(
-          "Error Trying to Make The Request",
-          data.message || data.error || "Invalid request"
-        );
+        if (shouldShowToast) {
+          showToast.error(
+            "Error Trying to Make The Request",
+            data.message || data.error || "Invalid request"
+          );
+        }
         throw new Error(data.message || data.error || "Bad request");
 
       case 401:
@@ -42,28 +52,38 @@ export const handleApiError = (error: unknown) => {
         return;
 
       case 403:
-        showToast.error("Forbidden", "You don't have permission");
+        if (shouldShowToast) {
+          showToast.error("Forbidden", "You don't have permission");
+        }
         throw new Error("Forbidden - you don't have permission");
 
       case 404:
-        showToast.error("Not Found", "Resource not found");
+        if (shouldShowToast) {
+          showToast.error("Not Found", "Resource not found");
+        }
         throw new Error("Resource not found");
 
       case 500:
-        showToast.error("Server Error", "Please try again later");
+        if (shouldShowToast) {
+          showToast.error("Server Error", "Please try again later");
+        }
         throw new Error("Server error - please try again later");
 
       default:
-        showToast.error("Error", data.message || "An error occurred");
+        if (shouldShowToast) {
+          showToast.error("Error", data.message || "An error occurred");
+        }
         throw new Error(data.message || "An error occurred");
     }
   }
 
   // Handle non-Axios errors
-  showToast.error(
-    "Error",
-    error instanceof Error ? error.message : "An unexpected error occurred"
-  );
+  if (shouldShowToast) {
+    showToast.error(
+      "Error",
+      error instanceof Error ? error.message : "An unexpected error occurred"
+    );
+  }
   throw error;
 };
 

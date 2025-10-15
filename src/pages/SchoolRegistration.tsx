@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Building2, User, Package, Check, MapPin, Eye, EyeOff } from "lucide-react";
+import { Loader2, Building2, User, Package, Check, MapPin, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
 
@@ -25,28 +25,23 @@ const SchoolRegistration = () => {
   const { registrationLoading, registrationError, registrationSuccess } =
     useSelector((state: RootState) => state.schools);
 
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
   const [formData, setFormData] = useState({
     schoolName: "",
-    schoolType: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    phone: "",
-    email: "",
-    website: "",
-    principalName: "",
-    principalPhone: "",
-    principalEmail: "", // This field now stores admin email
-    adminPassword: "", // Admin password field
-    description: "",
+    schoolLocation: "",
+    schoolDescription: "",
+    schoolContactNumber: "",
+    schoolEmail: "",
     longitude: "",
     latitude: "",
-    operatingHoursStart: "06:30",
-    operatingHoursEnd: "18:00",
-    estimatedStudents: "",
-    estimatedBuses: "",
-    estimatedParents: "",
+    operatingHoursStart: "08:00",
+    operatingHoursEnd: "15:00",
+    adminFirstName: "",
+    adminLastName: "",
+    adminEmail: "",
+    adminPassword: "",
+    adminPhoneNumber: "",
   });
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,32 +61,32 @@ const SchoolRegistration = () => {
       setSelectedPlan(routeState);
     } else if (storedPlan) {
       setSelectedPlan(JSON.parse(storedPlan));
-    } else {
-      // Redirect to subscription selection if no plan is selected
-      toast({
-        title: "No Plan Selected",
-        description: "Please select a subscription plan first.",
-      });
-      navigate("/subscription-selection");
     }
-  }, [location.state, navigate, toast]);
+    // Allow users to access registration form directly without selecting a plan
+  }, [location.state]);
 
-  // Handle registration success and error states
-  useEffect(() => {
-    if (registrationSuccess) {
-      toast({
-        title: "Registration Successful",
-        description: "Your school has been registered successfully!",
-      });
-    }
-  }, [registrationSuccess, toast]);
-
+  // Handle registration error states
   useEffect(() => {
     if (registrationError) {
+      // Parse error message for better user feedback
+      let errorTitle = "Registration Failed";
+      let errorDescription = registrationError;
+      
+      if (registrationError.includes("Duplicate entry") && registrationError.includes("username")) {
+        errorTitle = "Phone Number Already Registered";
+        errorDescription = "This phone number is already registered in our system. Please use a different phone number or try logging in.";
+      } else if (registrationError.includes("Duplicate entry") && registrationError.includes("email")) {
+        errorTitle = "Email Already Registered";
+        errorDescription = "This email is already registered in our system. Please use a different email or try logging in.";
+      } else if (registrationError.includes("Duplicate entry")) {
+        errorTitle = "Registration Conflict";
+        errorDescription = "Some information you provided is already registered in our system. Please check your phone number and email.";
+      }
+      
       toast({
         variant: "destructive",
-        title: "Registration Failed",
-        description: registrationError,
+        title: errorTitle,
+        description: errorDescription,
       });
     }
   }, [registrationError, toast]);
@@ -167,88 +162,69 @@ const SchoolRegistration = () => {
     return "";
   };
 
-  const validateForm = (): boolean => {
+  const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields validation
-    const requiredFields = {
-      schoolName: "School Name",
-      address: "Address",
-      city: "City",
-      state: "State/Province",
-      phone: "School Phone",
-      email: "School Email",
-      principalName: "Principal Name",
-      principalPhone: "Principal Phone",
-      principalEmail: "Admin Email",
-      adminPassword: "Admin Password",
-      estimatedStudents: "Estimated Number of Students",
-      estimatedBuses: "Estimated Number of Buses",
-      estimatedParents: "Estimated Number of Parents",
-    };
+    if (step === 1) {
+      // Step 1: School Information
+      const requiredFields = {
+        schoolName: "School Name",
+        schoolLocation: "School Location",
+        schoolContactNumber: "School Contact Number",
+        schoolEmail: "School Email",
+      };
 
-    Object.entries(requiredFields).forEach(([field, label]) => {
-      const error = validateRequired(
-        formData[field as keyof typeof formData],
-        label
-      );
-      if (error) {
-        newErrors[field] = error;
+      Object.entries(requiredFields).forEach(([field, label]) => {
+        const error = validateRequired(
+          formData[field as keyof typeof formData],
+          label
+        );
+        if (error) {
+          newErrors[field] = error;
+        }
+      });
+
+      // Email validation
+      if (formData.schoolEmail && !validateEmail(formData.schoolEmail)) {
+        newErrors.schoolEmail = "Please enter a valid email address";
       }
-    });
 
-    // Email validation
-    if (formData.email && !validateEmail(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
+      // Phone validation
+      if (formData.schoolContactNumber && !validatePhone(formData.schoolContactNumber)) {
+        newErrors.schoolContactNumber = "Please enter a valid phone number";
+      }
+    } else if (step === 2) {
+      // Step 2: Admin Information
+      const requiredFields = {
+        adminFirstName: "Admin First Name",
+        adminLastName: "Admin Last Name",
+        adminEmail: "Admin Email",
+        adminPassword: "Admin Password",
+        adminPhoneNumber: "Admin Phone Number",
+      };
 
-    // Phone validation
-    if (formData.phone && !validatePhone(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number";
-    }
+      Object.entries(requiredFields).forEach(([field, label]) => {
+        const error = validateRequired(
+          formData[field as keyof typeof formData],
+          label
+        );
+        if (error) {
+          newErrors[field] = error;
+        }
+      });
 
-    if (formData.principalPhone && !validatePhone(formData.principalPhone)) {
-      newErrors.principalPhone = "Please enter a valid phone number";
-    }
+      if (formData.adminPhoneNumber && !validatePhone(formData.adminPhoneNumber)) {
+        newErrors.adminPhoneNumber = "Please enter a valid phone number";
+      }
 
-    if (formData.principalEmail && !validateEmail(formData.principalEmail)) {
-      newErrors.principalEmail = "Please enter a valid admin email address";
-    }
+      if (formData.adminEmail && !validateEmail(formData.adminEmail)) {
+        newErrors.adminEmail = "Please enter a valid admin email address";
+      }
 
-    // Password validation
-    if (formData.adminPassword && formData.adminPassword.length < 6) {
-      newErrors.adminPassword = "Password must be at least 6 characters long";
-    }
-
-    // Website validation (optional but if provided, should be valid)
-    if (formData.website && !formData.website.match(/^https?:\/\/.+/)) {
-      newErrors.website =
-        "Please enter a valid website URL (include http:// or https://)";
-    }
-
-    // Number validation
-    if (
-      formData.estimatedStudents &&
-      (isNaN(Number(formData.estimatedStudents)) ||
-        Number(formData.estimatedStudents) <= 0)
-    ) {
-      newErrors.estimatedStudents = "Please enter a valid number of students";
-    }
-
-    if (
-      formData.estimatedBuses &&
-      (isNaN(Number(formData.estimatedBuses)) ||
-        Number(formData.estimatedBuses) <= 0)
-    ) {
-      newErrors.estimatedBuses = "Please enter a valid number of buses";
-    }
-
-    if (
-      formData.estimatedParents &&
-      (isNaN(Number(formData.estimatedParents)) ||
-        Number(formData.estimatedParents) <= 0)
-    ) {
-      newErrors.estimatedParents = "Please enter a valid number of parents";
+      // Password validation
+      if (formData.adminPassword && formData.adminPassword.length < 6) {
+        newErrors.adminPassword = "Password must be at least 6 characters long";
+      }
     }
 
     setErrors(newErrors);
@@ -389,7 +365,7 @@ const SchoolRegistration = () => {
           ...prev,
           longitude: lng.toString(),
           latitude: lat.toString(),
-          address: data.result.formatted_address || description,
+          schoolLocation: data.result.formatted_address || description,
         }));
 
         setSearchResults([]);
@@ -426,7 +402,7 @@ const SchoolRegistration = () => {
               ...prev,
               longitude: lng.toString(),
               latitude: lat.toString(),
-              address: altData.result.formatted_address || description,
+              schoolLocation: altData.result.formatted_address || description,
             }));
 
             setSearchResults([]);
@@ -449,7 +425,7 @@ const SchoolRegistration = () => {
         ...prev,
         longitude: "36.689",
         latitude: "-1.3197",
-        address: description,
+        schoolLocation: description,
       }));
 
       setSearchResults([]);
@@ -482,11 +458,29 @@ const SchoolRegistration = () => {
     }));
   };
 
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, totalSteps));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fix the errors before proceeding to the next step.",
+      });
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form before submission
-    if (!validateForm()) {
+    // Validate current step before submission
+    if (!validateStep(currentStep)) {
       toast({
         variant: "destructive",
         title: "Validation Error",
@@ -499,27 +493,24 @@ const SchoolRegistration = () => {
       // Prepare the registration payload
       const registrationPayload = {
         school_name: formData.schoolName,
-        school_location: `${formData.address}, ${formData.city}, ${formData.state}`,
-        school_description: formData.description,
-        school_contact_number: formatPhoneNumber(formData.phone),
-        school_email: formData.email,
+        school_location: formData.schoolLocation,
+        school_description: formData.schoolDescription,
+        school_contact_number: formatPhoneNumber(formData.schoolContactNumber),
+        school_email: formData.schoolEmail,
         longitude: parseFloat(formData.longitude) || 36.689,
         latitude: parseFloat(formData.latitude) || -1.3197,
         operating_hours_start: formData.operatingHoursStart,
         operating_hours_end: formData.operatingHoursEnd,
-        admin_first_name:
-          formData.principalName.split(" ")[0] || formData.principalName,
-        admin_last_name:
-          formData.principalName.split(" ").slice(1).join(" ") ||
-          formData.principalName,
-        admin_phone_number: formatPhoneNumber(formData.principalPhone),
-        admin_email: formData.principalEmail, // Changed from admin_number to admin_email
-        admin_password: formData.adminPassword, // Use the password from form
+        admin_first_name: formData.adminFirstName,
+        admin_last_name: formData.adminLastName,
+        admin_phone_number: formatPhoneNumber(formData.adminPhoneNumber),
+        admin_email: formData.adminEmail,
+        admin_password: formData.adminPassword,
         selected_plan_id: selectedPlan?.id || "1",
         billing_cycle: selectedPlan?.default_billing_cycle || "monthly",
-        estimated_students: parseInt(formData.estimatedStudents) || 400,
-        estimated_buses: parseInt(formData.estimatedBuses) || 4,
-        estimated_parents: parseInt(formData.estimatedParents) || 800,
+        estimated_students: 100,
+        estimated_buses: 2,
+        estimated_parents: 200,
       };
 
 
@@ -530,9 +521,9 @@ const SchoolRegistration = () => {
 
 
       toast({
-        title: "Registration Submitted",
+        title: "Registration Successful!",
         description:
-          "Your school registration has been submitted successfully. You can now log in with your admin credentials.",
+          "Your school has been registered successfully. You can now log in with your admin credentials.",
       });
 
       // Clear stored plan
@@ -552,30 +543,69 @@ const SchoolRegistration = () => {
     }
   };
 
+  const steps = [
+    { number: 1, title: "School Information", icon: Building2 },
+    { number: 2, title: "Admin Details", icon: User },
+    { number: 3, title: "Review & Submit", icon: Package },
+  ];
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-[#f7c624]/10 p-4">
       <Card className="w-full max-w-4xl shadow-xl">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto w-12 h-12 bg-[#f7c624]/20 rounded-full flex items-center justify-center mb-3">
-            <Building2 className="h-6 w-6 text-[#f7c624]" />
-          </div>
+         
           <CardTitle className="text-2xl font-bold text-slate-900">
             Register Your School
           </CardTitle>
-          <CardDescription className="text-base text-slate-600">
-            Join Shuletrack and transform your school transportation management
-          </CardDescription>
+        {/* Step Indicator */}
+          <div className="flex items-center justify-center mt-3 space-x-2">
+            {steps.map((step, index) => (
+              <React.Fragment key={step.number}>
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                      currentStep === step.number
+                        ? "bg-[#f7c624] border-[#f7c624] text-white"
+                        : currentStep > step.number
+                        ? "bg-[#f7c624]/20 border-[#f7c624] text-[#f7c624]"
+                        : "bg-white border-gray-300 text-gray-400"
+                    }`}
+                  >
+                    {currentStep > step.number ? (
+                      <Check className="w-5 h-5" />
+                    ) : (
+                      <step.icon className="w-5 h-5" />
+                    )}
+                  </div>
+                  <p className={`text-xs mt-1 hidden sm:block ${
+                    currentStep === step.number ? "text-[#f7c624] font-semibold" : "text-gray-500"
+                  }`}>
+                    {step.title}
+                  </p>
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`h-0.5 w-12 sm:w-20 transition-all ${
+                      currentStep > step.number ? "bg-[#f7c624]" : "bg-gray-300"
+                    }`}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                <Building2 className="h-4 w-4 mr-2 text-[#f7c624]" />
-                School Information
-              </h3>
+            {/* Step 1: School Information */}
+            {currentStep === 1 && (
+                <div className="space-y-5">
+                  <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                    <Building2 className="h-5 w-5 mr-2 text-[#f7c624]" />
+                    School Information
+                  </h3>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2.5">
                   <Label htmlFor="schoolName">School Name *</Label>
                   <Input
                     id="schoolName"
@@ -591,58 +621,24 @@ const SchoolRegistration = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="schoolType">School Type *</Label>
-                  <Input
-                    id="schoolType"
-                    name="schoolType"
-                    value={formData.schoolType}
-                    onChange={handleInputChange}
-                    placeholder="Primary, Secondary, etc."
-                    required
-                    className={errors.schoolType ? "border-red-500" : ""}
-                  />
-                  {errors.schoolType && (
-                    <p className="text-sm text-red-500">{errors.schoolType}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    type="url"
-                    value={formData.website}
-                    onChange={handleInputChange}
-                    placeholder="https://www.school.edu"
-                    className={errors.website ? "border-red-500" : ""}
-                  />
-                  {errors.website && (
-                    <p className="text-sm text-red-500">{errors.website}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="address">Address *</Label>
+                <div className="space-y-2.5">
+                    <Label htmlFor="schoolLocation">School Location *</Label>
                   <div className="relative address-search-container">
                     <div className="flex gap-2">
                       <Input
-                        id="address"
-                        name="address"
-                        value={formData.address}
+                          id="schoolLocation"
+                          name="schoolLocation"
+                          value={formData.schoolLocation}
                         onChange={(e) => {
                           handleInputChange(e);
                           debouncedSearch(e.target.value);
                         }}
                         placeholder="Search for school location..."
                         required
-                        className={errors.address ? "border-red-500" : ""}
+                          className={errors.schoolLocation ? "border-red-500" : ""}
                       />
                       {isSearchingLocation && (
-                        <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                           <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
                       )}
@@ -672,222 +668,199 @@ const SchoolRegistration = () => {
                       </div>
                     )}
                   </div>
-                  {errors.address && (
-                    <p className="text-sm text-red-500">{errors.address}</p>
+                    {errors.schoolLocation && (
+                      <p className="text-sm text-red-500">{errors.schoolLocation}</p>
                   )}
+                    <p className="text-xs text-slate-500">
+                      <MapPin className="h-3 w-3 inline mr-1" />
+                      Start typing to search for your school location. Coordinates will be automatically set.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={formData.city}
+                  <div className="space-y-2.5">
+                  <Label htmlFor="schoolDescription">School Description</Label>
+                  <Textarea
+                    id="schoolDescription"
+                    name="schoolDescription"
+                    value={formData.schoolDescription}
                       onChange={handleInputChange}
-                      placeholder="City"
-                      required
-                      className={errors.city ? "border-red-500" : ""}
+                    placeholder="Brief description of your school"
+                    rows={3}
                     />
-                    {errors.city && (
-                      <p className="text-sm text-red-500">{errors.city}</p>
-                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="state">State/Province *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2.5">
+                    <Label htmlFor="schoolContactNumber">School Contact Number *</Label>
                     <Input
-                      id="state"
-                      name="state"
-                      value={formData.state}
+                      id="schoolContactNumber"
+                      name="schoolContactNumber"
+                      type="tel"
+                      value={formData.schoolContactNumber}
                       onChange={handleInputChange}
-                      placeholder="State"
+                      placeholder="e.g., 0725797597 or +254725797597"
                       required
-                      className={errors.state ? "border-red-500" : ""}
+                      className={errors.schoolContactNumber ? "border-red-500" : ""}
                     />
-                    {errors.state && (
-                      <p className="text-sm text-red-500">{errors.state}</p>
+                    {errors.schoolContactNumber && (
+                      <p className="text-sm text-red-500">{errors.schoolContactNumber}</p>
                     )}
+                   
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="zipCode">ZIP/Postal Code</Label>
+                  <div className="space-y-2.5">
+                    <Label htmlFor="schoolEmail">School Email *</Label>
                     <Input
-                      id="zipCode"
-                      name="zipCode"
-                      value={formData.zipCode}
+                      id="schoolEmail"
+                      name="schoolEmail"
+                      type="email"
+                      value={formData.schoolEmail}
                       onChange={handleInputChange}
-                      placeholder="ZIP code"
+                      placeholder="school@example.com"
+                      required
+                      className={errors.schoolEmail ? "border-red-500" : ""}
                     />
-                  </div>
+                    {errors.schoolEmail && (
+                      <p className="text-sm text-red-500">{errors.schoolEmail}</p>
+                    )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">School Phone *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2.5">
+                    <Label htmlFor="operatingHoursStart">Operating Hours Start</Label>
                   <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
+                      id="operatingHoursStart"
+                      name="operatingHoursStart"
+                      type="time"
+                      value={formData.operatingHoursStart}
                     onChange={handleInputChange}
-                    placeholder="e.g., 0723456789"
-                    required
-                    className={errors.phone ? "border-red-500" : ""}
                   />
-                  {errors.phone && (
-                    <p className="text-sm text-red-500">{errors.phone}</p>
-                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">School Email *</Label>
+                <div className="space-y-2.5">
+                    <Label htmlFor="operatingHoursEnd">Operating Hours End</Label>
                   <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
+                      id="operatingHoursEnd"
+                      name="operatingHoursEnd"
+                      type="time"
+                      value={formData.operatingHoursEnd}
                     onChange={handleInputChange}
-                    placeholder="Email address"
-                    required
-                    className={errors.email ? "border-red-500" : ""}
                   />
-                  {errors.email && (
-                    <p className="text-sm text-red-500">{errors.email}</p>
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2.5">
+                    <Label htmlFor="longitude">Longitude (Auto-populated)</Label>
                 <Input
-                  id="website"
-                  name="website"
-                  type="url"
-                  value={formData.website}
-                  onChange={handleInputChange}
-                  placeholder="https://www.school.edu"
-                  className={errors.website ? "border-red-500" : ""}
-                />
-                {errors.website && (
-                  <p className="text-sm text-red-500">{errors.website}</p>
-                )}
+                      id="longitude"
+                      name="longitude"
+                      type="text"
+                      value={formData.longitude}
+                      readOnly
+                      placeholder="Auto-filled from location"
+                      className="bg-slate-50"
+                  />
+                  <p className="text-xs text-slate-500">Automatically set when you search for a location</p>
+                </div>
+
+                <div className="space-y-2.5">
+                    <Label htmlFor="latitude">Latitude (Auto-populated)</Label>
+                  <Input
+                      id="latitude"
+                      name="latitude"
+                      type="text"
+                      value={formData.latitude}
+                      readOnly
+                      placeholder="Auto-filled from location"
+                      className="bg-slate-50"
+                  />
+                  <p className="text-xs text-slate-500">Automatically set when you search for a location</p>
               </div>
             </div>
-
-            {selectedPlan && (
-              <div className="space-y-3">
-                <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                  <Package className="h-4 w-4 mr-2 text-[#f7c624]" />
-                  Selected Subscription Plan
-                </h3>
-                <Card className="border-[#f7c624]/30 bg-[#f7c624]/10">
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-[#f7c624]/80 text-sm">
-                        {selectedPlan.name
-                          .replace(/_/g, " ")
-                          .replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                      </h4>
-                      <Badge className="bg-[#f7c624] text-white text-xs">
-                        {formatPrice(selectedPlan.base_price)}/month
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-[#f7c624]/70 mb-2">
-                      {selectedPlan.description}
-                    </p>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center">
-                        <div className="font-semibold text-[#f7c624]">
-                          {selectedPlan.features_json.max_students}
-                        </div>
-                        <div className="text-[#f7c624] text-xs">Students</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-[#f7c624]">
-                          {selectedPlan.features_json.max_buses}
-                        </div>
-                        <div className="text-[#f7c624] text-xs">Buses</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-[#f7c624]">
-                          {selectedPlan.default_billing_cycle}
-                        </div>
-                        <div className="text-[#f7c624] text-xs">Billing</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             )}
 
-                         <div className="space-y-3">
-               <h3 className="text-base font-semibold text-slate-900 flex items-center">
-                 <User className="h-4 w-4 mr-2 text-[#f7c624]" />
-                 Admin Information
-               </h3>
+            {/* Step 2: Admin Information */}
+            {currentStep === 2 && (
+                <div className="space-y-5">
+                  <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                    <User className="h-5 w-5 mr-2 text-[#f7c624]" />
+                    Admin Information
+                  </h3>
 
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                   <Label htmlFor="principalName">Admin Name *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                 <div className="space-y-2.5">
+                    <Label htmlFor="adminFirstName">Admin First Name *</Label>
                    <Input
-                     id="principalName"
-                     name="principalName"
-                     value={formData.principalName}
+                      id="adminFirstName"
+                      name="adminFirstName"
+                      value={formData.adminFirstName}
                      onChange={handleInputChange}
-                     placeholder="Admin's full name"
+                      placeholder="John"
                      required
-                     className={errors.principalName ? "border-red-500" : ""}
-                   />
-                   {errors.principalName && (
-                     <p className="text-sm text-red-500">
-                       {errors.principalName}
-                     </p>
+                      className={errors.adminFirstName ? "border-red-500" : ""}
+                    />
+                    {errors.adminFirstName && (
+                      <p className="text-sm text-red-500">{errors.adminFirstName}</p>
                    )}
                  </div>
 
-                 <div className="space-y-2">
-                   <Label htmlFor="principalPhone">Admin Phone *</Label>
+                 <div className="space-y-2.5">
+                    <Label htmlFor="adminLastName">Admin Last Name *</Label>
                    <Input
-                     id="principalPhone"
-                     name="principalPhone"
-                     type="tel"
-                     value={formData.principalPhone}
+                      id="adminLastName"
+                      name="adminLastName"
+                      value={formData.adminLastName}
                      onChange={handleInputChange}
-                     placeholder="e.g., 0723456789"
+                      placeholder="Doe"
                      required
-                     className={errors.principalPhone ? "border-red-500" : ""}
-                   />
-                   {errors.principalPhone && (
-                     <p className="text-sm text-red-500">
-                       {errors.principalPhone}
-                     </p>
+                      className={errors.adminLastName ? "border-red-500" : ""}
+                    />
+                    {errors.adminLastName && (
+                      <p className="text-sm text-red-500">{errors.adminLastName}</p>
                    )}
                  </div>
                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="principalEmail">Admin Email *</Label>
+                <div className="space-y-2.5">
+                  <Label htmlFor="adminEmail">Admin Email *</Label>
                   <Input
-                    id="principalEmail"
-                    name="principalEmail"
+                    id="adminEmail"
+                    name="adminEmail"
                     type="email"
-                    value={formData.principalEmail}
+                    value={formData.adminEmail}
                     onChange={handleInputChange}
-                    placeholder="admin@schoolname.com"
+                    placeholder="john.doe@samplehighschool.edu"
                     required
-                    className={errors.principalEmail ? "border-red-500" : ""}
+                    className={errors.adminEmail ? "border-red-500" : ""}
                   />
-                  {errors.principalEmail && (
-                    <p className="text-sm text-red-500">
-                      {errors.principalEmail}
-                    </p>
+                  {errors.adminEmail && (
+                    <p className="text-sm text-red-500">{errors.adminEmail}</p>
                   )}
                 </div>
 
-                                 <div className="space-y-2">
+                <div className="space-y-2.5">
+                  <Label htmlFor="adminPhoneNumber">Admin Phone Number *</Label>
+                  <Input
+                    id="adminPhoneNumber"
+                    name="adminPhoneNumber"
+                    type="tel"
+                    value={formData.adminPhoneNumber}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 0725797597 or +254725797597"
+                    required
+                    className={errors.adminPhoneNumber ? "border-red-500" : ""}
+                  />
+                  {errors.adminPhoneNumber && (
+                    <p className="text-sm text-red-500">{errors.adminPhoneNumber}</p>
+                  )}
+                
+                </div>
+
+                                 <div className="space-y-2.5">
                    <Label htmlFor="adminPassword">Admin Password *</Label>
                    <div className="relative">
                      <Input
@@ -915,134 +888,97 @@ const SchoolRegistration = () => {
                      </Button>
                    </div>
                    {errors.adminPassword && (
-                     <p className="text-sm text-red-500">
-                       {errors.adminPassword}
-                     </p>
+                    <p className="text-sm text-red-500">{errors.adminPassword}</p>
                    )}
                  </div>
+
               </div>
-            </div>
+            )}
 
-                         <div className="space-y-3">
-               <h3 className="text-base font-semibold text-slate-900">
-                 Additional Information
-               </h3>
+            {/* Step 3: Review & Submit */}
+            {currentStep === 3 && (
+              <div className="space-y-5">
+                    <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                      <Package className="h-5 w-5 mr-2 text-[#f7c624]" />
+                  Review Your Information
+                    </h3>
 
-               <div className="space-y-3">
-                 <div className="space-y-2">
-                   <Label htmlFor="description">School Description</Label>
-                   <Textarea
-                     id="description"
-                     name="description"
-                     value={formData.description}
-                     onChange={handleInputChange}
-                     placeholder="Tell us about your school, number of students, transportation needs, etc."
-                     rows={3}
-                   />
-                 </div>
+                <div className="space-y-4">
+                  <Card className="border-slate-200">
+                    <CardHeader>
+                      <CardTitle className="text-md">School Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="font-semibold">School Name:</span>
+                          <p className="text-slate-600">{formData.schoolName || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold">Location:</span>
+                          <p className="text-slate-600">{formData.schoolLocation || "N/A"}</p>
+                            </div>
+                        <div>
+                          <span className="font-semibold">Contact Number:</span>
+                          <p className="text-slate-600">{formData.schoolContactNumber || "N/A"}</p>
+                          </div>
+                        <div>
+                          <span className="font-semibold">Email:</span>
+                          <p className="text-slate-600">{formData.schoolEmail || "N/A"}</p>
+                            </div>
+                        <div>
+                          <span className="font-semibold">Operating Hours:</span>
+                          <p className="text-slate-600">
+                            {formData.operatingHoursStart} - {formData.operatingHoursEnd}
+                          </p>
+                          </div>
+                            </div>
+                      {formData.schoolDescription && (
+                        <div>
+                          <span className="font-semibold">Description:</span>
+                          <p className="text-slate-600">{formData.schoolDescription}</p>
+                          </div>
+                      )}
+                      </CardContent>
+                    </Card>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                   <div className="space-y-2">
-                     <Label htmlFor="operatingHoursStart">
-                       Operating Hours Start
-                     </Label>
-                     <Input
-                       id="operatingHoursStart"
-                       name="operatingHoursStart"
-                       type="time"
-                       value={formData.operatingHoursStart}
-                       onChange={handleInputChange}
-                     />
+                  <Card className="border-slate-200">
+                    <CardHeader>
+                      <CardTitle className="text-md">Admin Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="font-semibold">Name:</span>
+                          <p className="text-slate-600">
+                            {formData.adminFirstName} {formData.adminLastName}
+                          </p>
                    </div>
-
-                   <div className="space-y-2">
-                     <Label htmlFor="operatingHoursEnd">Operating Hours End</Label>
-                     <Input
-                       id="operatingHoursEnd"
-                       name="operatingHoursEnd"
-                       type="time"
-                       value={formData.operatingHoursEnd}
-                       onChange={handleInputChange}
-                     />
+                        <div>
+                          <span className="font-semibold">Email:</span>
+                          <p className="text-slate-600">{formData.adminEmail || "N/A"}</p>
                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                   <div className="space-y-2">
-                     <Label htmlFor="estimatedStudents">
-                       Estimated Number of Students *
-                     </Label>
-                     <Input
-                       id="estimatedStudents"
-                       name="estimatedStudents"
-                       type="number"
-                       value={formData.estimatedStudents}
-                       onChange={handleInputChange}
-                       placeholder="e.g., 400"
-                       required
-                       className={errors.estimatedStudents ? "border-red-500" : ""}
-                     />
-                     {errors.estimatedStudents && (
-                       <p className="text-sm text-red-500">
-                         {errors.estimatedStudents}
-                       </p>
-                     )}
-                   </div>
-
-                   <div className="space-y-2">
-                     <Label htmlFor="estimatedBuses">
-                       Estimated Number of Buses *
-                     </Label>
-                     <Input
-                       id="estimatedBuses"
-                       name="estimatedBuses"
-                       type="number"
-                       value={formData.estimatedBuses}
-                       onChange={handleInputChange}
-                       placeholder="e.g., 4"
-                       required
-                       className={errors.estimatedBuses ? "border-red-500" : ""}
-                     />
-                     {errors.estimatedBuses && (
-                       <p className="text-sm text-red-500">
-                         {errors.estimatedBuses}
-                       </p>
-                     )}
-                   </div>
-
-                   <div className="space-y-2">
-                     <Label htmlFor="estimatedParents">
-                       Estimated Number of Parents *
-                     </Label>
-                     <Input
-                       id="estimatedParents"
-                       name="estimatedParents"
-                       type="number"
-                       value={formData.estimatedParents}
-                       onChange={handleInputChange}
-                       placeholder="e.g., 800"
-                       required
-                       className={errors.estimatedParents ? "border-red-500" : ""}
-                     />
-                     {errors.estimatedParents && (
-                       <p className="text-sm text-red-500">
-                         {errors.estimatedParents}
-                       </p>
-                     )}
+                        <div>
+                          <span className="font-semibold">Phone:</span>
+                          <p className="text-slate-600">{formData.adminPhoneNumber || "N/A"}</p>
                    </div>
                  </div>
-               </div>
-             </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-            <Alert>
-              <AlertDescription>
-                By submitting this form, you agree to our terms of service and
-                privacy policy. We will review your application and contact you
-                within 24-48 hours.
-              </AlertDescription>
-            </Alert>
+                <Alert>
+                  <AlertDescription>
+                    By submitting this form, you agree to our terms of service and
+                    privacy policy. We will review your application and contact you
+                    within 24-48 hours.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* Navigation Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t mt-8">
               <Button
                 type="button"
                 variant="outline"
@@ -1051,20 +987,47 @@ const SchoolRegistration = () => {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-[#f7c624] hover:bg-[#f7c624]/80"
-                disabled={registrationLoading}
-              >
-                {registrationLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Registration"
-                )}
-              </Button>
+              
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handlePrevious}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+              )}
+
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  className="flex-1 bg-[#f7c624] hover:bg-[#f7c624]/80"
+                  onClick={handleNext}
+                >
+                  Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="flex-1 bg-[#f7c624] hover:bg-[#f7c624]/80"
+                  disabled={registrationLoading}
+                >
+                  {registrationLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="mr-2 h-4 w-4" />
+                      Submit Registration
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Eye, EyeOff } from "lucide-react";
-import { showToast } from "../utils/toast";
+import { useToast } from "./ui/use-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../redux/store";
 import { fetchRoles } from "../redux/slices/roleSlice";
@@ -47,6 +47,7 @@ interface FormErrors {
 
 export function StaffModal({ isOpen, onClose, onSubmit }: StaffModalProps) {
   const dispatch = useDispatch<AppDispatch>();
+  const { toast } = useToast();
   const { roles, loading: rolesLoading } = useSelector(
     (state: RootState) => state.roles
   );
@@ -124,15 +125,50 @@ export function StaffModal({ isOpen, onClose, onSubmit }: StaffModalProps) {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit({
+    
+    if (!validateForm()) {
+      // Validation failed, show first error
+      const firstError = Object.values(errors).find(error => error);
+      if (firstError) {
+        if (typeof firstError === 'string') {
+          toast({
+            title: "Validation Error",
+            description: firstError,
+            variant: "destructive",
+          });
+        } else if (firstError && typeof firstError === 'object') {
+          const firstNestedError = Object.values(firstError).find(error => error);
+          if (firstNestedError) {
+            toast({
+              title: "Validation Error",
+              description: firstNestedError,
+              variant: "destructive",
+            });
+          }
+        }
+      }
+      return;
+    }
+
+    try {
+      await onSubmit({
         ...formData,
         role: parseInt(formData.role),
         school: 0, // This will be set by the parent component
       });
+      
+      toast({
+        title: "Success",
+        description: "Staff member created successfully",
+      });
+      
       onClose();
+    } catch (error) {
+      // Error is handled by the parent component or Redux action
+      // Modal stays open to allow user to fix the issue
+      console.error("Staff submission error:", error);
     }
   };
 

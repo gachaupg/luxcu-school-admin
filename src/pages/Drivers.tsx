@@ -38,8 +38,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
-  Eye,
-  EyeOff,
   Search,
   Filter,
   ChevronLeft,
@@ -54,6 +52,7 @@ import {
   User,
   Download,
   Check,
+  RefreshCw,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -103,20 +102,14 @@ const Drivers = () => {
     lastName: "",
     email: "",
     phoneNumber: "",
-    password: "",
-    confirmPassword: "",
     licenseNumber: "",
     licenseClass: "",
     licenseExpiry: "",
     lastHealthCheck: "",
     lastBackgroundCheck: "",
-    latitude: "-1.286389",
-    longitude: "36.817223",
   });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const firstNameInputRef = useRef<HTMLInputElement>(null);
 
   // Function to reset form to initial state
@@ -126,18 +119,12 @@ const Drivers = () => {
       lastName: "",
       email: "",
       phoneNumber: "",
-      password: "",
-      confirmPassword: "",
       licenseNumber: "",
       licenseClass: "",
       licenseExpiry: "",
       lastHealthCheck: "",
       lastBackgroundCheck: "",
-      latitude: "-1.286389",
-      longitude: "36.817223",
     });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
   };
 
   // Handle modal open/close
@@ -356,7 +343,7 @@ const Drivers = () => {
   // Filter drivers for the school
   // Temporarily show all drivers to debug the issue
   const filteredDrivers =
-    drivers?.filter((driver) => driver.school === schoolId) || [];
+    drivers?.filter((driver) => driver && driver.school === schoolId) || [];
 
   // Filter and search logic
   const filteredAndSearchedDrivers = filteredDrivers.filter((driver) => {
@@ -375,7 +362,7 @@ const Drivers = () => {
       (driver.user_details.email || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      (driver.user_details.phone_number || "")
+      (driver.phone_number || driver.user_details.phone_number || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       (driver.license_number || "")
@@ -412,37 +399,6 @@ const Drivers = () => {
     }, 0);
   };
 
-  const updateLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData((prev) => ({
-            ...prev,
-            latitude: position.coords.latitude.toString(),
-            longitude: position.coords.longitude.toString(),
-          }));
-          toast({
-            title: "Success",
-            description: "Current location updated",
-          });
-        },
-        (error) => {
-          toast({
-            title: "Error",
-            description: "Failed to get current location: " + error.message,
-            variant: "destructive",
-          });
-        }
-      );
-    } else {
-      toast({
-        title: "Error",
-        description: "Geolocation is not supported by your browser",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -452,8 +408,6 @@ const Drivers = () => {
       { field: "lastName", label: "Last Name" },
       { field: "email", label: "Email" },
       { field: "phoneNumber", label: "Phone Number" },
-      { field: "password", label: "Password" },
-      { field: "confirmPassword", label: "Confirm Password" },
       { field: "licenseNumber", label: "License Number" },
       { field: "licenseClass", label: "License Class" },
       { field: "licenseExpiry", label: "License Expiry" },
@@ -475,26 +429,6 @@ const Drivers = () => {
       }
     }
 
-    // Validate password match
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate password length
-    if (formData.password.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
@@ -512,8 +446,6 @@ const Drivers = () => {
         last_name: formData.lastName,
         email: formData.email,
         phone_number: formData.phoneNumber,
-        password: formData.password,
-        confirm_password: formData.confirmPassword,
         user_type: "driver",
         profile_image: null,
       },
@@ -523,8 +455,8 @@ const Drivers = () => {
       school: schoolId || 1,
       is_available: true,
       current_location: {
-        latitude: Number(formData.latitude),
-        longitude: Number(formData.longitude),
+        latitude: -1.286389,
+        longitude: 36.817223,
       },
       safety_rating: 4.8,
       on_time_rating: 4.9,
@@ -595,31 +527,64 @@ const Drivers = () => {
       lastName: "",
       email: "",
       phoneNumber: "",
-      password: "",
-      confirmPassword: "",
       licenseNumber: "",
       licenseClass: "",
       licenseExpiry: "",
       lastHealthCheck: "",
       lastBackgroundCheck: "",
-      latitude: "-1.286389",
-      longitude: "36.817223",
     });
 
-    const [localShowPassword, setLocalShowPassword] = useState(false);
-    const [localShowConfirmPassword, setLocalShowConfirmPassword] =
-      useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
+      
+      // Auto-format phone number
+      if (name === "phoneNumber") {
+        let formattedPhone = value.trim();
+        
+        // Remove any spaces or dashes
+        formattedPhone = formattedPhone.replace(/[\s-]/g, "");
+        
+        // If starts with 0, replace with +254
+        if (formattedPhone.startsWith("0")) {
+          formattedPhone = "+254" + formattedPhone.substring(1);
+        }
+        // If starts with 254 but no +, add +
+        else if (formattedPhone.startsWith("254") && !formattedPhone.startsWith("+")) {
+          formattedPhone = "+" + formattedPhone;
+        }
+        // If doesn't start with + and is 9 digits, assume it's missing country code
+        else if (!formattedPhone.startsWith("+") && formattedPhone.length === 9) {
+          formattedPhone = "+254" + formattedPhone;
+        }
+        
+        setLocalFormData((prev) => ({
+          ...prev,
+          [name]: formattedPhone,
+        }));
+      } else {
+        setLocalFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
+    };
+
+    const fillTodayDate = (fieldName: string) => {
+      const today = new Date().toISOString().split("T")[0];
       setLocalFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [fieldName]: today,
       }));
     };
 
     const handleLocalSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      
+      if (isSubmitting) return;
+      
+      setIsSubmitting(true);
 
       // Validate required fields
       const requiredFields = [
@@ -627,8 +592,6 @@ const Drivers = () => {
         { field: "lastName", label: "Last Name" },
         { field: "email", label: "Email" },
         { field: "phoneNumber", label: "Phone Number" },
-        { field: "password", label: "Password" },
-        { field: "confirmPassword", label: "Confirm Password" },
         { field: "licenseNumber", label: "License Number" },
         { field: "licenseClass", label: "License Class" },
         { field: "licenseExpiry", label: "License Expiry" },
@@ -643,28 +606,9 @@ const Drivers = () => {
             description: `${label} is required`,
             variant: "destructive",
           });
+          setIsSubmitting(false);
           return;
         }
-      }
-
-      // Validate password match
-      if (localFormData.password !== localFormData.confirmPassword) {
-        toast({
-          title: "Error",
-          description: "Passwords do not match",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate password length
-      if (localFormData.password.length < 8) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 8 characters long",
-          variant: "destructive",
-        });
-        return;
       }
 
       // Validate email format
@@ -675,6 +619,7 @@ const Drivers = () => {
           description: "Please enter a valid email address",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -684,8 +629,6 @@ const Drivers = () => {
           last_name: localFormData.lastName,
           email: localFormData.email,
           phone_number: localFormData.phoneNumber,
-          password: localFormData.password,
-          confirm_password: localFormData.confirmPassword,
           user_type: "driver",
           profile_image: null,
         },
@@ -695,8 +638,8 @@ const Drivers = () => {
         school: schoolId || 1,
         is_available: true,
         current_location: {
-          latitude: Number(localFormData.latitude),
-          longitude: Number(localFormData.longitude),
+          latitude: -1.286389,
+          longitude: 36.817223,
         },
         safety_rating: 4.8,
         on_time_rating: 4.9,
@@ -706,7 +649,6 @@ const Drivers = () => {
 
       try {
         await dispatch(addDriver(submitData)).unwrap();
-        window.location.reload();
         toast({
           title: "Success",
           description: "Driver added successfully",
@@ -718,23 +660,19 @@ const Drivers = () => {
           lastName: "",
           email: "",
           phoneNumber: "",
-          password: "",
-          confirmPassword: "",
           licenseNumber: "",
           licenseClass: "",
           licenseExpiry: "",
           lastHealthCheck: "",
           lastBackgroundCheck: "",
-          latitude: "-1.286389",
-          longitude: "36.817223",
         });
-        setLocalShowPassword(false);
-        setLocalShowConfirmPassword(false);
+        setIsSubmitting(false);
         // Close modal
         setIsDialogOpen(false);
         // Refresh the drivers list
         dispatch(fetchDrivers());
       } catch (err) {
+        setIsSubmitting(false);
         let errorMessage = "Failed to add driver";
 
         if (err instanceof Error) {
@@ -767,37 +705,6 @@ const Drivers = () => {
         toast({
           title: "Error",
           description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    };
-
-    const updateLocalLocation = () => {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setLocalFormData((prev) => ({
-              ...prev,
-              latitude: position.coords.latitude.toString(),
-              longitude: position.coords.longitude.toString(),
-            }));
-            toast({
-              title: "Success",
-              description: "Current location updated",
-            });
-          },
-          (error) => {
-            toast({
-              title: "Error",
-              description: "Failed to get current location: " + error.message,
-              variant: "destructive",
-            });
-          }
-        );
-      } else {
-        toast({
-          title: "Error",
-          description: "Geolocation is not supported by your browser",
           variant: "destructive",
         });
       }
@@ -873,69 +780,6 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                name="password"
-                value={localFormData.password}
-                onChange={handleLocalInputChange}
-                type={localShowPassword ? "text" : "password"}
-                placeholder="Enter password"
-                required
-                minLength={8}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setLocalShowPassword(!localShowPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {localShowPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                value={localFormData.confirmPassword}
-                onChange={handleLocalInputChange}
-                type={localShowConfirmPassword ? "text" : "password"}
-                placeholder="Confirm password"
-                required
-                minLength={8}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setLocalShowConfirmPassword(!localShowConfirmPassword)
-                }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {localShowConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
             <label htmlFor="licenseNumber" className="text-sm font-medium">
               License Number
             </label>
@@ -972,29 +816,51 @@ const Drivers = () => {
             <label htmlFor="licenseExpiry" className="text-sm font-medium">
               License Expiry
             </label>
-            <input
-              id="licenseExpiry"
-              name="licenseExpiry"
-              value={localFormData.licenseExpiry}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="licenseExpiry"
+                name="licenseExpiry"
+                value={localFormData.licenseExpiry}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("licenseExpiry")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             <label htmlFor="lastHealthCheck" className="text-sm font-medium">
               Last Health Check
             </label>
-            <input
-              id="lastHealthCheck"
-              name="lastHealthCheck"
-              value={localFormData.lastHealthCheck}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="lastHealthCheck"
+                name="lastHealthCheck"
+                value={localFormData.lastHealthCheck}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("lastHealthCheck")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1006,61 +872,27 @@ const Drivers = () => {
             >
               Last Background Check
             </label>
-            <input
-              id="lastBackgroundCheck"
-              name="lastBackgroundCheck"
-              value={localFormData.lastBackgroundCheck}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="lastBackgroundCheck"
+                name="lastBackgroundCheck"
+                value={localFormData.lastBackgroundCheck}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("lastBackgroundCheck")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="latitude" className="text-sm font-medium">
-              Latitude
-            </label>
-            <input
-              id="latitude"
-              name="latitude"
-              value={localFormData.latitude}
-              onChange={handleLocalInputChange}
-              type="number"
-              step="any"
-              placeholder="Enter latitude"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="longitude" className="text-sm font-medium">
-              Longitude
-            </label>
-            <input
-              id="longitude"
-              name="longitude"
-              value={localFormData.longitude}
-              onChange={handleLocalInputChange}
-              type="number"
-              step="any"
-              placeholder="Enter longitude"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={updateLocalLocation}
-            className="bg-blue-600 hover:bg-blue-700 mb-4"
-          >
-            Get Current Location
-          </Button>
         </div>
 
         <div className="flex gap-3">
@@ -1069,14 +901,23 @@ const Drivers = () => {
             variant="outline"
             onClick={() => setIsDialogOpen(false)}
             className="flex-1"
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 flex-1"
+            className="bg-[#f7c624] hover:bg-[#f7c624]/90 flex-1"
+            disabled={isSubmitting}
           >
-            Add Driver
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Adding Driver...
+              </>
+            ) : (
+              "Add Driver"
+            )}
           </Button>
         </div>
       </form>
@@ -1089,9 +930,7 @@ const Drivers = () => {
       firstName: selectedDriver?.user_details?.first_name || "",
       lastName: selectedDriver?.user_details?.last_name || "",
       email: selectedDriver?.user_details?.email || "",
-      phoneNumber: selectedDriver?.user_details?.phone_number || "",
-      password: "",
-      confirmPassword: "",
+      phoneNumber: selectedDriver?.phone_number || "",
       licenseNumber: selectedDriver?.license_number || "",
       licenseClass: selectedDriver?.license_class || "",
       licenseExpiry: selectedDriver?.license_expiry || "",
@@ -1101,9 +940,7 @@ const Drivers = () => {
       longitude: "36.817223",
     });
 
-    const [localShowPassword, setLocalShowPassword] = useState(false);
-    const [localShowConfirmPassword, setLocalShowConfirmPassword] =
-      useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Initialize form data when selectedDriver changes
     useEffect(() => {
@@ -1113,15 +950,25 @@ const Drivers = () => {
 
         if (selectedDriver.current_location) {
           if (typeof selectedDriver.current_location === "object") {
-            latitude = selectedDriver.current_location.latitude;
-            longitude = selectedDriver.current_location.longitude;
+            const location = selectedDriver.current_location as any;
+            
+            // Handle GeoJSON format with coordinates array
+            if (location.coordinates && Array.isArray(location.coordinates)) {
+              longitude = location.coordinates[0] ?? 36.817223;
+              latitude = location.coordinates[1] ?? -1.286389;
+            } 
+            // Handle direct lat/lng properties
+            else if (location.latitude !== undefined && location.longitude !== undefined) {
+              latitude = location.latitude;
+              longitude = location.longitude;
+            }
           } else if (typeof selectedDriver.current_location === "string") {
             const match = selectedDriver.current_location.match(
               /POINT \(([^ ]+) ([^)]+)\)/
             );
             if (match) {
-              longitude = parseFloat(match[1]);
-              latitude = parseFloat(match[2]);
+              longitude = parseFloat(match[1]) || 36.817223;
+              latitude = parseFloat(match[2]) || -1.286389;
             }
           }
         }
@@ -1130,30 +977,67 @@ const Drivers = () => {
           firstName: selectedDriver.user_details?.first_name || "",
           lastName: selectedDriver.user_details?.last_name || "",
           email: selectedDriver.user_details?.email || "",
-          phoneNumber: selectedDriver.user_details?.phone_number || "",
-          password: "",
-          confirmPassword: "",
+          phoneNumber: selectedDriver.phone_number || "",
           licenseNumber: selectedDriver.license_number || "",
           licenseClass: selectedDriver.license_class || "",
           licenseExpiry: selectedDriver.license_expiry || "",
           lastHealthCheck: selectedDriver.last_health_check || "",
           lastBackgroundCheck: selectedDriver.last_background_check || "",
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
+          latitude: (latitude ?? -1.286389).toString(),
+          longitude: (longitude ?? 36.817223).toString(),
         });
       }
     }, [selectedDriver]);
 
     const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
+      
+      // Auto-format phone number
+      if (name === "phoneNumber") {
+        let formattedPhone = value.trim();
+        
+        // Remove any spaces or dashes
+        formattedPhone = formattedPhone.replace(/[\s-]/g, "");
+        
+        // If starts with 0, replace with +254
+        if (formattedPhone.startsWith("0")) {
+          formattedPhone = "+254" + formattedPhone.substring(1);
+        }
+        // If starts with 254 but no +, add +
+        else if (formattedPhone.startsWith("254") && !formattedPhone.startsWith("+")) {
+          formattedPhone = "+" + formattedPhone;
+        }
+        // If doesn't start with + and is 9 digits, assume it's missing country code
+        else if (!formattedPhone.startsWith("+") && formattedPhone.length === 9) {
+          formattedPhone = "+254" + formattedPhone;
+        }
+        
+        setLocalFormData((prev) => ({
+          ...prev,
+          [name]: formattedPhone,
+        }));
+      } else {
+        setLocalFormData((prev) => ({
+          ...prev,
+          [name]: value,
+        }));
+      }
+    };
+
+    const fillTodayDate = (fieldName: string) => {
+      const today = new Date().toISOString().split("T")[0];
       setLocalFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [fieldName]: today,
       }));
     };
 
     const handleLocalSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
+      
+      if (isSubmitting) return;
+      
+      setIsSubmitting(true);
 
       if (!selectedDriver) {
         toast({
@@ -1161,10 +1045,11 @@ const Drivers = () => {
           description: "No driver selected for editing",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
-      // Validate required fields (password is optional for editing)
+      // Validate required fields
       const requiredFields = [
         { field: "firstName", label: "First Name" },
         { field: "lastName", label: "Last Name" },
@@ -1184,31 +1069,9 @@ const Drivers = () => {
             description: `${label} is required`,
             variant: "destructive",
           });
+          setIsSubmitting(false);
           return;
         }
-      }
-
-      // Validate password match if password is provided
-      if (
-        localFormData.password &&
-        localFormData.password !== localFormData.confirmPassword
-      ) {
-        toast({
-          title: "Error",
-          description: "Passwords do not match",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Validate password length if password is provided
-      if (localFormData.password && localFormData.password.length < 8) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 8 characters long",
-          variant: "destructive",
-        });
-        return;
       }
 
       // Validate email format
@@ -1219,6 +1082,7 @@ const Drivers = () => {
           description: "Please enter a valid email address",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
@@ -1228,7 +1092,6 @@ const Drivers = () => {
           last_name: localFormData.lastName,
           email: localFormData.email,
           phone_number: localFormData.phoneNumber,
-          ...(localFormData.password && { password: localFormData.password }),
           user_type: "driver",
           profile_image: null,
         },
@@ -1257,11 +1120,13 @@ const Drivers = () => {
           description: "Driver updated successfully",
         });
 
+        setIsSubmitting(false);
         // Close modal and refresh
         setIsEditModalOpen(false);
         setSelectedDriver(null);
         dispatch(fetchDrivers());
       } catch (err) {
+        setIsSubmitting(false);
         let errorMessage = "Failed to update driver";
 
         if (err instanceof Error) {
@@ -1400,70 +1265,6 @@ const Drivers = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label htmlFor="editPassword" className="text-sm font-medium">
-              Password (leave blank to keep current)
-            </label>
-            <div className="relative">
-              <input
-                id="editPassword"
-                name="password"
-                value={localFormData.password}
-                onChange={handleLocalInputChange}
-                type={localShowPassword ? "text" : "password"}
-                placeholder="Enter new password (optional)"
-                minLength={8}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setLocalShowPassword(!localShowPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {localShowPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="editConfirmPassword"
-              className="text-sm font-medium"
-            >
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                id="editConfirmPassword"
-                name="confirmPassword"
-                value={localFormData.confirmPassword}
-                onChange={handleLocalInputChange}
-                type={localShowConfirmPassword ? "text" : "password"}
-                placeholder="Confirm new password"
-                minLength={8}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pr-10"
-              />
-              <button
-                type="button"
-                onClick={() =>
-                  setLocalShowConfirmPassword(!localShowConfirmPassword)
-                }
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {localShowConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
             <label htmlFor="editLicenseNumber" className="text-sm font-medium">
               License Number
             </label>
@@ -1500,15 +1301,26 @@ const Drivers = () => {
             <label htmlFor="editLicenseExpiry" className="text-sm font-medium">
               License Expiry
             </label>
-            <input
-              id="editLicenseExpiry"
-              name="licenseExpiry"
-              value={localFormData.licenseExpiry}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="editLicenseExpiry"
+                name="licenseExpiry"
+                value={localFormData.licenseExpiry}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("licenseExpiry")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             <label
@@ -1517,15 +1329,26 @@ const Drivers = () => {
             >
               Last Health Check
             </label>
-            <input
-              id="editLastHealthCheck"
-              name="lastHealthCheck"
-              value={localFormData.lastHealthCheck}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="editLastHealthCheck"
+                name="lastHealthCheck"
+                value={localFormData.lastHealthCheck}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("lastHealthCheck")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1537,15 +1360,26 @@ const Drivers = () => {
             >
               Last Background Check
             </label>
-            <input
-              id="editLastBackgroundCheck"
-              name="lastBackgroundCheck"
-              value={localFormData.lastBackgroundCheck}
-              onChange={handleLocalInputChange}
-              type="date"
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
+            <div className="flex gap-2">
+              <input
+                id="editLastBackgroundCheck"
+                name="lastBackgroundCheck"
+                value={localFormData.lastBackgroundCheck}
+                onChange={handleLocalInputChange}
+                type="date"
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fillTodayDate("lastBackgroundCheck")}
+                className="whitespace-nowrap"
+              >
+                Today
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1588,8 +1422,9 @@ const Drivers = () => {
           <Button
             type="button"
             onClick={updateLocalLocation}
-            className="bg-blue-600 hover:bg-blue-700 mb-4"
+            className="bg-blue-600 hover:bg-blue-700 mb-4 flex items-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Get Current Location
           </Button>
         </div>
@@ -1600,14 +1435,23 @@ const Drivers = () => {
             variant="outline"
             onClick={() => setIsEditModalOpen(false)}
             className="flex-1"
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
             type="submit"
             className="bg-blue-600 hover:bg-blue-700 flex-1"
+            disabled={isSubmitting}
           >
-            Update Driver
+            {isSubmitting ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                Updating Driver...
+              </>
+            ) : (
+              "Update Driver"
+            )}
           </Button>
         </div>
       </form>
@@ -1615,12 +1459,12 @@ const Drivers = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-0 px-0 sm:px-0 py-0 w-full max-w-[98vw] mx-auto">
-          <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className=" border-b border-gray-100 flex flex-row w-full items-center justify-between">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center">
+          <Card className="bg-card shadow-lg border-0 rounded-xl">
+            <CardHeader className=" border-b border-border flex flex-row w-full items-center justify-between">
+              <CardTitle className="text-xl font-bold text-foreground flex items-center">
                 <Users className="w-6 h-6 text-[#f7c624]" />
                 Drivers List
               </CardTitle>
@@ -1653,7 +1497,7 @@ const Drivers = () => {
               {/* Search and Filter Controls */}
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search drivers by name, email, phone, or license..."
                     value={searchTerm}
@@ -1662,7 +1506,7 @@ const Drivers = () => {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-400" />
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Filter by status" />
@@ -1693,7 +1537,7 @@ const Drivers = () => {
                           driver.user_details?.last_name || ""
                         }`,
                         email: driver.user_details?.email || "",
-                        phone_number: driver.user_details?.phone_number || "",
+                        phone_number: driver.phone_number || driver.user_details?.phone_number || "",
                         license_number: driver.license_number || "",
                         license_class: driver.license_class || "",
                         license_expiry: driver.license_expiry || "",
@@ -1709,16 +1553,16 @@ const Drivers = () => {
                       fileName: "drivers_export",
                       title: "Drivers Directory",
                     }}
-                    className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                    className="border-border hover:bg-accent px-3 py-2"
                   />
                 </div>
               </div>
 
               {/* Results Summary */}
               {loading ? (
-                <div className="text-center py-4">Loading drivers...</div>
+                <div className="text-center py-4 text-foreground">Loading drivers...</div>
               ) : error ? (
-                <div className="text-center py-4 text-red-500">{error}</div>
+                <div className="text-center py-4 text-destructive">{error}</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -1745,7 +1589,7 @@ const Drivers = () => {
                             {driver.user_details?.email || "N/A"}
                           </TableCell>
                           <TableCell>
-                            {driver.user_details?.phone_number || "N/A"}
+                            {driver.phone_number || driver.user_details?.phone_number || "N/A"}
                           </TableCell>
                           <TableCell>
                             {driver.license_number || "N/A"} (
@@ -1812,8 +1656,8 @@ const Drivers = () => {
               )}
 
               {/* Pagination Controls - always show at the bottom */}
-              <div className="flex items-center justify-between p-6 border-t border-gray-200">
-                <div className="text-sm text-gray-600">
+              <div className="flex items-center justify-between p-6 border-t border-border">
+                <div className="text-sm text-muted-foreground">
                   Showing {startIndex + 1}-
                   {Math.min(endIndex, filteredAndSearchedDrivers.length)} of{" "}
                   {filteredAndSearchedDrivers.length} drivers
@@ -1882,7 +1726,7 @@ const Drivers = () => {
                     <div>
                       <Label className="font-semibold">Phone</Label>
                       <p>
-                        {selectedDriver.user_details?.phone_number || "N/A"}
+                        {selectedDriver.phone_number || selectedDriver.user_details?.phone_number || "N/A"}
                       </p>
                     </div>
                     <div>
@@ -1980,16 +1824,10 @@ const Drivers = () => {
             isOpen={isMultipleUploadOpen}
             onClose={() => setIsMultipleUploadOpen(false)}
             title="Bulk Upload Drivers"
-            description="Upload multiple drivers at once using CSV, PDF, or Word documents."
+            description="Upload multiple drivers at once using CSV document."
             acceptedFileTypes={[
               ".csv",
-              ".xlsx",
-              ".xls",
-              ".txt",
-              ".pdf",
-              ".doc",
-              ".docx",
-              ".html",
+              
             ]}
             maxFileSize={10}
             maxFiles={5}

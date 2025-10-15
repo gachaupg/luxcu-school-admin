@@ -92,11 +92,27 @@ const CreateSubscriptionModal: React.FC<CreateSubscriptionModalProps> = ({
       
       onClose();
     } catch (error) {
+      // Parse error message for better user experience
+      let errorMessage = "Failed to create subscription. Please try again.";
+      
+      if (error && typeof error === "object") {
+        const errorObj = error as any;
+        if (errorObj.message) {
+          errorMessage = errorObj.message;
+        } else if (errorObj.detail) {
+          errorMessage = errorObj.detail;
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create subscription. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // Modal stays open to allow user to fix the issue
     }
   };
 

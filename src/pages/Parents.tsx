@@ -3,10 +3,8 @@ import { AppSidebar } from "../components/AppSidebar";
 import { HeaderBar } from "../components/HeaderBar";
 import {
   Users,
-  MoreVertical,
   Plus,
   Eye,
-  EyeOff,
   Edit,
   Trash2,
   User,
@@ -174,8 +172,6 @@ interface ParentFormData {
     email: string;
     phone_number: string;
     user_phone_number: string;
-    password: string;
-    confirm_password: string;
     user_type: string;
     profile_image: string | null;
   };
@@ -195,8 +191,6 @@ interface FormErrors {
     last_name?: string;
     email?: string;
     phone_number?: string;
-    password?: string;
-    confirm_password?: string;
   };
   address?: string;
   emergency_contact?: string;
@@ -262,9 +256,8 @@ export default function Parents() {
   const [authorizedPersons, setAuthorizedPersons] = useState<
     AuthorizedPerson[]
   >([{ name: "", relation: "", phone: "" }]);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Multiple upload states
   const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
@@ -278,8 +271,6 @@ export default function Parents() {
       email: "",
       phone_number: "",
       user_phone_number: "",
-      password: "",
-      confirm_password: "",
       user_type: "parent",
       profile_image: null,
     },
@@ -802,8 +793,12 @@ export default function Parents() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+
     // Clear previous errors
     setFormErrors({});
+    setIsSubmitting(true);
 
     // Enhanced client-side validation
     const validationErrors: FormErrors = {};
@@ -842,25 +837,6 @@ export default function Parents() {
       };
     }
 
-    if (!formData.user_data?.password?.trim()) {
-      validationErrors.user_data = {
-        ...validationErrors.user_data,
-        password: "Password is required",
-      };
-    } else if (formData.user_data.password.length < 8) {
-      validationErrors.user_data = {
-        ...validationErrors.user_data,
-        password: "Password must be at least 8 characters long",
-      };
-    }
-
-    if (!formData.user_data?.confirm_password?.trim()) {
-      validationErrors.user_data = {
-        ...validationErrors.user_data,
-        confirm_password: "Please confirm your password",
-      };
-    }
-
     if (!formData.address?.trim()) {
       validationErrors.address = "Address is required";
     }
@@ -869,21 +845,10 @@ export default function Parents() {
       validationErrors.emergency_contact = "Emergency contact is required";
     }
 
-    // Validate passwords match
-    if (
-      formData.user_data?.password &&
-      formData.user_data?.confirm_password &&
-      formData.user_data.password !== formData.user_data.confirm_password
-    ) {
-      validationErrors.user_data = {
-        ...validationErrors.user_data,
-        confirm_password: "Passwords do not match",
-      };
-    }
-
     // If there are validation errors, display them and return
     if (Object.keys(validationErrors).length > 0) {
       setFormErrors(validationErrors);
+      setIsSubmitting(false);
       toast({
         title: "Validation Error",
         description: "Please check the form for errors",
@@ -896,6 +861,7 @@ export default function Parents() {
       // Get the actual school ID from localStorage
       const schoolId = localStorage.getItem("schoolId");
       if (!schoolId) {
+        setIsSubmitting(false);
         toast({
           title: "Error",
           description: "School ID not found. Please log in again.",
@@ -929,8 +895,6 @@ export default function Parents() {
           email: formData.user_data?.email || "",
           phone_number: formattedUserPhone,
           user_phone_number: formattedUserPhone,
-          password: formData.user_data?.password || "",
-          confirm_password: formData.user_data?.confirm_password || "",
           user_type: formData.user_data?.user_type || "parent",
           profile_image: formData.user_data?.profile_image || null,
         },
@@ -949,11 +913,14 @@ export default function Parents() {
 
       const result = await dispatch(registerParent(apiData)).unwrap();
 
+      // Success - close modal immediately and show success message
+      setIsSubmitting(false);
+      setIsDialogOpen(false);
+      
       toast({
         title: "Success",
         description: "Parent registered successfully",
       });
-      setIsDialogOpen(false);
 
       // Reset form
       setFormData({
@@ -963,8 +930,6 @@ export default function Parents() {
           email: "",
           phone_number: "",
           user_phone_number: "",
-          password: "",
-          confirm_password: "",
           user_type: "parent",
           profile_image: null,
         },
@@ -979,12 +944,81 @@ export default function Parents() {
       });
       setAuthorizedPersons([{ name: "", relation: "", phone: "" }]);
       setFormErrors({});
-    } catch (error) {
+      
+      // Refresh parents list in the background (non-blocking)
+      dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
+    } catch (error: any) {
+      // Handle Redux action rejection - parse the error message
+      let errorMessage = "Failed to register parent. Please try again.";
+      let fieldErrors: FormErrors = {};
+
+      try {
+        // Try to parse the error as JSON (from Redux slice)
+        if (typeof error === 'string') {
+          const parsedError = JSON.parse(error);
+          
+          // Handle different error structures
+          if (parsedError.message) {
+            errorMessage = parsedError.message;
+          } else if (parsedError.error) {
+            errorMessage = parsedError.error;
+          } else if (parsedError.non_field_errors) {
+            errorMessage = Array.isArray(parsedError.non_field_errors) 
+              ? parsedError.non_field_errors.join(', ')
+              : parsedError.non_field_errors;
+          } else if (parsedError.user_data) {
+            // Handle nested user_data errors
+            fieldErrors.user_data = parsedError.user_data;
+            errorMessage = "Please fix the field errors below";
+          } else {
+            // Handle field-specific errors
+            Object.keys(parsedError).forEach(key => {
+              if (key.startsWith('user_data.')) {
+                const field = key.replace('user_data.', '');
+                if (!fieldErrors.user_data) fieldErrors.user_data = {};
+                fieldErrors.user_data[field as keyof typeof fieldErrors.user_data] = 
+                  Array.isArray(parsedError[key]) ? parsedError[key][0] : parsedError[key];
+              } else {
+                fieldErrors[key as keyof FormErrors] = 
+                  Array.isArray(parsedError[key]) ? parsedError[key][0] : parsedError[key];
+              }
+            });
+            
+            if (Object.keys(fieldErrors).length > 0) {
+              errorMessage = "Please fix the field errors below";
+            }
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        // If parsing fails, use the original error message
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      }
+
+      // Set form errors if we have field-specific errors
+      if (Object.keys(fieldErrors).length > 0) {
+        setFormErrors(fieldErrors);
+      } else {
+        // Set general error
+        setFormErrors({ general: errorMessage });
+      }
+
+      // Reset loading state
+      setIsSubmitting(false);
+
+      // Show toast notification
       toast({
         title: "Registration Failed",
-        description: "Failed to register parent. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+
+      // Modal stays open - user can fix errors and try again
     }
   };
 
@@ -1002,10 +1036,36 @@ export default function Parents() {
       if (schoolId) {
         dispatch(fetchParents({ schoolId: parseInt(schoolId) }));
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Parse error message for better user feedback
+      let errorMessage = "Failed to update parent. Please try again.";
+      
+      try {
+        if (typeof error === 'string') {
+          const parsedError = JSON.parse(error);
+          if (parsedError.message) {
+            errorMessage = parsedError.message;
+          } else if (parsedError.error) {
+            errorMessage = parsedError.error;
+          } else if (parsedError.non_field_errors) {
+            errorMessage = Array.isArray(parsedError.non_field_errors) 
+              ? parsedError.non_field_errors.join(', ')
+              : parsedError.non_field_errors;
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         title: "Update Failed",
-        description: "Failed to update parent. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -1022,10 +1082,36 @@ export default function Parents() {
       });
       setIsDeleteDialogOpen(false);
       setSelectedParent(null);
-    } catch (error) {
+    } catch (error: any) {
+      // Parse error message for better user feedback
+      let errorMessage = "Failed to delete parent. Please try again.";
+      
+      try {
+        if (typeof error === 'string') {
+          const parsedError = JSON.parse(error);
+          if (parsedError.message) {
+            errorMessage = parsedError.message;
+          } else if (parsedError.error) {
+            errorMessage = parsedError.error;
+          } else if (parsedError.non_field_errors) {
+            errorMessage = Array.isArray(parsedError.non_field_errors) 
+              ? parsedError.non_field_errors.join(', ')
+              : parsedError.non_field_errors;
+          }
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      } catch (parseError) {
+        if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+      }
+
       toast({
         title: "Delete Failed",
-        description: "Failed to delete parent. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -1133,16 +1219,16 @@ export default function Parents() {
     }
   };
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only on initial load (when there's no data yet)
+  if (loading && parents.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#f7c624] mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg font-medium">
+          <p className="text-foreground text-lg font-medium">
             Loading parents...
           </p>
-          <p className="text-gray-500 text-sm mt-2">
+          <p className="text-muted-foreground text-sm mt-2">
             Please wait while we fetch the data
           </p>
         </div>
@@ -1153,16 +1239,16 @@ export default function Parents() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md bg-card">
           <CardContent className="text-center py-8">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-red-600" />
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-destructive" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               Error Loading Parents
             </h3>
-            <p className="text-red-500 mb-6">{error}</p>
+            <p className="text-destructive mb-6">{error}</p>
             <Button
               onClick={() => {
                 const schoolId = localStorage.getItem("schoolId");
@@ -1181,12 +1267,12 @@ export default function Parents() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 px-2 sm:px-4 py-4 w-full max-w-[98vw] mx-auto">
           {/* Page Title Only */}
           <div className="mb-2 flex justify-between">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
               <Users className="w-8 h-8 text-[#f7c624]" /> Parents
             </h1>
             <div className="flex gap-2">
@@ -1196,7 +1282,16 @@ export default function Parents() {
               >
                 <Download className="mr-2 h-4 w-4" /> Bulk Upload
               </Button>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <Dialog 
+                open={isDialogOpen} 
+                onOpenChange={(open) => {
+                  // Prevent closing while submitting
+                  if (!open && isSubmitting) {
+                    return;
+                  }
+                  setIsDialogOpen(open);
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200">
                     <Plus className="mr-2 h-4 w-4" /> Add New Parent
@@ -1279,17 +1374,6 @@ export default function Parents() {
                                     <li>
                                       Phone number:{" "}
                                       {formErrors.user_data.phone_number}
-                                    </li>
-                                  )}
-                                  {formErrors.user_data?.password && (
-                                    <li>
-                                      Password: {formErrors.user_data.password}
-                                    </li>
-                                  )}
-                                  {formErrors.user_data?.confirm_password && (
-                                    <li>
-                                      Confirm password:{" "}
-                                      {formErrors.user_data.confirm_password}
                                     </li>
                                   )}
                                   {formErrors.address && (
@@ -1414,81 +1498,6 @@ export default function Parents() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="user_data.password">Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="user_data.password"
-                            name="user_data.password"
-                            type={showPassword ? "text" : "password"}
-                            value={formData.user_data?.password || ""}
-                            onChange={handleInputChange}
-                            required
-                            className={
-                              formErrors.user_data?.password
-                                ? "border-red-500"
-                                : ""
-                            }
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                          >
-                            {showPassword ? (
-                              <EyeOff size={18} />
-                            ) : (
-                              <Eye size={18} />
-                            )}
-                          </button>
-                        </div>
-                        {formErrors.user_data?.password && (
-                          <p className="text-sm text-red-500">
-                            {formErrors.user_data.password}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="user_data.confirm_password">
-                          Confirm Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="user_data.confirm_password"
-                            name="user_data.confirm_password"
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={formData.user_data?.confirm_password || ""}
-                            onChange={handleInputChange}
-                            required
-                            className={
-                              formErrors.user_data?.confirm_password
-                                ? "border-red-500"
-                                : ""
-                            }
-                          />
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setShowConfirmPassword(!showConfirmPassword)
-                            }
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff size={18} />
-                            ) : (
-                              <Eye size={18} />
-                            )}
-                          </button>
-                        </div>
-                        {formErrors.user_data?.confirm_password && (
-                          <p className="text-sm text-red-500">
-                            {formErrors.user_data.confirm_password}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="address">Address</Label>
                       <Textarea
@@ -1497,7 +1506,8 @@ export default function Parents() {
                         value={formData.address}
                         onChange={handleInputChange}
                         required
-                        className={formErrors.address ? "border-red-500" : ""}
+                        rows={2}
+                        className={formErrors.address ? "border-red-500 min-h-[60px]" : "min-h-[60px]"}
                       />
                       {formErrors.address && (
                         <p className="text-sm text-red-500">
@@ -1665,15 +1675,27 @@ export default function Parents() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setIsDialogOpen(false)}
+                        onClick={() => {
+                          setIsDialogOpen(false);
+                          setIsSubmitting(false);
+                          setFormErrors({});
+                        }}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-[#f7c624] hover:bg-[#f7c624]/90"
+                        disabled={isSubmitting}
+                        className="bg-[#f7c624] hover:bg-[#f7c624]/90 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Add Parent
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Adding Parent...
+                          </>
+                        ) : (
+                          "Add Parent"
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -1683,12 +1705,12 @@ export default function Parents() {
           </div>
 
           {/* Parents Table */}
-          <Card className="bg-white border-0 rounded-xl">
+          <Card className="bg-card border-0 rounded-xl">
             <div className="mb-2">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2"></div>
 
               {/* Search and Filter Toolbar */}
-              <div className="bg-white ">
+              <div className="bg-card">
                 <CardContent className="">
                   <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
                     <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full">
@@ -1698,14 +1720,14 @@ export default function Parents() {
                           placeholder="Search parents by name, email, or phone..."
                           value={searchTerm}
                           onChange={(e) => handleSearch(e.target.value)}
-                          className="pl-10 pr-4 py-2 border-gray-200 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
+                          className="pl-10 pr-4 py-2 focus:border-[#f7c624] focus:ring-[#f7c624] rounded-full shadow-sm"
                         />
                       </div>
                       <Select
                         value={statusFilter}
                         onValueChange={handleStatusFilter}
                       >
-                        <SelectTrigger className="w-full sm:w-40 border-gray-200 rounded-full shadow-sm">
+                        <SelectTrigger className="w-full sm:w-40 rounded-full shadow-sm">
                           <SelectValue placeholder="Filter by status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1718,14 +1740,14 @@ export default function Parents() {
                       <Button
                         variant="outline"
                         onClick={clearFilters}
-                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                        className="px-3 py-2 rounded-full shadow-sm"
                       >
                         Clear Filters
                       </Button>
                       <Button
                         variant="outline"
                         onClick={handleManualRefresh}
-                        className="border-gray-200 hover:bg-gray-50 px-3 py-2 rounded-full shadow-sm"
+                        className="px-3 py-2 rounded-full shadow-sm"
                       >
                         Refresh Parents
                       </Button>
@@ -1790,7 +1812,7 @@ export default function Parents() {
                           fileName: "parents_export",
                           title: "Parents Directory",
                         }}
-                        className="border-gray-200 hover:bg-gray-50  rounded-full shadow-sm"
+                        className="rounded-full shadow-sm"
                       />
                     </div>
                   </div>
@@ -1803,7 +1825,7 @@ export default function Parents() {
                 <>
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[800px]">
-                      <thead className="bg-gray-50 sticky top-0 z-10">
+                      <thead className="bg-muted/50 sticky top-0 z-10">
                         <tr>
                           <th className="w-10 px-4 py-3 text-left">
                             <input
@@ -1813,43 +1835,43 @@ export default function Parents() {
                                 currentParents.length > 0
                               }
                               onChange={toggleSelectAll}
-                              className="rounded border-gray-300 text-[#f7c624] focus:ring-[#f7c624]"
+                              className="rounded text-[#f7c624] focus:ring-[#f7c624]"
                             />
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Name
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Email
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Phone Number
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Address
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-900 text-sm">
+                          <th className="px-4 py-3 text-left font-semibold text-foreground text-sm">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-border">
                         {currentParents.map((parent, idx) => (
                           <tr
                             key={parent.id}
                             className={`transition-colors duration-200 ${
-                              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                            } hover:bg-[#f7c624]`}
+                              idx % 2 === 0 ? "bg-card" : "bg-muted/30"
+                            }`}
                           >
                             <td className="w-10 px-4 py-3">
                               <input
                                 type="checkbox"
                                 checked={selected.includes(parent.id)}
                                 onChange={() => toggleSelect(parent.id)}
-                                className="rounded border-gray-300 text-[#f7c624] focus:ring-[#f7c624]"
+                                className="rounded text-[#f7c624] focus:ring-[#f7c624]"
                               />
                             </td>
                             <td className="px-4 py-3 flex items-center gap-2">
@@ -1859,7 +1881,7 @@ export default function Parents() {
                                   parent.user_full_name?.[0] ||
                                   "?"}
                               </div>
-                              <div className="font-medium text-gray-900 text-sm">
+                              <div className="font-medium text-foreground text-sm">
                                 {parent.user_data?.first_name ||
                                   parent.user_full_name?.split(" ")[0] ||
                                   "-"}{" "}
@@ -1872,14 +1894,14 @@ export default function Parents() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-sm text-gray-900">
+                              <div className="text-sm text-foreground">
                                 {parent.user_data?.email ||
                                   parent.user_email ||
                                   "-"}
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-sm text-gray-900">
+                              <div className="text-sm text-foreground">
                                 {parent.user_data?.phone_number ||
                                   parent.user_phone_number ||
                                   parent.phone_number ||
@@ -1887,7 +1909,7 @@ export default function Parents() {
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-sm text-gray-900 max-w-xs truncate">
+                              <div className="text-sm text-foreground max-w-xs truncate">
                                 {parent.address || "No address provided"}
                               </div>
                             </td>
@@ -1916,12 +1938,13 @@ export default function Parents() {
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
+                                className="h-6 mt-2 w-6"
                                   size="icon"
                                   variant="destructive"
                                   onClick={() => openDeleteDialog(parent)}
                                   title="Delete"
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-2.5 w-2.5" />
                                 </Button>
                               </div>
                             </td>
@@ -1932,8 +1955,8 @@ export default function Parents() {
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30 rounded-b-xl">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>
                         Showing {startIndex + 1} to{" "}
                         {Math.min(endIndex, filteredParents.length)} of{" "}
@@ -1946,7 +1969,7 @@ export default function Parents() {
                         size="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="border-gray-200 hover:bg-gray-50 h-8 px-3 rounded-full"
+                        className="h-8 px-3 rounded-full"
                       >
                         <ChevronLeft className="h-4 w-4" />
                         Previous
@@ -1980,7 +2003,7 @@ export default function Parents() {
                                 className={
                                   currentPage === pageNum
                                     ? "bg-[#f7c624] hover:bg-[#f7c624]/90 text-white h-8 w-8 p-0 rounded-full"
-                                    : "border-gray-200 hover:bg-gray-50 h-8 w-8 p-0 rounded-full"
+                                    : "h-8 w-8 p-0 rounded-full"
                                 }
                               >
                                 {pageNum}
@@ -1995,7 +2018,7 @@ export default function Parents() {
                         size="sm"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="border-gray-200 hover:bg-gray-50 h-8 px-3 rounded-full"
+                        className="h-8 px-3 rounded-full"
                       >
                         Next
                         <ChevronRight className="h-4 w-4" />
@@ -2005,15 +2028,15 @@ export default function Parents() {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 px-4">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <Users className="w-10 h-10 text-gray-400" />
+                  <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <Users className="w-10 h-10 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {searchTerm || statusFilter !== "all"
                       ? "No matching parents found"
                       : "No Parents Found"}
                   </h3>
-                  <p className="text-gray-500 text-center mb-4 max-w-md text-sm">
+                  <p className="text-muted-foreground text-center mb-4 max-w-md text-sm">
                     {searchTerm || statusFilter !== "all"
                       ? "Try adjusting your search or filter criteria."
                       : "There are no parents registered in your school yet. Add the first parent to get started."}
@@ -2022,7 +2045,7 @@ export default function Parents() {
                     <Button
                       onClick={clearFilters}
                       variant="outline"
-                      className="border-gray-200 hover:bg-gray-50 rounded-full"
+                      className="rounded-full"
                     >
                       Clear Filters
                     </Button>
@@ -2047,16 +2070,10 @@ export default function Parents() {
         isOpen={isMultipleUploadOpen}
         onClose={() => setIsMultipleUploadOpen(false)}
         title="Bulk Upload Parents"
-        description="Upload multiple parents at once using CSV, PDF, or Word documents."
+        description="Upload multiple parents at once using CSV document."
         acceptedFileTypes={[
           ".csv",
-          ".xlsx",
-          ".xls",
-          ".txt",
-          ".pdf",
-          ".doc",
-          ".docx",
-          ".html",
+          
         ]}
         maxFileSize={10}
         maxFiles={5}

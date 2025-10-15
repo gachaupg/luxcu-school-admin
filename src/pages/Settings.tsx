@@ -206,7 +206,6 @@ export default function SettingsPage() {
       const locationAutocomplete = new google.maps.places.Autocomplete(
         locationInputRef.current,
         {
-          types: ["geocode", "establishment"],
           fields: ["geometry", "formatted_address", "name"],
         }
       );

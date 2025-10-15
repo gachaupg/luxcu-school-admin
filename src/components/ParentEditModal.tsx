@@ -90,7 +90,9 @@ export function ParentEditModal({
             "",
           email: parent.user_data?.email || parent.user_email || "",
           phone_number:
-            parent.user_data?.phone_number || parent.phone_number || "",
+            parent.user_data?.phone_number || 
+            parent.user_phone_number || 
+            parent.phone_number || "",
           user_type: parent.user_data?.user_type || "parent",
           profile_image: parent.user_data?.profile_image || null,
         },

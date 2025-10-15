@@ -48,9 +48,10 @@ import SuperAdminSettings from "./pages/super-damin/Settings";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { ErrorBoundary } from "react-error-boundary";
 import React, { useEffect } from "react";
 import Dashboard from "./pages/super-damin/Dashboard.tsx";
+import NetworkStatusIndicator from "./components/NetworkStatusIndicator";
+import GlobalErrorBanner from "./components/GlobalErrorBanner";
 
 const queryClient = new QueryClient();
 
@@ -215,23 +216,18 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ErrorBoundary
-      FallbackComponent={() => {
-        // window.location.reload();
-        return null;
-      }}
-    >
-      <ReduxProvider>
-        <ThemeProvider>
-          <QueryClientProvider client={queryClient}>
-            <TooltipProvider>
-              <AppContent />
-              <Toaster />
-            </TooltipProvider>
-          </QueryClientProvider>
-        </ThemeProvider>
-      </ReduxProvider>
-    </ErrorBoundary>
+    <ReduxProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <AppContent />
+            <Toaster />
+            <NetworkStatusIndicator />
+            <GlobalErrorBanner />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ReduxProvider>
   );
 }
 

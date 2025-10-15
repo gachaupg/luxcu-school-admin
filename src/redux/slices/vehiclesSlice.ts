@@ -99,6 +99,26 @@ export const addVehicle = createAsyncThunk<
   }
 });
 
+export const updateVehicle = createAsyncThunk<
+  Vehicle,
+  { id: number; data: Vehicle },
+  { rejectValue: string }
+>("vehicles/updateVehicle", async ({ id, data }, { rejectWithValue }) => {
+  try {
+    const response = await api.put(`${API_ENDPOINTS.VEHICLES}${id}/`, data);
+    return response.data;
+  } catch (error: unknown) {
+    const apiError = error as {
+      response?: { data?: { message?: string }; status?: number };
+    };
+    return rejectWithValue(
+      JSON.stringify(
+        apiError.response?.data || { message: "Failed to update vehicle" }
+      )
+    );
+  }
+});
+
 export const deleteVehicle = createAsyncThunk<
   number,
   number,
@@ -156,6 +176,24 @@ const vehiclesSlice = createSlice({
       .addCase(addVehicle.rejected, (state, action) => {
         state.loading = false;
         state.error = (action.payload as string) || "Failed to add vehicle";
+      })
+      // Update Vehicle
+      .addCase(updateVehicle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateVehicle.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.vehicles.findIndex(
+          (vehicle) => vehicle.id === action.payload.id
+        );
+        if (index !== -1) {
+          state.vehicles[index] = action.payload;
+        }
+      })
+      .addCase(updateVehicle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to update vehicle";
       })
       // Delete Vehicle
       .addCase(deleteVehicle.pending, (state) => {

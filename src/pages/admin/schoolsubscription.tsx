@@ -221,13 +221,13 @@ const subsdata= subscriptions.filter((subscription) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">Active</Badge>;
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">Pending</Badge>;
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
+        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">Cancelled</Badge>;
       case "expired":
-        return <Badge className="bg-gray-100 text-gray-800">Expired</Badge>;
+        return <Badge className="bg-muted text-muted-foreground">Expired</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -236,16 +236,16 @@ const subsdata= subscriptions.filter((subscription) => {
   const getBillingCycleBadge = (cycle: string) => {
     switch (cycle) {
       case "monthly":
-        return <Badge className="bg-blue-100 text-blue-800">Monthly</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">Monthly</Badge>;
       case "quarterly":
-        return <Badge className="bg-orange-100 text-orange-800">Quarterly</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">Quarterly</Badge>;
       case "annually":
         return (
-          <Badge className="bg-purple-100 text-purple-800">Annually</Badge>
+          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400">Annually</Badge>
         );
       case "yearly":
         return (
-          <Badge className="bg-purple-100 text-purple-800">Yearly</Badge>
+          <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400">Yearly</Badge>
         );
       default:
         return <Badge variant="outline">{cycle}</Badge>;
@@ -350,13 +350,13 @@ const subsdata= subscriptions.filter((subscription) => {
         );
       case "expiring_soon":
         return (
-          <Badge className="bg-orange-100 text-orange-800">
+          <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
             Expires in {expiryStatus.days} days
           </Badge>
         );
       case "active":
         return (
-          <Badge className="bg-green-100 text-green-800">
+          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
             Active ({expiryStatus.days} days left)
           </Badge>
         );
@@ -371,13 +371,13 @@ const subsdata= subscriptions.filter((subscription) => {
             return <Badge variant="destructive">Expired (calculated)</Badge>;
           } else if (daysUntilCalculatedExpiry <= 30) {
             return (
-              <Badge className="bg-orange-100 text-orange-800">
+              <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400">
                 Expires in {daysUntilCalculatedExpiry} days (calculated)
               </Badge>
             );
           } else {
             return (
-              <Badge className="bg-green-100 text-green-800">
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
                 Active ({daysUntilCalculatedExpiry} days left, calculated)
               </Badge>
             );
@@ -513,7 +513,7 @@ const subsdata= subscriptions.filter((subscription) => {
               </SelectContent>
             </Select>
             {schoolIdFilter !== "all" && (
-              <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+              <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-2 py-1 rounded">
                 Selected School ID: {schoolIdFilter}
               </div>
             )}
@@ -554,8 +554,8 @@ const subsdata= subscriptions.filter((subscription) => {
             schoolIdFilter !== "all" ||
             statusFilter !== "all" ||
             billingCycleFilter !== "all") && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <div className="text-sm font-medium text-gray-700 mb-2">
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <div className="text-sm font-medium text-foreground mb-2">
                 Active Filters:
               </div>
               <div className="flex flex-wrap gap-2">
@@ -592,23 +592,23 @@ const subsdata= subscriptions.filter((subscription) => {
           <CardDescription>
             All school subscriptions and their current status
             {searchTerm && (
-              <span className="block text-sm text-blue-600">
+              <span className="block text-sm text-blue-600 dark:text-blue-400">
                 🔍 Filtered by: "{searchTerm}"
               </span>
             )}
             {schoolIdFilter !== "all" && (
-              <span className="block text-sm text-blue-600">
+              <span className="block text-sm text-blue-600 dark:text-blue-400">
                 🏫 School ID: {schoolIdFilter}
                 {loggedInSchoolId === schoolIdFilter && " (Your School)"}
               </span>
             )}
             {statusFilter !== "all" && (
-              <span className="block text-sm text-blue-600">
+              <span className="block text-sm text-blue-600 dark:text-blue-400">
                 📊 Status: {statusFilter}
               </span>
             )}
             {billingCycleFilter !== "all" && (
-              <span className="block text-sm text-blue-600">
+              <span className="block text-sm text-blue-600 dark:text-blue-400">
                 💳 Billing: {billingCycleFilter}
               </span>
             )}
@@ -749,9 +749,9 @@ const subsdata= subscriptions.filter((subscription) => {
       {/* Subscription Details Modal */}
       {selectedSubscription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Subscription Details</h2>
+              <h2 className="text-xl font-semibold text-foreground">Subscription Details</h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -764,7 +764,7 @@ const subsdata= subscriptions.filter((subscription) => {
             <div className="space-y-6">
               {/* Basic Information */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">
+                <h3 className="font-semibold text-lg mb-3 text-foreground">
                   Subscription Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -772,7 +772,7 @@ const subsdata= subscriptions.filter((subscription) => {
                     <span className="text-sm text-muted-foreground">
                       Subscription ID:
                     </span>
-                    <p className="font-medium">{selectedSubscription.id}</p>
+                    <p className="font-medium text-foreground">{selectedSubscription.id}</p>
                   </div>
                   <div>
                     <span className="text-sm text-muted-foreground">
@@ -785,7 +785,7 @@ const subsdata= subscriptions.filter((subscription) => {
                   </div>
                   <div>
                     <span className="text-sm text-muted-foreground">Plan:</span>
-                    <p className="font-medium">
+                    <p className="font-medium text-foreground">
                       {selectedSubscription.plan_name}
                     </p>
                   </div>
@@ -799,7 +799,7 @@ const subsdata= subscriptions.filter((subscription) => {
                     <span className="text-sm text-muted-foreground">
                       School:
                     </span>
-                    <p className="font-medium">
+                    <p className="font-medium text-foreground">
                       {selectedSubscription.school_name}
                     </p>
                   </div>
@@ -807,7 +807,7 @@ const subsdata= subscriptions.filter((subscription) => {
                     <span className="text-sm text-muted-foreground">
                       Price Charged:
                     </span>
-                    <p className="font-medium">
+                    <p className="font-medium text-foreground">
                       {formatCurrency(selectedSubscription.price_charged)}
                     </p>
                   </div>
@@ -816,25 +816,25 @@ const subsdata= subscriptions.filter((subscription) => {
 
               {/* Usage Statistics */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Usage Statistics</h3>
+                <h3 className="font-semibold text-lg mb-3 text-foreground">Usage Statistics</h3>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-                    <div className="text-2xl font-bold">
+                  <div className="text-center p-4 border border-border rounded-lg">
+                    <Users className="h-8 w-8 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
+                    <div className="text-2xl font-bold text-foreground">
                       {selectedSubscription.current_students_count}
                     </div>
                     <p className="text-sm text-muted-foreground">Students</p>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <Bus className="h-8 w-8 mx-auto mb-2 text-green-600" />
-                    <div className="text-2xl font-bold">
+                  <div className="text-center p-4 border border-border rounded-lg">
+                    <Bus className="h-8 w-8 mx-auto mb-2 text-green-600 dark:text-green-400" />
+                    <div className="text-2xl font-bold text-foreground">
                       {selectedSubscription.current_buses_count}
                     </div>
                     <p className="text-sm text-muted-foreground">Buses</p>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <Users className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-                    <div className="text-2xl font-bold">
+                  <div className="text-center p-4 border border-border rounded-lg">
+                    <Users className="h-8 w-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
+                    <div className="text-2xl font-bold text-foreground">
                       {selectedSubscription.current_parents_count}
                     </div>
                     <p className="text-sm text-muted-foreground">Parents</p>
@@ -844,23 +844,23 @@ const subsdata= subscriptions.filter((subscription) => {
 
               {/* Important Dates */}
               <div>
-                <h3 className="font-semibold text-lg mb-3">Important Dates</h3>
+                <h3 className="font-semibold text-lg mb-3 text-foreground">Important Dates</h3>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                     <span className="text-sm text-muted-foreground">
                       Start Date:
                     </span>
-                    <span className="font-medium">
+                    <span className="font-medium text-foreground">
                       {formatDate(selectedSubscription.start_date)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-red-600" />
+                    <Calendar className="h-4 w-4 text-red-600 dark:text-red-400" />
                     <span className="text-sm text-muted-foreground">
                       End Date:
                     </span>
-                    <span className="font-medium">
+                    <span className="font-medium text-foreground">
                       {selectedSubscription.end_date 
                         ? formatDate(selectedSubscription.end_date)
                         : calculateEndDate(selectedSubscription.start_date, selectedSubscription.billing_cycle)
@@ -874,11 +874,11 @@ const subsdata= subscriptions.filter((subscription) => {
                   </div>
                   {selectedSubscription.next_billing_date && (
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-yellow-600" />
+                      <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                       <span className="text-sm text-muted-foreground">
                         Next Billing:
                       </span>
-                      <span className="font-medium">
+                      <span className="font-medium text-foreground">
                         {formatDate(selectedSubscription.next_billing_date)}
                       </span>
                     </div>
@@ -887,7 +887,7 @@ const subsdata= subscriptions.filter((subscription) => {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <Button
                   variant="outline"
                   onClick={() =>

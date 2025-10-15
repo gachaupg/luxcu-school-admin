@@ -22,6 +22,7 @@ import subscriptionReducer from "./slices/subscriptionSlice";
 import contactMessagesReducer from "./slices/contactMessagesSlice";
 import schoolSubscriptionsReducer from "./slices/schoolSubscriptionsSlice";
 import invoicesReducer from "./slices/invoicesSlice";
+import errorReducer from "./slices/errorSlice";
 
 // Configure persistence for auth slice
 const authPersistConfig = {
@@ -65,6 +66,7 @@ const rootReducer = {
   contactMessages: contactMessagesReducer,
   schoolSubscriptions: schoolSubscriptionsReducer,
   invoices: invoicesReducer,
+  error: errorReducer,
 };
 
 // Create store with explicit configuration

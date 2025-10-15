@@ -139,7 +139,6 @@ const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
       const autocomplete = new google.maps.places.Autocomplete(
         searchInputRef.current,
         {
-          types: ["geocode", "establishment"],
           fields: ["geometry", "formatted_address", "name"],
           componentRestrictions: { country: "ke" },
         }
@@ -280,14 +279,16 @@ const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
   const handleAddStop = async (values: StopFormValues) => {
     try {
       const stopData = {
-        route: routeId,
         name: values.name,
-        lat: values.lat,
-        lng: values.lng,
-        sequence: values.sequence,
+        route: routeId,
+        location: {
+          type: "Point" as const,
+          coordinates: [values.lng, values.lat] as [number, number]
+        },
+        sequence_number: values.sequence,
+        estimated_arrival_time: values.estimated_time,
         is_pickup: values.is_pickup,
         is_dropoff: values.is_dropoff,
-        estimated_time: values.estimated_time,
       };
 
       await dispatch(addRouteStop(stopData)).unwrap();
@@ -331,17 +332,22 @@ const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
 
     try {
       const stopData = {
-        route: routeId,
         name: values.name,
-        lat: values.lat,
-        lng: values.lng,
-        sequence: values.sequence,
+        location: {
+          type: "Point" as const,
+          coordinates: [values.lng, values.lat] as [number, number]
+        },
+        sequence_number: values.sequence,
+        estimated_arrival_time: values.estimated_time,
         is_pickup: values.is_pickup,
         is_dropoff: values.is_dropoff,
-        estimated_time: values.estimated_time,
       };
 
-      await dispatch(updateRouteStop({ id: selectedStop.id, stopData })).unwrap();
+      await dispatch(updateRouteStop({ 
+        routeId, 
+        stopId: selectedStop.id, 
+        stopData 
+      })).unwrap();
       toast({
         title: "Success",
         description: "Route stop updated successfully",

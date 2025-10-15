@@ -1,0 +1,7 @@
+<html><body>
+    <h1>Trip Started Alert</h1>
+    <p>Dear {{ parent.user.first_name }},</p>
+    <p>Your child's trip (ID: {{ trip_id }}) has started at {{ timestamp }}.</p>
+    <p>Driver: {{ driver_name }} | Vehicle: {{ vehicle_info }}</p>
+    <p>Track here: <a href="{{ tracking_url }}">Live Map</a></p>
+    </body></html>

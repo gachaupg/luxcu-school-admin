@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "@/config/api";
 import { API_ENDPOINTS } from "@/utils/api";
 import { AxiosError } from "axios";
+import { tripNotificationService } from "@/services/tripNotificationService";
+import { fcmTokenService } from "@/services/fcmTokenService";
 
 export interface Trip {
   id?: number;
@@ -22,12 +24,16 @@ export interface Trip {
   start_time?: string;
   end_time?: string;
   students_count?: number;
+  students?: number[]; // Array of student IDs
+  grade?: number; // Grade ID
   created_at?: string;
   updated_at?: string;
   // Additional fields for display
   route_name?: string;
   driver_name?: string;
   vehicle_registration?: string;
+  distance?: number;
+  duration?: number;
 }
 
 interface TripsState {
@@ -123,6 +129,8 @@ export const createTrip = createAsyncThunk<
     scheduled_start_time: string;
     scheduled_end_time: string;
     school?: number;
+    students?: number[];
+    grade?: number;
   },
   { rejectValue: string }
 >("trips/createTrip", async (tripData, { rejectWithValue }) => {
@@ -147,12 +155,7 @@ export const createTrip = createAsyncThunk<
       // Error checking auth token
     }
 
-    // Ensure school ID is included
-    const schoolId = localStorage.getItem("schoolId");
-    const tripDataWithSchool = {
-      ...tripData,
-      school: tripData.school || parseInt(schoolId || "0"),
-    };
+    // School field removed from payload as requested
 
     // Manual token setting as fallback
     let token = null;
@@ -178,9 +181,12 @@ export const createTrip = createAsyncThunk<
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     };
 
+    console.log("Creating trip with data:", tripData);
+    console.log("Request config:", requestConfig);
+
     const response = await api.post(
       API_ENDPOINTS.TRIPS,
-      tripDataWithSchool,
+      tripData,
       requestConfig
     );
 
@@ -194,9 +200,33 @@ export const createTrip = createAsyncThunk<
       driver_name: trip.driver_details?.full_name || `Driver ${trip.driver}`,
     };
 
+    // Send FCM notification for new trip creation
+    try {
+      // Get FCM tokens for parents and drivers
+      const fcmTokens = await fcmTokenService.getSchoolFCMTokens();
+      
+      if (fcmTokens.length > 0) {
+        await tripNotificationService.notifyNewTripCreated(transformedTrip, fcmTokens);
+      }
+    } catch (notificationError) {
+      console.error("Failed to send trip creation notification:", notificationError);
+      // Don't fail the trip creation if notification fails
+    }
+
     return transformedTrip;
   } catch (error) {
+    console.log("Redux createTrip error:", error);
     if (error instanceof AxiosError) {
+      // Pass the entire error response data to preserve validation errors
+      const errorData = error.response?.data;
+      console.log("Axios error data:", errorData);
+      console.log("Error status:", error.response?.status);
+      console.log("Error response:", error.response);
+      
+      if (errorData) {
+        return rejectWithValue(errorData);
+      }
+      
       return rejectWithValue(
         error.response?.data?.message ||
           error.response?.data?.detail ||
@@ -211,8 +241,12 @@ export const updateTrip = createAsyncThunk<
   Trip,
   { id: number; tripData: Partial<Trip> },
   { rejectValue: string }
->("trips/updateTrip", async ({ id, tripData }, { rejectWithValue }) => {
+>("trips/updateTrip", async ({ id, tripData }, { rejectWithValue, getState }) => {
   try {
+    // Get the current trip state to check for status changes
+    const state = getState() as any;
+    const currentTrip = state.trips.trips.find((trip: Trip) => trip.id === id);
+    
     const response = await api.patch(`${API_ENDPOINTS.TRIPS}${id}/`, tripData);
 
     // Transform the response to match our frontend structure
@@ -225,9 +259,37 @@ export const updateTrip = createAsyncThunk<
       driver_name: trip.driver_details?.full_name || `Driver ${trip.driver}`,
     };
 
+    // Send FCM notification for status changes
+    if (tripData.status && currentTrip && currentTrip.status !== tripData.status) {
+      try {
+        // Get FCM tokens for parents and drivers
+        const fcmTokens = await fcmTokenService.getSchoolFCMTokens();
+        
+        if (fcmTokens.length > 0) {
+          await tripNotificationService.notifyTripStatusChange(
+            transformedTrip, 
+            tripData.status, 
+            fcmTokens
+          );
+        }
+      } catch (notificationError) {
+        console.error("Failed to send trip status change notification:", notificationError);
+        // Don't fail the trip update if notification fails
+      }
+    }
+
     return transformedTrip;
   } catch (error) {
+    console.log("Redux updateTrip error:", error);
     if (error instanceof AxiosError) {
+      // Pass the entire error response data to preserve validation errors
+      const errorData = error.response?.data;
+      console.log("Axios error data:", errorData);
+      
+      if (errorData) {
+        return rejectWithValue(errorData);
+      }
+      
       return rejectWithValue(
         error.response?.data?.message || "Failed to update trip"
       );
@@ -251,6 +313,51 @@ export const deleteTrip = createAsyncThunk<
       );
     }
     return rejectWithValue("Failed to delete trip");
+  }
+});
+
+// New action for sending trip notifications
+export const sendTripNotification = createAsyncThunk<
+  boolean,
+  {
+    tripId: number;
+    notificationType: 'delay' | 'cancellation' | 'emergency';
+    message: string;
+    fcmTokens: string[];
+  },
+  { rejectValue: string }
+>("trips/sendTripNotification", async ({ tripId, notificationType, message, fcmTokens }, { rejectWithValue, getState }) => {
+  try {
+    const state = getState() as any;
+    const trip = state.trips.trips.find((t: Trip) => t.id === tripId);
+    
+    if (!trip) {
+      return rejectWithValue("Trip not found");
+    }
+
+    let success = false;
+    
+    switch (notificationType) {
+      case 'delay':
+        success = await tripNotificationService.notifyTripDelay(trip, message, fcmTokens);
+        break;
+      case 'cancellation':
+        success = await tripNotificationService.notifyTripCancellation(trip, message, fcmTokens);
+        break;
+      case 'emergency':
+        success = await tripNotificationService.notifyTripEmergency(trip, message, fcmTokens);
+        break;
+      default:
+        return rejectWithValue("Invalid notification type");
+    }
+
+    if (!success) {
+      return rejectWithValue("Failed to send notification");
+    }
+
+    return true;
+  } catch (error) {
+    return rejectWithValue("Failed to send notification");
   }
 });
 
@@ -279,24 +386,22 @@ const tripsSlice = createSlice({
       })
       // Create Trip
       .addCase(createTrip.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        // Don't set loading or error state for create operations
+        // These should be handled in the modal, not page-level
       })
       .addCase(createTrip.fulfilled, (state, action) => {
-        state.loading = false;
         state.trips.push(action.payload);
       })
       .addCase(createTrip.rejected, (state, action) => {
-        state.loading = false;
-        state.error = (action.payload as string) || "Failed to create trip";
+        // Don't set error state - handled in modal
+        // This prevents "Failed to load trips: Failed to create trip" from showing
       })
       // Update Trip
       .addCase(updateTrip.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        // Don't set loading or error state for update operations
+        // These should be handled in the modal, not page-level
       })
       .addCase(updateTrip.fulfilled, (state, action) => {
-        state.loading = false;
         const index = state.trips.findIndex(
           (trip) => trip.id === action.payload.id
         );
@@ -305,21 +410,32 @@ const tripsSlice = createSlice({
         }
       })
       .addCase(updateTrip.rejected, (state, action) => {
-        state.loading = false;
-        state.error = (action.payload as string) || "Failed to update trip";
+        // Don't set error state - handled in modal
+        // This prevents "Failed to load trips: Failed to update trip" from showing
       })
       // Delete Trip
       .addCase(deleteTrip.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        // Don't set loading or error state for delete operations
+        // These should be handled in the component, not page-level
       })
       .addCase(deleteTrip.fulfilled, (state, action) => {
-        state.loading = false;
         state.trips = state.trips.filter((trip) => trip.id !== action.payload);
       })
       .addCase(deleteTrip.rejected, (state, action) => {
-        state.loading = false;
-        state.error = (action.payload as string) || "Failed to delete trip";
+        // Don't set error state - handled in component
+        // This prevents "Failed to load trips: Failed to delete trip" from showing
+      })
+      // Send Trip Notification
+      .addCase(sendTripNotification.pending, (state) => {
+        // Don't set loading or error state for notification operations
+        // These should be handled in the component, not page-level
+      })
+      .addCase(sendTripNotification.fulfilled, (state) => {
+        // Notification sent successfully - no state changes needed
+      })
+      .addCase(sendTripNotification.rejected, (state, action) => {
+        // Don't set error state - handled in component
+        // This prevents "Failed to load trips: Failed to send notification" from showing
       });
   },
 });

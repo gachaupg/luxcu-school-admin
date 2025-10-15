@@ -5,11 +5,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAppDispatch } from "@/redux/hooks";
-import { fetchRouteStops, type RouteStop } from "@/redux/slices/routesSlice";
-import { MapPin, Clock, Users, Loader2 } from "lucide-react";
+import { fetchRouteStops, deleteRouteStop, type RouteStop } from "@/redux/slices/routesSlice";
+import { MapPin, Clock, Users, Loader2, Edit, Trash2, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { RouteStopEditModal } from "./RouteStopEditModal";
+import { RouteStopModal } from "./RouteStopModal";
+import { GOOGLE_MAPS_API_KEY } from "@/utils/api";
+import { loadGoogleMaps } from "@/utils/googleMapsLoader";
 
 interface RouteStopsViewModalProps {
   isOpen: boolean;
@@ -25,9 +40,17 @@ export function RouteStopsViewModal({
   routeName,
 }: RouteStopsViewModalProps) {
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedStop, setSelectedStop] = useState<RouteStop | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [placeNames, setPlaceNames] = useState<Record<number, string>>({});
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   useEffect(() => {
     if (isOpen && routeId) {
@@ -35,12 +58,65 @@ export function RouteStopsViewModal({
     }
   }, [isOpen, routeId]);
 
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!window.google || !window.google.maps) {
+        resolve("Location not available");
+        return;
+      }
+
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat, lng } },
+        (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            resolve(results[0].formatted_address);
+          } else {
+            resolve("Location not available");
+          }
+        }
+      );
+    });
+  };
+
   const fetchStops = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await dispatch(fetchRouteStops(routeId)).unwrap();
       setRouteStops(response);
+      
+      // Load Google Maps and reverse geocode coordinates
+      if (response.length > 0) {
+        setIsGeocoding(true);
+        try {
+          await loadGoogleMaps(GOOGLE_MAPS_API_KEY);
+          
+          const placeNamesMap: Record<number, string> = {};
+          for (const stop of response) {
+            let lat = 0;
+            let lng = 0;
+            
+            if (stop.lat !== undefined && stop.lng !== undefined) {
+              lat = stop.lat;
+              lng = stop.lng;
+            } else if (stop.location && stop.location.coordinates) {
+              lng = stop.location.coordinates[0];
+              lat = stop.location.coordinates[1];
+            }
+            
+            if (lat !== 0 && lng !== 0) {
+              const placeName = await reverseGeocode(lat, lng);
+              placeNamesMap[stop.id!] = placeName;
+            }
+          }
+          setPlaceNames(placeNamesMap);
+        } catch (error) {
+          console.error("Error loading Google Maps or geocoding:", error);
+        } finally {
+          setIsGeocoding(false);
+        }
+      }
     } catch (err) {
       // Error fetching route stops
       setError(
@@ -51,6 +127,54 @@ export function RouteStopsViewModal({
     }
   };
 
+  const handleEditStop = (stop: RouteStop) => {
+    setSelectedStop(stop);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteStop = (stop: RouteStop) => {
+    setSelectedStop(stop);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedStop?.id) return;
+
+    setDeleting(true);
+    try {
+      await dispatch(deleteRouteStop({
+        routeId,
+        stopId: selectedStop.id
+      })).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Route stop deleted successfully",
+      });
+
+      // Refresh the stops list
+      await fetchStops();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete route stop",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setSelectedStop(null);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    fetchStops(); // Refresh the stops list
+  };
+
+  const handleAddSuccess = () => {
+    fetchStops(); // Refresh the stops list
+  };
+
   const sortedStops = routeStops.sort(
     (a, b) => a.sequence_number - b.sequence_number
   );
@@ -59,13 +183,25 @@ export function RouteStopsViewModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-blue-500" />
-            Route Stops
-          </DialogTitle>
-          <p className="text-sm text-gray-600">
-            Stops for route: <span className="font-semibold">{routeName}</span>
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-blue-500" />
+                Route Stops
+              </DialogTitle>
+              <p className="text-sm text-gray-600">
+                Stops for route: <span className="font-semibold">{routeName}</span>
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-500 hover:bg-blue-600"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Stop
+            </Button>
+          </div>
         </DialogHeader>
 
         {loading ? (
@@ -135,35 +271,58 @@ export function RouteStopsViewModal({
                           <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4" />
                             <span>
-                              {stop.lat !== undefined && stop.lng !== undefined
-                                ? `${stop.lat.toFixed(4)}, ${stop.lng.toFixed(
-                                    4
-                                  )}`
-                                : "Coordinates not available"}
+                              {isGeocoding ? (
+                                <div className="flex items-center gap-1">
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  Loading location...
+                                </div>
+                              ) : (
+                                placeNames[stop.id!] || "Location not available"
+                              )}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      {stop.is_pickup && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-green-50 text-green-700 border-green-200"
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        {stop.is_pickup && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-green-50 text-green-700 border-green-200"
+                          >
+                            <Users className="w-3 h-3 mr-1" />
+                            Pickup
+                          </Badge>
+                        )}
+                        {stop.is_dropoff && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                          >
+                            <Users className="w-3 h-3 mr-1" />
+                            Dropoff
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditStop(stop)}
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                         >
-                          <Users className="w-3 h-3 mr-1" />
-                          Pickup
-                        </Badge>
-                      )}
-                      {stop.is_dropoff && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-blue-50 text-blue-700 border-blue-200"
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteStop(stop)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
                         >
-                          <Users className="w-3 h-3 mr-1" />
-                          Dropoff
-                        </Badge>
-                      )}
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -178,6 +337,53 @@ export function RouteStopsViewModal({
           </Button>
         </div>
       </DialogContent>
+
+      {/* Add Modal */}
+      <RouteStopModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          handleAddSuccess();
+        }}
+        routeId={routeId}
+        routeName={routeName}
+        currentSequenceNumber={sortedStops.length > 0 ? sortedStops[sortedStops.length - 1].sequence_number + 1 : 1}
+      />
+
+      {/* Edit Modal */}
+      <RouteStopEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedStop(null);
+        }}
+        routeId={routeId}
+        routeStop={selectedStop}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Route Stop</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedStop?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

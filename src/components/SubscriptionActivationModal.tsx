@@ -45,14 +45,14 @@ const SubscriptionActivationModal: React.FC<SubscriptionActivationModalProps> = 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <Building2 className="h-5 w-5 text-emerald-600" />
+            <Building2 className="h-5 w-5 text-yellow-600" />
             Subscription Activation Required
           </DialogTitle>
           <DialogDescription className="text-sm">
-            Your school subscription is currently inactive. Please activate your subscription to access the LuxCab Admin Dashboard.
+            Your school subscription is currently inactive. Please activate your subscription to access the ShuleTrack Admin Dashboard.
           </DialogDescription>
         </DialogHeader>
 
@@ -73,94 +73,92 @@ const SubscriptionActivationModal: React.FC<SubscriptionActivationModalProps> = 
              </CardContent>
            </Card>
 
-                     {/* Action Buttons */}
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-             <Button 
-               onClick={handlePayNow}
-               className="bg-emerald-600 hover:bg-emerald-700 h-10"
-             >
-               <CreditCard className="mr-2 h-4 w-4" />
-               Activate Subscription
-             </Button>
-             
-             <Button 
-               variant="outline" 
-               onClick={handleContactSupport}
-               className="h-10"
-             >
-               <MessageCircle className="mr-2 h-4 w-4" />
-               Contact Support
-             </Button>
-           </div>
-
                      {/* Contact Information */}
            <Card>
-             <CardContent className="p-3">
-               <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
-                 <Building2 className="h-4 w-4 text-emerald-600" />
-                 Contact Information
-               </h4>
+             <CardContent className="p-4">
+              <h4 className="font-semibold text-base mb-4 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-yellow-600" />
+                Contact Information
+              </h4>
                
-               <div className="space-y-2">
-                                 <div className="flex items-start gap-2">
-                   <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="flex items-start gap-3">
+                   <MapPin className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                    <div>
-                     <p className="font-medium text-sm">Head Office</p>
-                     <p className="text-xs text-gray-600">
+                     <p className="font-semibold text-sm mb-1">Head Office</p>
+                     <p className="text-sm text-gray-600">
                        Gesora Road, Utawala, Nairobi
                      </p>
                    </div>
                  </div>
 
-                 <div className="flex items-start gap-2">
-                   <Mail className="h-4 w-4 text-gray-500 mt-0.5" />
+                 <div className="flex items-start gap-3">
+                   <Mail className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                    <div>
-                     <p className="font-medium text-sm">Email Support</p>
+                     <p className="font-semibold text-sm mb-1">Email Support</p>
                      <div className="space-y-1">
-                       <p className="text-xs text-gray-600">
-                         <span className="font-medium">Inquiry:</span>{" "}
-                         <a 
-                           href="mailto:info@shuletrack.com " 
-                           className="text-emerald-600 hover:underline"
-                         >
-                           info@shuletrack.com
-                         </a>
-                       </p>
-                       <p className="text-xs text-gray-600">
-                         <span className="font-medium">Support:</span>{" "}
-                         <a 
-                           href="mailto:support@shuletrack.com" 
-                           className="text-emerald-600 hover:underline"
-                         >
-                           support@shuletrack.com
-                         </a>
-                       </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Inquiry:</span>{" "}
+                        <a 
+                          href="mailto:info@shuletrack.com " 
+                          className="text-yellow-600 hover:underline"
+                        >
+                          info@shuletrack.com
+                        </a>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Support:</span>{" "}
+                        <a 
+                          href="mailto:support@shuletrack.com" 
+                          className="text-yellow-600 hover:underline"
+                        >
+                          support@shuletrack.com
+                        </a>
+                      </p>
                      </div>
                    </div>
                  </div>
 
-                 <div className="flex items-start gap-2">
-                   <Phone className="h-4 w-4 text-gray-500 mt-0.5" />
+                 <div className="flex items-start gap-3">
+                   <Phone className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                    <div>
-                     <p className="font-medium text-sm">Phone Support</p>
-                     <div className="space-y-1">
-                       <p className="text-xs text-gray-600">
-                         <a 
-                           href="tel:+254113281424" 
-                           className="text-emerald-600 hover:underline"
-                         >
-                           +254 113281424
-                         </a>
-                       </p>
-                       <p className="text-xs text-gray-600">
-                         <a 
-                           href="tel:+254718099959" 
-                           className="text-emerald-600 hover:underline"
-                         >
-                           +254 718099959
-                         </a>
-                       </p>
-                     </div>
+                    <p className="font-semibold text-sm mb-1">Phone Support</p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <a 
+                          href="tel:+254113281424" 
+                          className="text-yellow-600 hover:underline"
+                        >
+                          +254 113281424
+                        </a>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <a 
+                          href="tel:+254718099959" 
+                          className="text-yellow-600 hover:underline"
+                        >
+                          +254 718099959
+                        </a>
+                      </p>
+                    </div>
+                   </div>
+                 </div>
+
+                 <div className="flex items-start gap-3">
+                   <MessageCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                   <div>
+                    <p className="font-semibold text-sm mb-1">Contact Support</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Need help? Reach out to our support team
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleContactSupport}
+                      className="h-9 text-sm"
+                    >
+                      <Mail className="mr-2 h-3 w-3" />
+                      Email Us
+                    </Button>
                    </div>
                  </div>
               </div>

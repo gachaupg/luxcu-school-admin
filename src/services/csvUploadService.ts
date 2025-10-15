@@ -24,7 +24,7 @@ export interface CSVUploadResponse {
 
 export const uploadCSVFile = async (
   file: File,
-  uploadType: "parents" | "drivers" | "students" | "teachers"
+  uploadType: "parents" | "drivers" | "students" | "teachers" | "vehicles" | "staffs"
 ): Promise<CSVUploadResponse> => {
   try {
     // Log current school information
@@ -250,6 +250,225 @@ export const generateDriversCSVTemplate = (): string => {
   return csvContent;
 };
 
+// Generate CSV template for students
+export const generateStudentsCSVTemplate = (): string => {
+  const headers = [
+    "first_name",
+    "middle_name",
+    "last_name",
+    "admission_number",
+    "school_id",
+    "grade",
+    "section",
+    "gender",
+    "date_of_birth",
+    "parent_name",
+    "parent_phone",
+  ];
+
+  // Get the current school ID from multiple sources
+  let schoolId = localStorage.getItem("schoolId");
+
+  // If not found, try to get from Redux persist data
+  if (!schoolId) {
+    const persistAuth = localStorage.getItem("persist:auth");
+    if (persistAuth) {
+      try {
+        const authData = JSON.parse(persistAuth);
+        const userData = JSON.parse(authData.user || "{}");
+        schoolId = userData.school_id || userData.school;
+      } catch (e) {
+        // Error parsing persist:auth for student template school_id
+      }
+    }
+  }
+
+  if (!schoolId) {
+    // No school ID found in any source for student template. Using placeholder '2'
+  }
+
+  const sampleData = [
+    "John",
+    "Michael",
+    "Doe",
+    "STU001",
+    schoolId || "2",
+    "Grade 1",
+    "A",
+    "male",
+    "2015-05-15",
+    "Jane Doe",
+    "+254712345678",
+  ];
+
+  const row2 = [
+    "Peter",
+    "", // Empty middle name
+    "Johnson",
+    "STU002",
+    schoolId || "2",
+    "Grade 1",
+    "A",
+    "male",
+    "2015-03-10",
+    "Sarah Johnson",
+    "+254734567890",
+  ];
+
+  const csvContent = [
+    headers.join(","),
+    sampleData.join(","),
+    row2.join(","),
+  ].join("\n");
+
+  console.log("📝 Generated student CSV template:");
+  console.log(csvContent);
+
+  return csvContent;
+};
+
+// Generate CSV template for vehicles
+export const generateVehiclesCSVTemplate = (): string => {
+  const headers = [
+    "registration_number",
+    "school_id",
+    "vehicle_type",
+    "capacity",
+    "model",
+    "year",
+    "fuel_type",
+    "manufacturer",
+    "is_active",
+    "has_gps",
+    "has_camera",
+    "has_emergency_button",
+    "driver_phone_number",
+  ];
+
+  // Get the current school ID from multiple sources
+  let schoolId = localStorage.getItem("schoolId");
+
+  // If not found, try to get from Redux persist data
+  if (!schoolId) {
+    const persistAuth = localStorage.getItem("persist:auth");
+    if (persistAuth) {
+      try {
+        const authData = JSON.parse(persistAuth);
+        const userData = JSON.parse(authData.user || "{}");
+        schoolId = userData.school_id || userData.school;
+      } catch (e) {
+        // Error parsing persist:auth for vehicle template school_id
+      }
+    }
+  }
+
+  if (!schoolId) {
+    // No school ID found in any source for vehicle template. Using placeholder '2'
+  }
+
+  const sampleData = [
+    "KAA-123B",
+    schoolId || "2",
+    "bus",
+    "50",
+    "Coaster",
+    "2020",
+    "diesel",
+    "Toyota",
+    "true",
+    "true",
+    "true",
+    "true",
+    "+254757198002",
+  ];
+
+  const csvContent = [
+    headers.join(","),
+    sampleData.join(","),
+    `KBB-456C,${
+      schoolId || "2"
+    },van,14,Caravan,2019,petrol,Nissan,true,true,true,true,+254757198002`,
+    `KCC-789D,${
+      schoolId || "2"
+    },bus,40,NQR,2021,diesel,Isuzu,true,true,true,true,+254757198002`,
+  ].join("\n");
+
+  return csvContent;
+};
+
+// Generate CSV template for staff
+export const generateStaffCSVTemplate = (): string => {
+  const headers = [
+    "first_name",
+    "middle_name",
+    "last_name",
+    "employee_number",
+    "school_id",
+    "gender",
+    "mobile_number",
+    "email",
+    "status",
+    "role",
+    "can_manage_routes",
+    "can_manage_vehicles",
+    "can_manage_staff",
+    "can_manage_student_trips",
+    "is_on_duty",
+  ];
+
+  // Get the current school ID from multiple sources
+  let schoolId = localStorage.getItem("schoolId");
+
+  // If not found, try to get from Redux persist data
+  if (!schoolId) {
+    const persistAuth = localStorage.getItem("persist:auth");
+    if (persistAuth) {
+      try {
+        const authData = JSON.parse(persistAuth);
+        const userData = JSON.parse(authData.user || "{}");
+        schoolId = userData.school_id || userData.school;
+      } catch (e) {
+        // Error parsing persist:auth for staff template school_id
+      }
+    }
+  }
+
+  if (!schoolId) {
+    // No school ID found in any source for staff template. Using placeholder '2'
+  }
+
+  const sampleData = [
+    "John",
+    "Michael",
+    "Doe",
+    "EMP001",
+    schoolId || "2",
+    "male",
+    "+254712345678",
+    "john.doe@school.com",
+    "active",
+    "teacher",
+    "false",
+    "false",
+    "false",
+    "true",
+    "true",
+  ];
+
+  const csvContent = [
+    headers.join(","),
+    sampleData.join(","),
+    `Mary,Ann,Smith,EMP002,${
+      schoolId || "2"
+    },female,+254723456789,mary.smith@school.com,active,school_admin,true,true,true,true,true`,
+    `Peter,,Johnson,EMP003,${
+      schoolId || "2"
+    },male,+254734567890,peter.johnson@school.com,active,driver,true,true,false,false,true`,
+  ].join("\n");
+
+  return csvContent;
+};
+
 // Download CSV template
 export const downloadCSVTemplate = (uploadType: string): void => {
   let csvContent = "";
@@ -263,6 +482,19 @@ export const downloadCSVTemplate = (uploadType: string): void => {
     case "drivers":
       csvContent = generateDriversCSVTemplate();
       fileName = "drivers_template.csv";
+      break;
+    case "students":
+      csvContent = generateStudentsCSVTemplate();
+      fileName = "students_template.csv";
+      break;
+    case "vehicles":
+      csvContent = generateVehiclesCSVTemplate();
+      fileName = "vehicles_template.csv";
+      break;
+    case "staffs":
+    case "staff":
+      csvContent = generateStaffCSVTemplate();
+      fileName = "staff_template.csv";
       break;
     default:
       csvContent = "first_name,last_name,phone_number\nJohn,Doe,+254700000000";

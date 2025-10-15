@@ -64,3 +64,4 @@ export const loadGoogleMaps = (apiKey: string): Promise<void> => {
 export const isGoogleMapsReady = (): boolean => {
   return isGoogleMapsLoaded && !!(window.google && window.google.maps);
 };
+

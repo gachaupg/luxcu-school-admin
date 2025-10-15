@@ -214,7 +214,7 @@ export const updateParent = createAsyncThunk<
   { id: number; data: Partial<Parent> }
 >("parents/updateParent", async ({ id, data }, { rejectWithValue }) => {
   try {
-    const response = await api.put(`${API_ENDPOINTS.PARENTS}${id}/`, data);
+    const response = await api.patch(`${API_ENDPOINTS.PARENTS}${id}/`, data);
     return response.data.data || response.data;
   } catch (error) {
     if (error instanceof AxiosError) {

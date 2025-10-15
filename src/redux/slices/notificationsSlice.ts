@@ -21,24 +21,39 @@ export interface NotificationPayload {
 
 export interface Notification {
   id?: number;
-  description: string;
-  payload: NotificationPayload;
+  alert_type: string; // e.g., "attendance_alert", "weather_alert", "traffic_delay"
+  severity: "low" | "medium" | "high";
+  title: string;
+  message: string;
+  description?: string;
+  student_id?: number;
+  trip_id?: number;
+  recipients: number[]; // Array of user IDs (parents, drivers, staff, etc.)
+  requires_immediate_action?: boolean;
+  metadata?: Record<string, any>;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  };
+  address?: string;
   created_at?: string;
   updated_at?: string;
   is_read?: boolean;
-  is_sent?: boolean;
   school?: number;
-  // New fields for enhanced notification targeting
+  // Legacy fields for backward compatibility
   notification_type?:
     | "ACTION_REQUIRED"
     | "SYSTEM"
     | "INFO"
     | "WARNING"
     | "EMERGENCY";
-  parents?: number[]; // Array of parent IDs to target
-  drivers?: number[]; // Array of driver IDs to target
-  admins?: number[]; // Array of admin IDs to target
-  message: string; // Direct message field
+  parents?: number[];
+  drivers?: number[];
+  admins?: number[];
+  description_legacy?: string;
+  payload?: NotificationPayload;
+  is_sent?: boolean;
+  school_name?: string;
 }
 
 interface NotificationsState {
@@ -92,19 +107,28 @@ export const createNotification = createAsyncThunk<
       // Ensure school ID is included
       const schoolId = localStorage.getItem("schoolId");
 
-      // Prepare notification data based on the new structure
-      const notificationDataWithSchool = {
-        ...notificationData,
-        school: notificationData.school || parseInt(schoolId || "0"),
-        // Ensure we have the required fields
-        message: notificationData.message || "",
-        notification_type: notificationData.notification_type || "INFO",
-        // Handle target arrays for school-admin-notifications API
-        parents: notificationData.parents || [],
-        drivers: notificationData.drivers || [],
-        is_read: false,
+      // Prepare alert data based on the new structure
+      const alertData = {
+        alert_type: notificationData.alert_type,
+        severity: notificationData.severity,
+        title: notificationData.title,
+        message: notificationData.message,
+        description: notificationData.description,
+        student_id: notificationData.student_id,
+        trip_id: notificationData.trip_id,
+        recipients: notificationData.recipients || [],
+        requires_immediate_action: notificationData.requires_immediate_action || false,
+        metadata: notificationData.metadata || {},
+        location: notificationData.location,
+        address: notificationData.address,
       };
 
+      // Remove undefined fields
+      Object.keys(alertData).forEach(key => {
+        if (alertData[key] === undefined) {
+          delete alertData[key];
+        }
+      });
 
       // Create request config with auth header
       const requestConfig = {
@@ -113,7 +137,7 @@ export const createNotification = createAsyncThunk<
 
       const response = await api.post(
         API_ENDPOINTS.NOTIFICATIONS_CREATE,
-        notificationDataWithSchool,
+        alertData,
         requestConfig
       );
       return response.data;

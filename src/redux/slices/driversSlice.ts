@@ -40,8 +40,8 @@ export interface CreateDriverData {
     last_name: string;
     email: string;
     phone_number: string;
-    password: string;
-    confirm_password: string;
+    password?: string;
+    confirm_password?: string;
     user_type: string;
     profile_image?: string | null;
   };

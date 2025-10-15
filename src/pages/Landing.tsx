@@ -56,7 +56,6 @@ import {
   Rocket,
   Fingerprint,
 } from "lucide-react";
-import SubscriptionPlansDisplay from "@/components/SubscriptionPlansDisplay";
 import { tokens } from "@/utils/tokens";
 
 const Landing = () => {
@@ -472,20 +471,20 @@ const Landing = () => {
       `}</style>
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-transparent transition-all duration-300 text-white">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white transition-all duration-300 text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/home">
               <div className="flex items-center space-x-2">
                 <span className="text-xl w-40 h-30 font-bold transition-colors duration-300">
-                  <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo-100_gcmpht.jpg" alt="" />
+                  <img src="https://res.cloudinary.com/pitz/image/upload/v1759998717/shuletrack_landscape_logo-100_gcmpht__1_-removebg-preview_kibgoq.png" alt="" />
                 </span>
               </div>
             </Link>
             <div className="hidden md:flex items-center space-x-8">
               <a
                 href="#about"
-                className="transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
+                className="text-black transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
                 onClick={(e) => {
                   e.preventDefault();
                   document
@@ -497,7 +496,7 @@ const Landing = () => {
               </a>
               <a
                 href="#features"
-                className="transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
+                className="text-black transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
                 onClick={(e) => {
                   e.preventDefault();
                   document
@@ -508,20 +507,8 @@ const Landing = () => {
                 Features
               </a>
               <a
-                href="#pricing"
-                className="transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document
-                    .getElementById("pricing")
-                    ?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                Pricing
-              </a>
-              <a
                 href="#contact"
-                className="transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
+                className="text-black transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
                 onClick={(e) => {
                   e.preventDefault();
                   document
@@ -540,7 +527,7 @@ const Landing = () => {
                 } else if (hasLoggedInBefore) {
                   navigate("/login");
                 } else {
-                  navigate("/subscription-selection");
+                  navigate("/register");
                 }
               }}
             >
@@ -557,7 +544,7 @@ const Landing = () => {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="relative min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+        className="relative min-h-screen flex items-center bg-gradient-to-r from-slate-600 via-slate-800 to-slate-900 shadow-xl shadow-black/30"
       >
         {/* Simple background pattern */}
         <div className="absolute inset-0 opacity-5">
@@ -1360,18 +1347,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Subscription Plans Section */}
-      <section
-        id="pricing"
-        className={`transition-all duration-1000 ${
-          animatedSections.has("pricing")
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 translate-y-10"
-        }`}
-      >
-        <SubscriptionPlansDisplay />
-      </section>
-
       {/* FAQ Section */}
       <section
         id="faq"
@@ -1581,13 +1556,13 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-white py-16">
+      <footer className="bg-gradient-to-r from-slate-600 via-slate-800 to-slate-900 text-white py-16 shadow-xl shadow-black/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-6">
-                  <div className="w-28  bg-white rounded-lg flex items-center justify-center">
-                  <img src="https://res.cloudinary.com/pitz/image/upload/v1755753463/shuletrack_landscape_logo-100_gcmpht.jpg" alt="" />
+                  <div className="w-40 flex items-center justify-center">
+                  <img src="https://res.cloudinary.com/pitz/image/upload/v1759998717/shuletrack_landscape_logo-100_gcmpht__1_-removebg-preview_kibgoq.png" alt="" />
                 </div>
               </div>
               <p className="text-slate-300 mb-6 leading-relaxed max-w-md">
@@ -1618,7 +1593,7 @@ const Landing = () => {
                     <p className="text-slate-300 text-sm">
                       <a
                         href="mailto:info@eujimsloutions.com"
-                        className="hover:text-[#f7c624] transition-colors"
+                        className="text-slate-300 hover:text-[#f7c624] transition-colors"
                       >
                         Inquiry: info@eujimsloutions.com
                       </a>
@@ -1626,7 +1601,7 @@ const Landing = () => {
                     <p className="text-slate-300 text-sm">
                       <a
                         href="mailto:support@eujimsolutions.com"
-                        className="hover:text-[#f7c624] transition-colors"
+                        className="text-slate-300 hover:text-[#f7c624] transition-colors"
                       >
                         Support: support@eujimsolutions.com
                       </a>
@@ -1643,7 +1618,7 @@ const Landing = () => {
                     <p className="text-slate-300 text-sm">
                       <a
                         href="tel:+254113281424"
-                        className="hover:text-[#f7c624] transition-colors"
+                        className="text-slate-300 hover:text-[#f7c624] transition-colors"
                       >
                         +254 113281424
                       </a>
@@ -1680,7 +1655,7 @@ const Landing = () => {
               </div>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-6">Product</h3>
+              <h3 className="text-lg font-semibold text-white mb-6">Product</h3>
               <ul className="space-y-3">
                 <li>
                   <a
@@ -1688,14 +1663,6 @@ const Landing = () => {
                     className="text-slate-300 hover:text-[#f7c624] transition-colors"
                   >
                     Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#pricing"
-                    className="text-slate-300 hover:text-[#f7c624] transition-colors"
-                  >
-                    Pricing
                   </a>
                 </li>
                 <li>
@@ -1709,7 +1676,7 @@ const Landing = () => {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-6">Company</h3>
+              <h3 className="text-lg font-semibold text-white mb-6">Company</h3>
               <ul className="space-y-3">
                 <li>
                   <a

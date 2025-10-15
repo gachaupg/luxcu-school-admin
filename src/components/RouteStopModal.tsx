@@ -132,7 +132,6 @@ const googleMapsApiKey =GOOGLE_MAPS_API_KEY;
           const autocomplete = new google.maps.places.Autocomplete(
             searchInputRef.current,
             {
-              types: ["geocode", "establishment"],
               fields: ["geometry", "formatted_address", "name"],
               componentRestrictions: { country: "ke" },
             }
@@ -216,7 +215,20 @@ const googleMapsApiKey =GOOGLE_MAPS_API_KEY;
     }
 
     try {
-      await dispatch(addRouteStop(values)).unwrap();
+      const stopData = {
+        name: values.name,
+        route: values.route,
+        location: {
+          type: "Point" as const,
+          coordinates: [selectedLocation.lng, selectedLocation.lat] as [number, number]
+        },
+        sequence_number: values.sequence_number,
+        estimated_arrival_time: values.estimated_arrival_time,
+        is_pickup: values.is_pickup,
+        is_dropoff: values.is_dropoff,
+      };
+
+      await dispatch(addRouteStop(stopData)).unwrap();
 
       // Add to local list of added stops
       const newStop: AddedStop = {

@@ -29,6 +29,7 @@ import {
   deleteStudent,
   Student,
 } from "../redux/slices/studentsSlice";
+import { fetchAllRouteStops, fetchRoutes } from "../redux/slices/routesSlice";
 import {
   createGrade,
   fetchGrades,
@@ -83,6 +84,11 @@ import {
 } from "../components/ui/select";
 import { ExportDropdown } from "../components/ExportDropdown";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+  MultipleUploadModal,
+  DataPreviewModal,
+} from "../components/multiple-upload";
+import { uploadCSVFile } from "@/services/csvUploadService";
 
 export default function Students() {
   const dispatch = useAppDispatch();
@@ -96,6 +102,7 @@ export default function Students() {
   } = useAppSelector((state) => state.grades);
   const { schools } = useAppSelector((state) => state.schools);
   const { user } = useAppSelector((state) => state.auth);
+  const { routes, allRouteStops } = useAppSelector((state) => state.routes);
 
   // Enhanced state management
   const [selectedStudents, setSelectedStudents] = useState<Set<number>>(
@@ -108,6 +115,7 @@ export default function Students() {
   const [showFilters, setShowFilters] = useState(false);
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [routeFilter, setRouteFilter] = useState<string>("all");
 
   // Active tab state
   const [activeTab, setActiveTab] = useState("students");
@@ -136,6 +144,11 @@ export default function Students() {
   const [currentPage, setCurrentPage] = useState(1);
   const [currentGradePage, setCurrentGradePage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Multiple upload states
+  const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
+  const [isDataPreviewOpen, setIsDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
 
   // Get school ID from localStorage or find it from schools - use useMemo to prevent unnecessary recalculations
   const schoolId = useMemo(() => {
@@ -172,6 +185,8 @@ export default function Students() {
       dispatch(fetchStudents({ schoolId }));
       dispatch(fetchParents({ schoolId }));
       dispatch(fetchGrades({ schoolId }));
+      dispatch(fetchAllRouteStops(schoolId));
+      dispatch(fetchRoutes({ schoolId }));
     } else {
       // console.log("No schoolId available, skipping data fetch");
     }
@@ -222,7 +237,24 @@ export default function Students() {
       const matchesGender =
         genderFilter === "all" || student.gender === genderFilter;
 
-      return matchesSearch && matchesStatus && matchesGrade && matchesGender;
+      // Filter by route - check if student's route_stops contain any stops from the selected route
+      const matchesRoute = 
+        routeFilter === "all" || 
+        (() => {
+          if (!student.route_stops || student.route_stops.length === 0) {
+            return false;
+          }
+          // Get all stops for the selected route
+          const routeStops = allRouteStops.filter(
+            (stop) => stop.route?.toString() === routeFilter
+          );
+          // Check if student has any stops from this route
+          return student.route_stops.some((stopId) =>
+            routeStops.some((routeStop) => routeStop.id === stopId)
+          );
+        })();
+
+      return matchesSearch && matchesStatus && matchesGrade && matchesGender && matchesRoute;
     });
 
     // Apply sorting
@@ -246,6 +278,8 @@ export default function Students() {
     statusFilter,
     gradeFilter,
     genderFilter,
+    routeFilter,
+    allRouteStops,
     sortConfig,
   ]);
 
@@ -275,7 +309,7 @@ export default function Students() {
   // Reset to first page when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, gradeFilter, genderFilter]);
+  }, [searchTerm, statusFilter, gradeFilter, genderFilter, routeFilter]);
 
   useEffect(() => {
     setCurrentGradePage(1);
@@ -589,6 +623,278 @@ export default function Students() {
     }
   };
 
+  // Helper function to convert grade name to grade ID
+  const getGradeIdFromName = (gradeName: string): number | null => {
+    if (!gradeName) return null;
+
+    // Clean the grade name (remove "Grade", spaces, etc.)
+    const cleanName = gradeName.toString().trim().toLowerCase();
+    
+    // Try to find exact match by name
+    let grade = grades.find(
+      (g) => g.name.toLowerCase() === cleanName ||
+             g.name.toLowerCase() === `grade ${cleanName}` ||
+             g.level.toLowerCase() === cleanName
+    );
+
+    // If not found, try to extract number and match by level
+    if (!grade) {
+      const numberMatch = cleanName.match(/\d+/);
+      if (numberMatch) {
+        const number = numberMatch[0];
+        grade = grades.find(
+          (g) => g.name.toLowerCase().includes(number) ||
+                 g.level.toLowerCase().includes(number)
+        );
+      }
+    }
+
+    return grade?.id || null;
+  };
+
+  // Helper function to parse CSV line with proper quote handling
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    let i = 0;
+
+    // Remove any trailing carriage return or line feed
+    const cleanLine = line.replace(/[\r\n]+$/, '');
+
+    while (i < cleanLine.length) {
+      const char = cleanLine[i];
+
+      if (char === '"') {
+        if (inQuotes && cleanLine[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === "," && !inQuotes) {
+        // End of field - remove quotes if present
+        const trimmed = current.trim();
+        const unquoted = trimmed.replace(/^["']|["']$/g, '');
+        result.push(unquoted);
+        current = "";
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+
+    // Add the last field - remove quotes if present
+    const trimmed = current.trim();
+    const unquoted = trimmed.replace(/^["']|["']$/g, '');
+    result.push(unquoted);
+
+    return result;
+  };
+
+  // Helper function to properly encode a CSV field
+  const encodeCSVField = (field: string): string => {
+    // If field contains comma, quotes, or newlines, wrap in quotes and escape internal quotes
+    if (field.includes(',') || field.includes('"') || field.includes('\n') || field.includes('\r')) {
+      return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
+  };
+
+  // Helper function to preprocess CSV file and convert grade names to IDs
+  const preprocessCSVFile = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const csv = e.target?.result as string;
+          const lines = csv.split("\n");
+          
+          if (lines.length === 0) {
+            resolve(file);
+            return;
+          }
+
+          // Parse headers using proper CSV parsing
+          const headers = parseCSVLine(lines[0]).map(h => h.trim());
+          console.log("📋 CSV Headers:", headers);
+          console.log("📋 Header count:", headers.length);
+          console.log("📋 date_of_birth at index:", headers.indexOf('date_of_birth'));
+          
+          const gradeIndex = headers.findIndex(h => 
+            h.toLowerCase() === 'grade' || 
+            h.toLowerCase() === 'grade_name' ||
+            h.toLowerCase() === 'class'
+          );
+
+          // If no grade column found, return original file
+          if (gradeIndex === -1) {
+            console.log("⚠️ No grade column found, returning original file");
+            resolve(file);
+            return;
+          }
+
+          console.log("📍 Grade column at index:", gradeIndex);
+
+          // Process data rows
+          const processedLines = [headers.map(h => encodeCSVField(h)).join(",")]; // Keep headers
+          
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            // Use proper CSV parsing to handle quoted fields
+            const values = parseCSVLine(line);
+            
+            console.log(`📝 Row ${i} - Parsed ${values.length} fields:`, values);
+            console.log(`📝 Row ${i} - date_of_birth value (index ${headers.indexOf('date_of_birth')}):`, values[headers.indexOf('date_of_birth')]);
+            
+            // Ensure we have the correct number of fields (pad with empty strings if needed)
+            while (values.length < headers.length) {
+              console.warn(`⚠️ Row ${i} - Missing field, padding with empty string`);
+              values.push('');
+            }
+            
+            if (values.length > gradeIndex && values[gradeIndex]) {
+              const gradeName = values[gradeIndex];
+              const gradeId = getGradeIdFromName(gradeName);
+              
+              if (gradeId) {
+                console.log(`✅ Row ${i} - Converted grade "${gradeName}" to ID: ${gradeId}`);
+                values[gradeIndex] = gradeId.toString();
+              } else {
+                console.warn(`⚠️ Row ${i} - Could not find grade ID for: ${gradeName}`);
+                // Keep original value if no match found
+              }
+            }
+            
+            // Properly encode each field before joining
+            const encodedLine = values.map(v => encodeCSVField(v)).join(",");
+            console.log(`📤 Row ${i} - Encoded line:`, encodedLine);
+            processedLines.push(encodedLine);
+          }
+
+          // Create new CSV content
+          const processedCSV = processedLines.join("\n");
+          
+          console.log("📦 Final processed CSV:");
+          console.log(processedCSV);
+          console.log("📦 Total lines:", processedLines.length);
+          
+          // Create new File object with processed data
+          const blob = new Blob([processedCSV], { type: "text/csv" });
+          const processedFile = new File([blob], file.name, { type: "text/csv" });
+          
+          console.log("✅ CSV preprocessing complete");
+          resolve(processedFile);
+        } catch (error) {
+          console.error("Error preprocessing CSV:", error);
+          resolve(file); // Return original file on error
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error("Failed to read file"));
+      };
+
+      reader.readAsText(file);
+    });
+  };
+
+  // Multiple upload handlers - Uses CSV upload service
+  const handleMultipleUpload = async (files: File[]) => {
+    try {
+      if (!schoolId) {
+        throw new Error("School ID not found");
+      }
+
+      // Ensure grades are loaded
+      if (grades.length === 0) {
+        showToast.info("Loading grades...");
+        await dispatch(fetchGrades({ schoolId })).unwrap();
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        try {
+          // Preprocess CSV to convert grade names to IDs
+          const processedFile = await preprocessCSVFile(file);
+          
+          // Upload file to CSV upload endpoint
+          const response = await uploadCSVFile(processedFile, "students");
+
+          if (response.success) {
+            totalSuccess += response.created_count || 0;
+            totalFailed += response.skipped_count || 0;
+
+            // Add any errors from the response
+            if (response.errors && response.errors.length > 0) {
+              response.errors.forEach((error) => {
+                if (typeof error === "string") {
+                  allErrors.push(error);
+                } else if (error.row && error.field && error.message) {
+                  allErrors.push(
+                    `Row ${error.row}, ${error.field}: ${error.message}`
+                  );
+                } else {
+                  allErrors.push(JSON.stringify(error));
+                }
+              });
+            }
+          } else {
+            totalFailed += 1;
+            allErrors.push(`File "${file.name}": ${response.message}`);
+          }
+        } catch (error: unknown) {
+          totalFailed += 1;
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          allErrors.push(`File "${file.name}": ${errorMessage}`);
+        }
+      }
+
+      // Show results
+      if (totalSuccess > 0) {
+        showToast.success(
+          `Successfully created ${totalSuccess} students.${
+            totalFailed > 0 ? ` ${totalFailed} skipped.` : ""
+          }`
+        );
+      }
+
+      if (totalFailed > 0 && allErrors.length > 0) {
+        showToast.error(
+          `${totalFailed} records were skipped. Errors: ${allErrors.slice(0, 3).join(", ")}${allErrors.length > 3 ? "..." : ""}`
+        );
+        console.error("Upload errors:", allErrors);
+      }
+
+      // Refresh students list
+      dispatch(fetchStudents({ schoolId }));
+    } catch (error: unknown) {
+      showToast.error(
+        error instanceof Error ? error.message : "CSV upload failed"
+      );
+      throw error;
+    }
+  };
+
+  const handleDataPreview = (data: Record<string, unknown>[]) => {
+    setPreviewData(data);
+    setIsDataPreviewOpen(true);
+  };
+
   // Show loading state while determining schoolId
   if (!schoolId && schools.length === 0) {
     return (
@@ -683,15 +989,34 @@ export default function Students() {
             <CardHeader className="pb-1 border-b border-border">
               <div className="flex items-center justify-between w-full">
                 <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <Users className="w-6 h-6 text-[#f7c624]" />
-                  Students List
+                  {activeTab === "students" ? (
+                    <>
+                      <Users className="w-6 h-6 text-[#f7c624]" />
+                      Students List
+                    </>
+                  ) : (
+                    <>
+                      <GraduationCap className="w-6 h-6 text-[#f7c624]" />
+                      Grades List
+                    </>
+                  )}
                 </CardTitle>
-                <Button
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200 ml-auto"
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Add Student
-                </Button>
+                <div className="flex gap-2 ml-auto">
+                  {activeTab === "students" && (
+                    <Button
+                      onClick={() => setIsMultipleUploadOpen(true)}
+                      className="bg-[#10213f] hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                    >
+                      <Download className="mr-2 h-4 w-4" /> Bulk Upload
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => activeTab === "students" ? setIsCreateModalOpen(true) : setIsCreateGradeModalOpen(true)}
+                    className="bg-[#f7c624] hover:bg-[#f7c624] text-white px-4 py-2 rounded-lg shadow font-semibold transition-all duration-200"
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> {activeTab === "students" ? "Add Student" : "Add Grade"}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
 
@@ -790,7 +1115,29 @@ export default function Students() {
 
                     {/* Advanced Filters */}
                     {showFilters && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium">Route</Label>
+                          <Select
+                            value={routeFilter}
+                            onValueChange={setRouteFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Routes</SelectItem>
+                              {routes.filter(route => route.school === schoolId).map((route) => (
+                                <SelectItem
+                                  key={route.id}
+                                  value={route.id?.toString() || ""}
+                                >
+                                  {route.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <div className="space-y-2">
                           <Label className="text-sm font-medium">Status</Label>
                           <Select
@@ -877,9 +1224,9 @@ export default function Students() {
 
                     {/* Bulk Actions */}
                     {selectedStudents.size > 0 && (
-                      <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-blue-900">
+                          <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                             {selectedStudents.size} student(s) selected
                           </span>
                         </div>
@@ -948,9 +1295,9 @@ export default function Students() {
                   {/* Error State */}
                   {error && (
                     <div className="text-center py-12">
-                      <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                      <div className="mx-auto mb-4 w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-8 h-8 text-red-600"
+                          className="w-8 h-8 text-destructive"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -963,15 +1310,15 @@ export default function Students() {
                           />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         Unable to Load Students
                       </h3>
-                      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                         We encountered an issue while loading your students.
                         Please try again.
                       </p>
                       <div className="space-y-2">
-                        <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md max-w-md mx-auto">
+                        <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-md max-w-md mx-auto">
                           {error}
                         </p>
                         <Button
@@ -1005,9 +1352,9 @@ export default function Students() {
                     <>
                       <div className="overflow-x-auto">
                         <table className="w-full">
-                          <thead className="sticky top-0 bg-white">
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                          <thead className="sticky top-0 bg-muted/50">
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 px-3 font-semibold text-foreground">
                                 <div className="flex items-center gap-2">
                                   <input
                                     type="checkbox"
@@ -1017,12 +1364,12 @@ export default function Students() {
                                       paginatedStudents.length > 0
                                     }
                                     onChange={handleSelectAll}
-                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 rounded"
                                   />
                                 </div>
                               </th>
                               <th
-                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                className="text-left py-2 px-3 font-semibold text-foreground cursor-pointer hover:bg-muted/30"
                                 onClick={() => handleSort("first_name")}
                               >
                                 <div className="flex items-center gap-1">
@@ -1036,7 +1383,7 @@ export default function Students() {
                                 </div>
                               </th>
                               <th
-                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                className="text-left py-2 px-3 font-semibold text-foreground cursor-pointer hover:bg-muted/30"
                                 onClick={() => handleSort("admission_number")}
                               >
                                 <div className="flex items-center gap-1">
@@ -1050,7 +1397,7 @@ export default function Students() {
                                 </div>
                               </th>
                               <th
-                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                className="text-left py-2 px-3 font-semibold text-foreground cursor-pointer hover:bg-muted/30"
                                 onClick={() => handleSort("grade")}
                               >
                                 <div className="flex items-center gap-1">
@@ -1064,7 +1411,7 @@ export default function Students() {
                                 </div>
                               </th>
                               <th
-                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                className="text-left py-2 px-3 font-semibold text-foreground cursor-pointer hover:bg-muted/30"
                                 onClick={() => handleSort("gender")}
                               >
                                 <div className="flex items-center gap-1">
@@ -1078,7 +1425,7 @@ export default function Students() {
                                 </div>
                               </th>
                               <th
-                                className="text-left py-2 px-3 font-semibold text-gray-700 cursor-pointer hover:bg-gray-50"
+                                className="text-left py-2 px-3 font-semibold text-foreground cursor-pointer hover:bg-muted/30"
                                 onClick={() => handleSort("transport_enabled")}
                               >
                                 <div className="flex items-center gap-1">
@@ -1091,16 +1438,16 @@ export default function Students() {
                                     ))}
                                 </div>
                               </th>
-                              <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                              <th className="text-right py-2 px-3 font-semibold text-foreground">
                                 Actions
                               </th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
+                          <tbody className="divide-y divide-border">
                             {paginatedStudents.map((student) => (
                               <tr
                                 key={student.id}
-                                className="hover:bg-gray-50 transition-colors"
+                                className="hover:bg-muted/30 transition-colors"
                               >
                                 <td className="py-2 px-3">
                                   <input
@@ -1109,43 +1456,43 @@ export default function Students() {
                                     onChange={() =>
                                       handleSelectStudent(student.id!)
                                     }
-                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 rounded"
                                   />
                                 </td>
                                 <td className="py-2 px-3">
                                   <div className="flex items-center">
-                                    <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                                      <Users className="h-4 w-4 text-green-600" />
+                                    <div className="h-8 w-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                                      <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
                                     </div>
                                     <div className="ml-2">
-                                      <p className="text-sm font-medium text-gray-900">
+                                      <p className="text-sm font-medium text-foreground">
                                         {student.first_name || ""}{" "}
                                         {student.middle_name || ""}{" "}
                                         {student.last_name || ""}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-xs text-muted-foreground">
                                         ID: {student.id || "N/A"}
                                       </p>
                                     </div>
                                   </div>
                                 </td>
                                 <td className="py-2 px-3">
-                                  <span className="text-sm font-medium text-gray-900">
+                                  <span className="text-sm font-medium text-foreground">
                                     {student.admission_number || "N/A"}
                                   </span>
                                 </td>
                                 <td className="py-2 px-3">
                                   <div>
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-foreground">
                                       {getGradeName(student.grade)}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-muted-foreground">
                                       Section {student.section || "N/A"}
                                     </p>
                                   </div>
                                 </td>
                                 <td className="py-2 px-3">
-                                  <span className="text-sm text-gray-900 capitalize">
+                                  <span className="text-sm text-foreground capitalize">
                                     {student.gender || "N/A"}
                                   </span>
                                 </td>
@@ -1190,15 +1537,15 @@ export default function Students() {
                         </table>
                         {paginatedStudents.length === 0 && (
                           <div className="text-center py-12">
-                            <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                              <Users className="h-8 w-8 text-gray-400" />
+                            <div className="mx-auto mb-4 w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                              <Users className="h-8 w-8 text-muted-foreground" />
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            <h3 className="text-lg font-semibold text-foreground mb-2">
                               {searchTerm || statusFilter !== "all"
                                 ? "No Students Found"
                                 : "No Students Yet"}
                             </h3>
-                            <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                               {searchTerm || statusFilter !== "all"
                                 ? "No students match your current search or filter criteria. Try adjusting your search terms or filters."
                                 : "Get started by adding your first student to the system."}
@@ -1216,8 +1563,8 @@ export default function Students() {
                         )}
                       </div>
                       {/* Pagination Controls - always show at the bottom */}
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-6 border-t border-gray-200 mt-0">
-                        <div className="text-sm text-gray-600 mb-2 sm:mb-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-6 border-t border-border mt-0">
+                        <div className="text-sm text-muted-foreground mb-2 sm:mb-0">
                           Showing {startIndex + 1}-
                           {Math.min(endIndex, filteredStudents.length)} of{" "}
                           {filteredStudents.length} students
@@ -1299,7 +1646,7 @@ export default function Students() {
                             Next
                             <ChevronRight className="h-4 w-4" />
                           </Button>
-                          <span className="ml-4 text-xs text-gray-500 hidden sm:inline">
+                          <span className="ml-4 text-xs text-muted-foreground hidden sm:inline">
                             Page {currentPage} of {totalPages}
                           </span>
                         </div>
@@ -1313,7 +1660,7 @@ export default function Students() {
                   {/* Search Bar */}
                   <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
                         placeholder="Search grades by name, level, or description..."
                         value={gradeSearchTerm}
@@ -1327,10 +1674,10 @@ export default function Students() {
                   {gradesLoading && (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         Loading Grades
                       </h3>
-                      <p className="text-gray-600">
+                      <p className="text-muted-foreground">
                         Please wait while we fetch your grade data...
                       </p>
                     </div>
@@ -1339,9 +1686,9 @@ export default function Students() {
                   {/* Error State */}
                   {gradesError && (
                     <div className="text-center py-12">
-                      <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                      <div className="mx-auto mb-4 w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
                         <svg
-                          className="w-8 h-8 text-red-600"
+                          className="w-8 h-8 text-destructive"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1354,15 +1701,15 @@ export default function Students() {
                           />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         Unable to Load Grades
                       </h3>
-                      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                      <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                         We encountered an issue while loading your grades.
                         Please try again.
                       </p>
                       <div className="space-y-2">
-                        <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-md max-w-md mx-auto">
+                        <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-md max-w-md mx-auto">
                           {gradesError}
                         </p>
                         <Button
@@ -1395,41 +1742,41 @@ export default function Students() {
                   {!gradesLoading && !gradesError && (
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="sticky top-0 bg-white">
-                          <tr className="border-b border-gray-200">
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                        <thead className="sticky top-0 bg-muted/50">
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-3 font-semibold text-foreground">
                               Grade
                             </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                            <th className="text-left py-2 px-3 font-semibold text-foreground">
                               Level
                             </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                            <th className="text-left py-2 px-3 font-semibold text-foreground">
                               Description
                             </th>
-                            <th className="text-left py-2 px-3 font-semibold text-gray-700">
+                            <th className="text-left py-2 px-3 font-semibold text-foreground">
                               Capacity
                             </th>
-                            <th className="text-right py-2 px-3 font-semibold text-gray-700">
+                            <th className="text-right py-2 px-3 font-semibold text-foreground">
                               Actions
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                           {paginatedGrades.map((grade) => (
                             <tr
                               key={grade.id}
-                              className="hover:bg-gray-50 transition-colors"
+                              className="hover:bg-muted/30 transition-colors"
                             >
                               <td className="py-2 px-3">
                                 <div className="flex items-center">
-                                  <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <GraduationCap className="h-4 w-4 text-blue-600" />
+                                  <div className="h-8 w-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+                                    <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                   </div>
                                   <div className="ml-2">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-foreground">
                                       {grade.name}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-muted-foreground">
                                       ID: {grade.id}
                                     </p>
                                   </div>
@@ -1441,12 +1788,12 @@ export default function Students() {
                                 </Badge>
                               </td>
                               <td className="py-2 px-3">
-                                <p className="text-sm text-gray-900 max-w-xs truncate">
+                                <p className="text-sm text-foreground max-w-xs truncate">
                                   {grade.description}
                                 </p>
                               </td>
                               <td className="py-2 px-3">
-                                <span className="text-sm font-medium text-gray-900">
+                                <span className="text-sm font-medium text-foreground">
                                   {grade.capacity} students
                                 </span>
                               </td>
@@ -1483,15 +1830,15 @@ export default function Students() {
 
                       {paginatedGrades.length === 0 && (
                         <div className="text-center py-12">
-                          <div className="mx-auto mb-4 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                            <GraduationCap className="h-8 w-8 text-gray-400" />
+                          <div className="mx-auto mb-4 w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                            <GraduationCap className="h-8 w-8 text-muted-foreground" />
                           </div>
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          <h3 className="text-lg font-semibold text-foreground mb-2">
                             {gradeSearchTerm
                               ? "No Grades Found"
                               : "No Grades Yet"}
                           </h3>
-                          <p className="text-gray-600 mb-4 max-w-md mx-auto">
+                          <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                             {gradeSearchTerm
                               ? "No grades match your current search criteria. Try adjusting your search terms."
                               : "Get started by adding your first grade to the system."}
@@ -1510,8 +1857,8 @@ export default function Students() {
 
                       {/* Pagination Controls for Grades */}
                       {totalGradePages > 1 && (
-                        <div className="flex items-center justify-between p-6 border-t border-gray-200">
-                          <div className="text-sm text-gray-600">
+                        <div className="flex items-center justify-between p-6 border-t border-border">
+                          <div className="text-sm text-muted-foreground">
                             Showing {startGradeIndex + 1}-
                             {Math.min(endGradeIndex, filteredGrades.length)} of{" "}
                             {filteredGrades.length} grades
@@ -1678,6 +2025,41 @@ export default function Students() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Multiple Upload Modal */}
+      <MultipleUploadModal
+        isOpen={isMultipleUploadOpen}
+        onClose={() => setIsMultipleUploadOpen(false)}
+        title="Bulk Upload Students"
+        description="Upload multiple students at once using CSV document. Required fields: First Name, Last Name, Admission Number, Grade (use grade name like 'Grade 1' or just '1'), Gender, Date of Birth (format: YYYY-MM-DD, e.g., 2015-05-15), Parent Phone Number."
+        acceptedFileTypes={[".csv"]}
+        maxFileSize={10}
+        maxFiles={5}
+        onUpload={handleMultipleUpload}
+        onPreview={handleDataPreview}
+        uploadType="students"
+      />
+
+      {/* Data Preview Modal */}
+      <DataPreviewModal
+        isOpen={isDataPreviewOpen}
+        onClose={() => setIsDataPreviewOpen(false)}
+        data={previewData}
+        title="Student Data Preview"
+        columns={[
+          "First Name",
+          "Middle Name",
+          "Last Name",
+          "Admission Number",
+          "Grade",
+          "Section",
+          "Gender",
+          "Transport Enabled",
+          "Route Stops",
+          "Parent Phone Number",
+          "School ID",
+        ]}
+      />
     </div>
   );
 }

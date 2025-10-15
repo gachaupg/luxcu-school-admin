@@ -53,6 +53,7 @@ interface UploadedFile {
   progress: number;
   error?: string;
   preview?: Record<string, unknown>[];
+  file?: File; // Store the original File object
 }
 
 interface MultipleUploadModalProps {
@@ -69,7 +70,7 @@ interface MultipleUploadModalProps {
   templateFileName?: string;
   validationSchema?: Record<string, unknown>;
   previewColumns?: string[];
-  uploadType: "parents" | "drivers" | "students" | "teachers";
+  uploadType: "parents" | "drivers" | "students" | "teachers" | "vehicles" | "staffs";
 }
 
 export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
@@ -91,7 +92,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [allParsedData, setAllParsedData] = useState<Record<string, string>[]>(
+  const [allParsedData, setAllParsedData] = useState<Record<string, unknown>[]>(
     []
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,13 +145,25 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         const fileExtension = file.name
           .toLowerCase()
           .substring(file.name.lastIndexOf("."));
+        
+        // For CSV files, be more lenient with MIME type detection
+        const isCSV = fileExtension === ".csv" || 
+                      file.type === "text/csv" || 
+                      file.type === "application/vnd.ms-excel" ||
+                      file.type === "application/csv" ||
+                      file.type === "text/plain";
+        
         const isValidType = acceptedFileTypes.some((acceptedType) => {
           // Check if it matches the file extension
           if (acceptedType.startsWith(".")) {
+            // For CSV, be lenient
+            if (acceptedType.toLowerCase() === ".csv" && isCSV) {
+              return true;
+            }
             return fileExtension === acceptedType.toLowerCase();
           }
           // Check if it matches the MIME type
-          return file.type === acceptedType;
+          return file.type === acceptedType || isCSV;
         });
 
         if (!isValidType) {
@@ -160,7 +173,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
               file.name
             } is not a supported file type. Supported types: ${acceptedFileTypes.join(
               ", "
-            )}`,
+            )}. File extension: ${fileExtension}, MIME type: ${file.type || 'unknown'}`,
             variant: "destructive",
           });
           return false;
@@ -208,6 +221,7 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           type: file.type,
           status: "uploading",
           progress: 0,
+          file: file, // Store the original File object
         };
 
         setUploadedFiles((prev) => [...prev, newFile]);
@@ -313,9 +327,17 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       return { isValid: false, errors };
     }
 
-    // Debug: Log the first row to see what columns are available
+    // Debug: Log upload type and first row columns
+    console.log("Validating data for uploadType:", uploadType);
     if (data.length > 0) {
-      // Available columns and first row data logging removed
+      console.log("Available columns:", Object.keys(data[0]));
+      console.log("First row data:", data[0]);
+    }
+
+    // For vehicles and staff, skip frontend validation - let backend handle it
+    if (uploadType === "vehicles" || uploadType === "staffs" || uploadType === "staff") {
+      console.log("Skipping frontend validation for", uploadType);
+      return { isValid: true, errors: [] };
     }
 
     data.forEach((row, index) => {
@@ -377,6 +399,18 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           return phonePattern.test(value.replace(/\s+/g, ""));
         });
 
+      // Check for date of birth field (for students)
+      const hasDateOfBirth =
+        row.date_of_birth ||
+        row["Date of Birth"] ||
+        row["Date_of_Birth"] ||
+        row["date_of_birth"] ||
+        row.dateOfBirth ||
+        row["DateOfBirth"] ||
+        row.dob ||
+        row["DOB"] ||
+        row["dob"];
+
       // Check for driver-specific fields
       const hasLicenseNumber =
         row.license_number ||
@@ -421,33 +455,96 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
       );
 
       if (hasAnyData) {
-        // Common validation for all types
-        if (!hasName) {
-          errors.push(`Row ${rowNumber}: Name is required`);
-        }
+        // Vehicle-specific validation
+        if (uploadType === "vehicles") {
+          // Check for vehicle-specific required fields
+          const hasRegistrationNumber =
+            row.registration_number ||
+            row["Registration Number"] ||
+            row["Registration_Number"] ||
+            row.registrationNumber ||
+            row["RegistrationNumber"];
 
-        if (!hasPhone) {
-          errors.push(`Row ${rowNumber}: Phone number is required`);
-        }
+          const hasVehicleType =
+            row.vehicle_type ||
+            row["Vehicle Type"] ||
+            row["Vehicle_Type"] ||
+            row.vehicleType ||
+            row["VehicleType"];
 
-        // Driver-specific validation
-        if (uploadType === "drivers") {
-          // For drivers, all fields are required by the API, but we'll generate defaults
-          // Only validate that we have the essential fields that we can't easily generate
-          if (!hasLicenseNumber) {
-            // License number not provided - will generate default
+          const hasCapacity =
+            row.capacity ||
+            row["Capacity"] ||
+            row["capacity"];
+
+          // Only add errors if critical fields are missing
+          // Be lenient - backend will do the final validation
+          if (!hasRegistrationNumber) {
+            errors.push(`Row ${rowNumber}: Registration number is required`);
           }
-          if (!hasLicenseClass) {
-            // License class not provided - will use default "B"
+
+          // Don't fail on missing vehicle type or capacity - backend will handle defaults
+        } else if (uploadType === "staffs" || uploadType === "staff") {
+          // Staff validation
+          const hasEmployeeNumber =
+            row.employee_number ||
+            row["Employee Number"] ||
+            row["Employee_Number"] ||
+            row.employeeNumber;
+
+          // Staff just needs basic name and phone like other user types
+          if (!hasName) {
+            errors.push(`Row ${rowNumber}: Name is required`);
           }
-          if (!hasLicenseExpiry) {
-            // License expiry not provided - will use default "2025-12-31"
+
+          if (!hasPhone) {
+            errors.push(`Row ${rowNumber}: Phone number is required`);
           }
-          if (!hasHealthCheck) {
-            // Last health check not provided - will use default "2024-01-01"
+        } else {
+          // Common validation for parents, drivers, students, teachers
+          if (!hasName) {
+            errors.push(`Row ${rowNumber}: Name is required`);
           }
-          if (!hasBackgroundCheck) {
-            // Last background check not provided - will use default "2024-01-01"
+
+          if (!hasPhone) {
+            errors.push(`Row ${rowNumber}: Phone number is required`);
+          }
+
+          // Student-specific validation
+          if (uploadType === "students") {
+            if (!hasDateOfBirth) {
+              errors.push(`Row ${rowNumber}: Date of birth is required for students (format: YYYY-MM-DD, e.g., 2015-05-15)`);
+            } else {
+              // Validate date format
+              const dobValue = row.date_of_birth || row["Date of Birth"] || row["Date_of_Birth"] || row.dateOfBirth || row.dob || row["DOB"];
+              if (dobValue) {
+                const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+                if (!datePattern.test(String(dobValue).trim())) {
+                  errors.push(`Row ${rowNumber}: Date of birth must be in YYYY-MM-DD format (e.g., 2015-05-15)`);
+                }
+              }
+            }
+          }
+
+          // Driver-specific validation
+          if (uploadType === "drivers") {
+            // For drivers, all fields are required by the API, but we'll generate defaults
+            // Only validate that we have the essential fields that we can't easily generate
+            if (!hasLicenseNumber) {
+              // License number not provided - will generate default
+            }
+            if (!hasLicenseClass) {
+              // License class not provided - will use default "B"
+            }
+            if (!hasLicenseExpiry) {
+              // License expiry not provided - will use default "2025-12-31"
+            }
+            if (!hasHealthCheck) {
+              // Last health check not provided - will use default "2024-01-01"
+            }
+            if (!hasBackgroundCheck) {
+              // Last background check not provided - will use default "2024-01-01"
+            }
           }
         }
       }
@@ -1114,22 +1211,9 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     }
 
     // Get the actual File objects from the completed files
-    const fileObjects: File[] = [];
-    completedFiles.forEach((file) => {
-      // We need to get the original file object
-      // For now, we'll use a simple approach - you might need to store the original file
-      const fileInput = document.querySelector(
-        'input[type="file"]'
-      ) as HTMLInputElement;
-      if (fileInput && fileInput.files) {
-        for (let i = 0; i < fileInput.files.length; i++) {
-          if (fileInput.files[i].name === file.name) {
-            fileObjects.push(fileInput.files[i]);
-            break;
-          }
-        }
-      }
-    });
+    const fileObjects: File[] = completedFiles
+      .filter((f) => f.file) // Only include files that have the original File object
+      .map((f) => f.file!);
 
     if (fileObjects.length === 0) {
       toast({
@@ -1218,35 +1302,101 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     const columnMappings: { [key: string]: { [key: string]: string } } = {
       parents: {
         "First Name": "First Name",
+        "first_name": "First Name",
+        "school_id": "School ID",
         "Last Name": "Last Name",
+        "last_name": "Last Name",
         "Full Name": "Full Name",
         Name: "Name",
         Email: "Email",
+        email: "Email",
         "Phone Number": "Phone Number",
+        "phone_number": "Phone Number",
         Phone: "Phone Number",
         Mobile: "Phone Number",
         Contact: "Phone Number",
         Address: "Address",
+        address: "Address",
         "Emergency Contact": "Emergency Contact",
+        "emergency_contact": "Emergency Contact",
         "Secondary Phone": "Secondary Phone",
+        "secondary_phone": "Secondary Phone",
         "Preferred Contact Method": "Preferred Contact Method",
+        "preferred_contact_method": "Preferred Contact Method",
         "Authorized Pickup Persons": "Authorized Pickup Persons",
+        "authorized_pickup_persons": "Authorized Pickup Persons",
       },
       drivers: {
         "First Name": "First Name",
+        "first_name": "First Name",
+        "school_id": "School ID",
         "Last Name": "Last Name",
+        "last_name": "Last Name",
         "Full Name": "Full Name",
         Name: "Name",
         Email: "Email",
+        email: "Email",
         "Phone Number": "Phone Number",
+        "phone_number": "Phone Number",
         Phone: "Phone Number",
         Mobile: "Phone Number",
         Contact: "Phone Number",
         "License Number": "License Number",
+        "license_number": "License Number",
         "License Class": "License Class",
+        "license_class": "License Class",
         "License Expiry": "License Expiry",
+        "license_expiry": "License Expiry",
         "Last Health Check": "Last Health Check",
+        "last_health_check": "Last Health Check",
         "Last Background Check": "Last Background Check",
+        "last_background_check": "Last Background Check",
+        "is_assistant_driver": "Is Assistant Driver",
+      },
+      vehicles: {
+        "registration_number": "Registration Number",
+        "school_id": "School ID",
+        "vehicle_type": "Vehicle Type",
+        "capacity": "Capacity",
+        "model": "Model",
+        "year": "Year",
+        "fuel_type": "Fuel Type",
+        "manufacturer": "Manufacturer",
+        "is_active": "Is Active",
+        "has_gps": "Has GPS",
+        "has_camera": "Has Camera",
+        "has_emergency_button": "Has Emergency Button",
+        "driver_phone_number": "Driver Phone Number",
+      },
+      students: {
+        "first_name": "First Name",
+        "middle_name": "Middle Name",
+        "last_name": "Last Name",
+        "admission_number": "Admission Number",
+        "school_id": "School ID",
+        "grade": "Grade",
+        "section": "Section",
+        "gender": "Gender",
+        "date_of_birth": "Date of Birth",
+        "parent_name": "Parent Name",
+        "parent_phone": "Parent Phone",
+      },
+      staffs: {
+        "first_name": "First Name",
+        "middle_name": "Middle Name",
+        "last_name": "Last Name",
+        "employee_number": "Employee Number",
+        "school_id": "School ID",
+        "gender": "Gender",
+        "mobile_number": "Mobile Number",
+        "email": "Email",
+        "status": "Status",
+        "role": "Role",
+        "can_manage_routes": "Can Manage Routes",
+        "can_manage_vehicles": "Can Manage Vehicles",
+        "can_manage_staff": "Can Manage Staff",
+        "can_manage_student_trips": "Can Manage Student Trips",
+        "is_on_duty": "Is On Duty",
       },
     };
 

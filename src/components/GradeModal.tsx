@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { useToast } from "./ui/use-toast";
 
 interface GradeModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export function GradeModal({
   editMode = false,
   grade,
 }: GradeModalProps) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
     level: "",
@@ -84,10 +86,33 @@ export function GradeModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+    
+    if (!validateForm()) {
+      // Show first validation error as toast
+      const firstError = Object.values(errors).find(error => error);
+      if (firstError) {
+        toast({
+          title: "Validation Error",
+          description: firstError,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    try {
+      await onSubmit(formData);
+      toast({
+        title: "Success",
+        description: editMode ? "Grade updated successfully" : "Grade created successfully",
+      });
+      onClose();
+    } catch (error) {
+      // Error is handled by the parent component or Redux action
+      // Modal stays open to allow user to fix the issue
+      console.error("Grade submission error:", error);
     }
   };
 

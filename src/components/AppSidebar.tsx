@@ -13,11 +13,11 @@ import { Link, useLocation } from "react-router-dom";
 
 const menu = [
   { label: "Overview", icon: Home, href: "/" },
+  { label: "Routes", icon: Map, href: "/routes" },
   { label: "Parents", icon: Users, href: "/parents" },
   { label: "Students", icon: Users, href: "/students" },
   { label: "Drivers", icon: Users, href: "/drivers" },
   { label: "Vehicles", icon: Car, href: "/vehicles" },
-  { label: "Routes", icon: Map, href: "/routes" },
   { label: "Trips", icon: Car, href: "/trips" },
   { label: "Staff", icon: Users, href: "/staff" },
   { label: "Reports", icon: FileText, href: "/reports" },

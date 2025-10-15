@@ -55,6 +55,11 @@ import {
 } from "../components/ui/alert-dialog";
 import { RoleModal } from "../components/RoleModal";
 import { parseStaffError } from "@/utils/errorHandler";
+import {
+  MultipleUploadModal,
+  DataPreviewModal,
+} from "@/components/multiple-upload";
+import { uploadCSVFile } from "@/services/csvUploadService";
 
 export default function Staff() {
   const dispatch = useAppDispatch();
@@ -68,6 +73,11 @@ export default function Staff() {
   const [activeTab, setActiveTab] = useState<"staff" | "roles">("staff");
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null);
   const [componentError, setComponentError] = useState<string | null>(null);
+  
+  // Bulk upload states
+  const [isMultipleUploadOpen, setIsMultipleUploadOpen] = useState(false);
+  const [isDataPreviewOpen, setIsDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<Record<string, unknown>[]>([]);
 
  
 
@@ -256,15 +266,95 @@ export default function Staff() {
     return role ? role.name : "Unknown Role";
   };
 
+  // Bulk upload handlers
+  const handleMultipleUpload = async (files: File[]) => {
+    try {
+      if (!schoolId) {
+        throw new Error("School ID not found");
+      }
+
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
+
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        try {
+          // Upload file to CSV upload endpoint
+          const response = await uploadCSVFile(file, "staffs");
+
+          if (response.success) {
+            totalSuccess += response.created_count || 0;
+            totalFailed += response.skipped_count || 0;
+
+            // Add any errors from the response
+            if (response.errors && response.errors.length > 0) {
+              response.errors.forEach((error) => {
+                if (typeof error === "string") {
+                  allErrors.push(error);
+                } else if (error.row && error.field && error.message) {
+                  allErrors.push(
+                    `Row ${error.row}, ${error.field}: ${error.message}`
+                  );
+                } else {
+                  allErrors.push(JSON.stringify(error));
+                }
+              });
+            }
+          } else {
+            totalFailed += 1;
+            allErrors.push(`File "${file.name}": ${response.message}`);
+          }
+        } catch (error: unknown) {
+          totalFailed += 1;
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          allErrors.push(`File "${file.name}": ${errorMessage}`);
+        }
+      }
+
+      // Show results
+      if (totalSuccess > 0) {
+        showToast.success(
+          `Successfully created ${totalSuccess} staff member(s).${
+            totalFailed > 0 ? ` ${totalFailed} skipped.` : ""
+          }`
+        );
+      }
+
+      if (totalFailed > 0) {
+        showToast.error(
+          `${totalFailed} records were skipped. Check the console for details.`
+        );
+      }
+
+      // Refresh staff list
+      dispatch(fetchStaff({ schoolId }));
+      setIsMultipleUploadOpen(false);
+    } catch (error: unknown) {
+      showToast.error(
+        error instanceof Error ? error.message : "CSV upload failed"
+      );
+      throw error;
+    }
+  };
+
+  const handleDataPreview = (data: Record<string, unknown>[]) => {
+    setPreviewData(data);
+    setIsDataPreviewOpen(true);
+  };
+
   // Error boundary for the component
   if (componentError) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow p-8 max-w-md text-center">
-          <h2 className="text-xl font-bold text-red-600 mb-4">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="bg-card rounded-lg shadow p-8 max-w-md text-center">
+          <h2 className="text-xl font-bold text-destructive mb-4">
             Something went wrong
           </h2>
-          <p className="text-gray-600 mb-4">{componentError}</p>
+          <p className="text-muted-foreground mb-4">{componentError}</p>
           <button
             onClick={() => {
               setComponentError(null);
@@ -281,17 +371,17 @@ export default function Staff() {
 
   try {
     return (
-      <div className="min-h-screen bg-gray-100 flex w-full">
+      <div className="min-h-screen bg-background flex w-full">
         <div className="flex-1 flex flex-col min-h-screen">
-          <main className="flex-1 px-8 py-6 bg-gray-100">
+          <main className="flex-1 px-8 py-6 bg-background">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                   <Users className="text-[#f7c624]" size={32} />
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-2xl font-bold text-foreground">
                   Staff Management
                 </h2>
                 {process.env.NODE_ENV === "development" && schoolId && (
-                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
                     School ID: {schoolId}
                   </span>
                 )}
@@ -300,7 +390,7 @@ export default function Staff() {
               {/* School Selector */}
               {schools && schools.length > 1 && (
                 <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-foreground">
                     Select School:
                   </label>
                   <select
@@ -309,7 +399,7 @@ export default function Staff() {
                       const newSchoolId = parseInt(e.target.value);
                       setSelectedSchoolId(newSchoolId);
                     }}
-                    className="border border-gray-300 rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="border border-border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-background text-foreground"
                   >
                     {schools.map((school) => (
                       <option key={school.id} value={school.id}>
@@ -322,12 +412,21 @@ export default function Staff() {
 
               <div className="flex gap-4">
                 {activeTab === "staff" && (
-                  <button
-                    className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-5 py-2 rounded shadow"
-                    onClick={() => setIsModalOpen(true)}
-                  >
-                    Add New Staff
-                  </button>
+                  <>
+                    <button
+                      className="bg-[#10213f] hover:bg-blue-600 text-white font-semibold px-5 py-2 rounded shadow flex items-center gap-2"
+                      onClick={() => setIsMultipleUploadOpen(true)}
+                    >
+                      <Download size={20} />
+                      Bulk Upload
+                    </button>
+                    <button
+                      className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-5 py-2 rounded shadow"
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      Add New Staff
+                    </button>
+                  </>
                 )}
                 {activeTab === "roles" && (
                   <>
@@ -351,13 +450,13 @@ export default function Staff() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 mb-6">
+            <div className="flex border-b border-border mb-6">
               <button
                 onClick={() => setActiveTab("staff")}
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "staff"
                     ? "border-[#f7c624] text-[#f7c624]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                 }`}
               >
                 <div className="flex text-[#f7c624] items-center gap-2">
@@ -370,7 +469,7 @@ export default function Staff() {
                 className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                   activeTab === "roles"
                     ? "border-[#f7c624] text-[#f7c624]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -379,26 +478,26 @@ export default function Staff() {
                 </div>
               </button>
             </div>
-            {loading && <div className="text-center py-4">Loading...</div>}
+            {loading && <div className="text-center py-4 text-muted-foreground">Loading...</div>}
             {error && (
-              <div className="text-red-500 text-center py-4">{error}</div>
+              <div className="text-destructive text-center py-4">{error}</div>
             )}
 
             {/* Tab Content */}
             {activeTab === "staff" && (
-              <div className="bg-white rounded-lg shadow p-0 overflow-x-auto">
-                <div className="px-6 py-4 border-b bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-800">
+              <div className="bg-card rounded-lg shadow p-0 overflow-x-auto">
+                <div className="px-6 py-4 border-b bg-muted/50">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Staff Members
                   </h3>
                 </div>
                 {!staff || staff.length === 0 ? (
                   <div className="text-center py-12">
-                    <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                       No staff members
                     </h3>
-                    <p className="text-gray-500 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       Get started by adding your first staff member.
                     </p>
                     <button
@@ -410,33 +509,33 @@ export default function Staff() {
                   </div>
                 ) : (
                   <>
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted/50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             First Name
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Last Name
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Phone Number
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Email Address
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Role
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
+                      <tbody className="bg-card divide-y divide-border">
                         {staff?.map((staffMember) => (
                           <tr key={staffMember.employee_id}>
                             <td className="px-4 py-3 whitespace-nowrap">
@@ -466,7 +565,7 @@ export default function Staff() {
                               </span>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-center">
-                              <button className="p-2 rounded-full hover:bg-gray-100">
+                              <button className="p-2 rounded-full hover:bg-muted/30">
                                 <MoreVertical size={20} />
                               </button>
                             </td>
@@ -475,13 +574,13 @@ export default function Staff() {
                       </tbody>
                     </table>
                     {/* Pagination */}
-                    <div className="flex items-center justify-between px-4 py-2 border-t bg-gray-50 text-sm text-gray-600">
+                    <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/50 text-sm text-muted-foreground">
                       <span>
                         Showing 1-{staff?.length || 0} of {staff?.length || 0}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
-                          className="p-1 rounded hover:bg-gray-200"
+                          className="p-1 rounded hover:bg-muted/30"
                           disabled
                         >
                           <svg
@@ -499,7 +598,7 @@ export default function Staff() {
                             />
                           </svg>
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-200">
+                        <button className="p-1 rounded hover:bg-muted/30">
                           <svg
                             width="20"
                             height="20"
@@ -523,19 +622,19 @@ export default function Staff() {
             )}
 
             {activeTab === "roles" && (
-              <div className="bg-white rounded-lg shadow p-0 overflow-x-auto">
-                <div className="px-6 py-4 border-b bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-800">
+              <div className="bg-card rounded-lg shadow p-0 overflow-x-auto">
+                <div className="px-6 py-4 border-b bg-muted/50">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Available Roles
                   </h3>
                 </div>
                 {!roles || roles.length === 0 ? (
                   <div className="text-center py-12">
-                    <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                       No roles available
                     </h3>
-                    <p className="text-gray-500 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       Create default roles or add custom roles to get started.
                     </p>
                     <div className="flex gap-3 justify-center">
@@ -557,36 +656,36 @@ export default function Staff() {
                   </div>
                 ) : (
                   <>
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-border">
+                      <thead className="bg-muted/50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Role Name
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Description
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Type
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Permissions
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-foreground uppercase">
                             Actions
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
+                      <tbody className="bg-card divide-y divide-border">
                         {roles?.map((role) => (
                           <tr key={role.id}>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-foreground">
                                 {role.name || "Unnamed Role"}
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <div className="text-sm text-gray-600 max-w-xs">
+                              <div className="text-sm text-muted-foreground max-w-xs">
                                 {role.description || "No description available"}
                               </div>
                             </td>
@@ -616,14 +715,14 @@ export default function Staff() {
                                     ))}
                                 {role.permissions &&
                                   role.permissions.length > 3 && (
-                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                    <span className="px-2 py-1 bg-muted text-muted-foreground text-xs rounded">
                                       +{role.permissions.length - 3} more
                                     </span>
                                   )}
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-center">
-                              <button className="p-2 rounded-full hover:bg-gray-100">
+                              <button className="p-2 rounded-full hover:bg-muted/30">
                                 <MoreVertical size={20} />
                               </button>
                             </td>
@@ -632,13 +731,13 @@ export default function Staff() {
                       </tbody>
                     </table>
                     {/* Pagination */}
-                    <div className="flex items-center justify-between px-4 py-2 border-t bg-gray-50 text-sm text-gray-600">
+                    <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/50 text-sm text-muted-foreground">
                       <span>
                         Showing 1-{roles?.length || 0} of {roles?.length || 0}
                       </span>
                       <div className="flex items-center gap-2">
                         <button
-                          className="p-1 rounded hover:bg-gray-200"
+                          className="p-1 rounded hover:bg-muted/30"
                           disabled
                         >
                           <svg
@@ -656,7 +755,7 @@ export default function Staff() {
                             />
                           </svg>
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-200">
+                        <button className="p-1 rounded hover:bg-muted/30">
                           <svg
                             width="20"
                             height="20"
@@ -692,6 +791,45 @@ export default function Staff() {
           onClose={() => setIsRoleModalOpen(false)}
           schoolId={schoolId}
           onSubmit={handleCreateRole}
+        />
+
+        {/* Multiple Upload Modal */}
+        <MultipleUploadModal
+          isOpen={isMultipleUploadOpen}
+          onClose={() => setIsMultipleUploadOpen(false)}
+          title="Bulk Upload Staff"
+          description="Upload multiple staff members at once using CSV document. Required fields: First Name, Last Name, Employee Number, Email, Mobile Number, Role."
+          acceptedFileTypes={[".csv"]}
+          maxFileSize={10}
+          maxFiles={5}
+          onUpload={handleMultipleUpload}
+          onPreview={handleDataPreview}
+          uploadType="staffs"
+        />
+
+        {/* Data Preview Modal */}
+        <DataPreviewModal
+          isOpen={isDataPreviewOpen}
+          onClose={() => setIsDataPreviewOpen(false)}
+          data={previewData}
+          title="Staff Data Preview"
+          columns={[
+            "First Name",
+            "Middle Name",
+            "Last Name",
+            "Employee Number",
+            "Gender",
+            "Mobile Number",
+            "Email",
+            "Status",
+            "Role",
+            "Can Manage Routes",
+            "Can Manage Vehicles",
+            "Can Manage Staff",
+            "Can Manage Student Trips",
+            "Is On Duty",
+            "School ID",
+          ]}
         />
       </div>
     );

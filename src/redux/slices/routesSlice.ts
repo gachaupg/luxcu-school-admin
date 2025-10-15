@@ -27,8 +27,12 @@ export interface RouteStop {
   id?: number;
   name: string;
   route: number;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
+  location: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
   sequence_number: number;
   estimated_arrival_time: string;
   is_pickup: boolean;
@@ -37,12 +41,14 @@ export interface RouteStop {
 
 interface RoutesState {
   routes: Route[];
+  allRouteStops: RouteStop[];
   loading: boolean;
   error: string | null;
 }
 
 const initialState: RoutesState = {
   routes: [],
+  allRouteStops: [],
   loading: false,
   error: null,
 };
@@ -107,7 +113,7 @@ export const deleteRoute = createAsyncThunk<
 >("routes/deleteRoute", async (id, { rejectWithValue }) => {
   try {
     // Use the direct route deletion endpoint
-    await api.delete(`/api/routes/${id}/`);
+    await api.delete(`/routes/${id}/`);
     return id;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -127,10 +133,13 @@ export const updateRoute = createAsyncThunk<
   try {
     const schoolId = routeData.school;
     const response = await api.put(
-      `${API_ENDPOINTS.ROUTES}${schoolId}/routes/${id}/`,
+      `/routes/${id}/`,
       routeData
     );
-    return response.data.data;
+    // Handle different response structures
+    const updatedRoute = response.data.data || response.data;
+    // Ensure the ID is included in the response
+    return { ...updatedRoute, id };
   } catch (error) {
     const axiosError = error as AxiosError<{ message: string }>;
     return rejectWithValue(
@@ -143,12 +152,23 @@ export const updateRoute = createAsyncThunk<
 
 export const addRouteStop = createAsyncThunk<
   RouteStop,
-  Omit<RouteStop, "id">,
+  {
+    name: string;
+    route: number;
+    location: {
+      type: "Point";
+      coordinates: [number, number];
+    };
+    sequence_number: number;
+    estimated_arrival_time: string;
+    is_pickup: boolean;
+    is_dropoff: boolean;
+  },
   { rejectValue: string }
 >("routes/addRouteStop", async (stopData, { rejectWithValue }) => {
   try {
     const response = await api.post(
-      `/api/routes/${stopData.route}/stops/`,
+      `/routes/${stopData.route}/stops/`,
       stopData
     );
     return response.data;
@@ -178,6 +198,73 @@ export const fetchRouteStops = createAsyncThunk<
   }
 });
 
+export const fetchAllRouteStops = createAsyncThunk<
+  RouteStop[],
+  number,
+  { rejectValue: string }
+>("routes/fetchAllRouteStops", async (schoolId, { rejectWithValue }) => {
+  try {
+    const response = await api.get(`/schools/${schoolId}/route-stops/`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    return rejectWithValue(
+      axiosError.response?.data?.message || "Failed to fetch all route stops"
+    );
+  }
+});
+
+export const updateRouteStop = createAsyncThunk<
+  RouteStop,
+  { 
+    routeId: number; 
+    stopId: number; 
+    stopData: {
+      name: string;
+      location: {
+        type: "Point";
+        coordinates: [number, number];
+      };
+      sequence_number: number;
+      estimated_arrival_time: string;
+      is_pickup: boolean;
+      is_dropoff: boolean;
+    }
+  },
+  { rejectValue: string }
+>("routes/updateRouteStop", async ({ routeId, stopId, stopData }, { rejectWithValue }) => {
+  try {
+    const response = await api.put(
+      `/routes/${routeId}/stops/${stopId}/`,
+      stopData
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    return rejectWithValue(
+      JSON.stringify(
+        axiosError.response?.data || { message: "Failed to update route stop" }
+      )
+    );
+  }
+});
+
+export const deleteRouteStop = createAsyncThunk<
+  number,
+  { routeId: number; stopId: number },
+  { rejectValue: string }
+>("routes/deleteRouteStop", async ({ routeId, stopId }, { rejectWithValue }) => {
+  try {
+    await api.delete(`/routes/${routeId}/stops/${stopId}/`);
+    return stopId;
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message: string }>;
+    return rejectWithValue(
+      axiosError.response?.data?.message || "Failed to delete route stop"
+    );
+  }
+});
+
 const routesSlice = createSlice({
   name: "routes",
   initialState,
@@ -195,7 +282,9 @@ const routesSlice = createSlice({
       })
       .addCase(addRoute.fulfilled, (state, action) => {
         state.loading = false;
-        state.routes.push(action.payload);
+        if (action.payload) {
+          state.routes.push(action.payload);
+        }
       })
       .addCase(addRoute.rejected, (state, action) => {
         state.loading = false;
@@ -208,7 +297,8 @@ const routesSlice = createSlice({
       })
       .addCase(fetchRoutes.fulfilled, (state, action) => {
         state.loading = false;
-        state.routes = action.payload;
+        // Filter out any null/undefined routes
+        state.routes = action.payload.filter(route => route != null);
       })
       .addCase(fetchRoutes.rejected, (state, action) => {
         state.loading = false;
@@ -222,7 +312,7 @@ const routesSlice = createSlice({
       .addCase(deleteRoute.fulfilled, (state, action) => {
         state.loading = false;
         state.routes = state.routes.filter(
-          (route) => route.id !== action.payload
+          (route) => route && route.id !== action.payload
         );
       })
       .addCase(deleteRoute.rejected, (state, action) => {
@@ -236,11 +326,13 @@ const routesSlice = createSlice({
       })
       .addCase(updateRoute.fulfilled, (state, action) => {
         state.loading = false;
-        const index = state.routes.findIndex(
-          (route) => route.id === action.payload.id
-        );
-        if (index !== -1) {
-          state.routes[index] = action.payload;
+        if (action.payload && action.payload.id) {
+          const index = state.routes.findIndex(
+            (route) => route && route.id === action.payload.id
+          );
+          if (index !== -1) {
+            state.routes[index] = action.payload;
+          }
         }
       })
       .addCase(updateRoute.rejected, (state, action) => {
@@ -275,6 +367,48 @@ const routesSlice = createSlice({
         state.loading = false;
         state.error =
           (action.payload as string) || "Failed to fetch route stops";
+      })
+      // Fetch All Route Stops
+      .addCase(fetchAllRouteStops.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllRouteStops.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allRouteStops = action.payload;
+      })
+      .addCase(fetchAllRouteStops.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          (action.payload as string) || "Failed to fetch all route stops";
+      })
+      // Update Route Stop
+      .addCase(updateRouteStop.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateRouteStop.fulfilled, (state) => {
+        state.loading = false;
+        // Route stops are managed separately, so we don't update the routes array
+        // The route stops will be fetched separately when needed
+      })
+      .addCase(updateRouteStop.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to update route stop";
+      })
+      // Delete Route Stop
+      .addCase(deleteRouteStop.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteRouteStop.fulfilled, (state) => {
+        state.loading = false;
+        // Route stops are managed separately, so we don't update the routes array
+        // The route stops will be fetched separately when needed
+      })
+      .addCase(deleteRouteStop.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to delete route stop";
       });
   },
 });

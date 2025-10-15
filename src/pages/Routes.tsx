@@ -101,7 +101,7 @@ declare global {
 const formSchema = z.object({
   name: z.string().min(2, "Route name must be at least 2 characters"),
   school: z.number(),
-  driver: z.number().min(1, "Please select a driver"),
+  driver: z.number().optional(),
   start_lat: z.number(),
   start_lng: z.number(),
   end_lat: z.number(),
@@ -161,6 +161,11 @@ export default function RoutesPage() {
   const endInputRef = useRef<HTMLInputElement>(null);
   const stopSearchInputRef = useRef<HTMLInputElement>(null);
 
+  // Add autocomplete instances refs
+  const startAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const endAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const stopAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
   // Add new state for route stops in assignment
   const [selectedRouteStops, setSelectedRouteStops] = useState<
     Array<{
@@ -173,6 +178,9 @@ export default function RoutesPage() {
       is_dropoff?: boolean;
     }>
   >([]);
+
+  // Add state to track which routes have expanded schedule days
+  const [expandedScheduleRoutes, setExpandedScheduleRoutes] = useState<Set<number>>(new Set());
   const [isLoadingStops, setIsLoadingStops] = useState(false);
 
   // Table state management
@@ -198,6 +206,9 @@ export default function RoutesPage() {
   const [routeStopsCount, setRouteStopsCount] = useState<
     Record<number, number>
   >({});
+  const [routeStopPlaceNames, setRouteStopPlaceNames] = useState<
+    Record<number, string>
+  >({});
 
   // Student search state
   const [studentSearchTerm, setStudentSearchTerm] = useState("");
@@ -210,6 +221,127 @@ export default function RoutesPage() {
   const filteredSchools =
     schools?.filter((school) => school && school.admin === user?.id) || [];
   const schoolId = localStorage.getItem("schoolId");
+
+  // Function to get school location from school data
+  const getSchoolLocation = () => {
+    const currentSchoolId = localStorage.getItem("schoolId");
+    if (!currentSchoolId || !schools) return null;
+    
+    const currentSchool = schools.find(school => school.id === parseInt(currentSchoolId));
+    if (!currentSchool) return null;
+    
+    // Parse location from POINT format or use longitude_point and latitude_point
+    let lat = null;
+    let lng = null;
+    let schoolName = currentSchool.name;
+    
+    // Try to parse from location POINT format
+    if (currentSchool.location) {
+      const pointMatch = currentSchool.location.match(/POINT \(([^ ]+) ([^)]+)\)/);
+      if (pointMatch) {
+        lng = parseFloat(pointMatch[1]);
+        lat = parseFloat(pointMatch[2]);
+      }
+    }
+    
+    // Fallback to longitude_point and latitude_point
+    if (lat === null || lng === null) {
+      try {
+        if (currentSchool.longitude_point && typeof currentSchool.longitude_point === 'object') {
+          const lngPoint = currentSchool.longitude_point as any;
+          if (Array.isArray(lngPoint?.coordinates)) {
+            lng = lngPoint.coordinates[0];
+          }
+        }
+        if (currentSchool.latitude_point && typeof currentSchool.latitude_point === 'object') {
+          const latPoint = currentSchool.latitude_point as any;
+          if (Array.isArray(latPoint?.coordinates)) {
+            lat = latPoint.coordinates[1]; // Note: latitude is usually the second coordinate
+          }
+        }
+      } catch (error) {
+        console.warn('Error parsing school coordinates:', error);
+      }
+    }
+    
+    if (lat !== null && lng !== null) {
+      return { lat, lng, name: schoolName };
+    }
+    
+    return null;
+  };
+
+  // Function to set school location as start location
+  const setSchoolAsStartLocation = async () => {
+    const schoolLocation = getSchoolLocation();
+    if (!schoolLocation) return;
+    
+    try {
+      // Use Google Geocoder to get the formatted address from coordinates
+      if (window.google && window.google.maps) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode(
+          { location: { lat: schoolLocation.lat, lng: schoolLocation.lng } },
+          (results, status) => {
+            if (status === "OK" && results?.[0]) {
+              const formattedAddress = results[0].formatted_address;
+              setStartPlace(formattedAddress);
+              
+              // Set coordinates in form
+              form.setValue("start_lat", schoolLocation.lat);
+              form.setValue("start_lng", schoolLocation.lng);
+              
+              console.log('Auto-filled start location with school:', formattedAddress);
+            } else {
+              // Fallback to school name if geocoding fails
+              setStartPlace(schoolLocation.name);
+              form.setValue("start_lat", schoolLocation.lat);
+              form.setValue("start_lng", schoolLocation.lng);
+            }
+          }
+        );
+      } else {
+        // Fallback if Google Maps is not loaded yet
+        setStartPlace(schoolLocation.name);
+        form.setValue("start_lat", schoolLocation.lat);
+        form.setValue("start_lng", schoolLocation.lng);
+      }
+    } catch (error) {
+      console.error('Error setting school location:', error);
+      // Fallback to school name
+      setStartPlace(schoolLocation.name);
+      form.setValue("start_lat", schoolLocation.lat);
+      form.setValue("start_lng", schoolLocation.lng);
+    }
+  };
+
+  // Function to handle dialog open and reinitialize autocomplete
+  const handleDialogOpen = (dialogType: string) => {
+    if (dialogType === 'add') {
+      setIsAddDialogOpen(true);
+      // Reset form and clear autocomplete instances
+      form.reset();
+      setStartPlace("");
+      setEndPlace("");
+      setCalculatedDistance(null);
+      setCalculatedDuration(null);
+      setRouteStops([]);
+      // Clear autocomplete instances
+      startAutocompleteRef.current = null;
+      endAutocompleteRef.current = null;
+      stopAutocompleteRef.current = null;
+      
+      // Set school location as start location
+      setTimeout(() => {
+        setSchoolAsStartLocation();
+      }, 100);
+      
+      // Reinitialize autocomplete after dialog is opened
+      setTimeout(() => {
+        initializeAutocomplete();
+      }, 300);
+    }
+  };
 
   // Filter students for the current school
   const filteredStudents =
@@ -349,6 +481,28 @@ export default function RoutesPage() {
     }
   };
 
+  // Reverse geocoding function
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!window.google || !window.google.maps) {
+        resolve("Location not available");
+        return;
+      }
+
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat, lng } },
+        (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            resolve(results[0].formatted_address);
+          } else {
+            resolve("Location not available");
+          }
+        }
+      );
+    });
+  };
+
   // Function to handle route selection in assignment form
   const handleRouteSelection = async (routeId: number) => {
     const selectedRoute = routes?.find((route) => route.id === routeId);
@@ -356,17 +510,52 @@ export default function RoutesPage() {
       try {
         // Fetch route stops from API instead of decoding from path
         const response = await dispatch(fetchRouteStops(routeId)).unwrap();
-        setSelectedRouteStops(
-          response.map((stop, index) => ({
-            id: stop.id || index + 1,
-            name: stop.name || `Stop ${index + 1}`,
-            lat: stop.lat || 0,
-            lng: stop.lng || 0,
-            sequence: stop.sequence_number || index + 1,
-            is_pickup: stop.is_pickup,
-            is_dropoff: stop.is_dropoff,
-          }))
+        
+        // Load Google Maps if not already loaded
+        if (!window.google || !window.google.maps) {
+          await loadGoogleMaps(GOOGLE_MAPS_API_KEY);
+        }
+        
+        const stopsWithPlaceNames = await Promise.all(
+          response.map(async (stop, index) => {
+            // Handle both old and new data structures for coordinates
+            let lat = 0;
+            let lng = 0;
+            
+            if (stop.lat !== undefined && stop.lng !== undefined) {
+              // Old structure: direct lat/lng properties
+              lat = stop.lat;
+              lng = stop.lng;
+            } else if (stop.location && stop.location.coordinates) {
+              // New structure: location object with coordinates array
+              lng = stop.location.coordinates[0];
+              lat = stop.location.coordinates[1];
+            }
+
+            // Get place name from coordinates
+            let placeName = stop.name || `Stop ${index + 1}`;
+            if (lat !== 0 && lng !== 0) {
+              try {
+                const geocodedName = await reverseGeocode(lat, lng);
+                placeName = geocodedName;
+              } catch (error) {
+                console.error("Error geocoding:", error);
+              }
+            }
+
+            return {
+              id: stop.id || index + 1,
+              name: placeName,
+              lat: lat,
+              lng: lng,
+              sequence: stop.sequence_number || index + 1,
+              is_pickup: stop.is_pickup,
+              is_dropoff: stop.is_dropoff,
+            };
+          })
         );
+        
+        setSelectedRouteStops(stopsWithPlaceNames);
       } catch (error) {
         setSelectedRouteStops([]);
         toast({
@@ -437,7 +626,24 @@ export default function RoutesPage() {
   };
 
   const handleEdit = (route: Route) => {
-    if (!route) return;
+    if (!route) {
+      toast({
+        title: "Error",
+        description: "Invalid route selected for editing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!route.id || route.id === undefined || route.id === null) {
+      toast({
+        title: "Error",
+        description: "Selected route has invalid ID",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSelectedRoute(route);
 
     // Set the calculated values for display
@@ -447,7 +653,7 @@ export default function RoutesPage() {
     form.reset({
       name: route.name || "",
       school: route.school || parseInt(schoolId || "1"),
-      driver: route.driver || 0,
+      driver: route.driver || undefined,
       start_lat: route.start_lat || 0,
       start_lng: route.start_lng || 0,
       end_lat: route.end_lat || 0,
@@ -590,7 +796,7 @@ export default function RoutesPage() {
     defaultValues: {
       name: "",
       school: parseInt(schoolId || "1"),
-      driver: 0,
+      driver: undefined,
       start_lat: 0,
       start_lng: 0,
       end_lat: 0,
@@ -655,7 +861,8 @@ export default function RoutesPage() {
   useEffect(() => {
     if (routes && routes.length > 0) {
       routes.forEach((route) => {
-        if (route.id && !routeStopsCount[route.id]) {
+        // Add null/undefined check for route
+        if (route && route.id && !routeStopsCount[route.id]) {
           fetchRouteStopsCount(route.id);
         }
       });
@@ -663,136 +870,151 @@ export default function RoutesPage() {
   }, [routes]);
   const googleMapsApiKey = GOOGLE_MAPS_API_KEY;
 
-  useEffect(() => {
-    // Load Google Maps script using centralized loader
-    loadGoogleMaps(googleMapsApiKey)
-      .then(() => {
-        setIsMapLoaded(true);
-        if (startInputRef.current && endInputRef.current) {
-          const startAutocomplete = new google.maps.places.Autocomplete(
+  // Function to initialize autocomplete instances
+  const initializeAutocomplete = () => {
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      console.warn('Google Maps Places API not ready');
+      return false;
+    }
+
+    try {
+      // Initialize start location autocomplete
+      if (startInputRef.current && !startAutocompleteRef.current) {
+        startAutocompleteRef.current = new google.maps.places.Autocomplete(
             startInputRef.current,
             {
-              types: ["geocode", "establishment"],
               fields: ["geometry", "formatted_address", "name"],
               componentRestrictions: { country: "ke" },
             }
           );
 
-          const endAutocomplete = new google.maps.places.Autocomplete(
-            endInputRef.current,
-            {
-              types: ["geocode", "establishment"],
-              fields: ["geometry", "formatted_address", "name"],
-              componentRestrictions: { country: "ke" },
-            }
-          );
-
-        // Add custom styling to the autocomplete dropdown
-        const style = document.createElement("style");
-        style.textContent = `
-          .pac-container {
-            border-radius: 0.5rem;
-            margin-top: 0.5rem;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            border: 1px solid #e5e7eb;
-            background-color: white;
-            z-index: 1000;
-            max-height: 300px;
-            overflow-y: auto;
-          }
-          .pac-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            font-size: 0.875rem;
-            line-height: 1.25rem;
-            border-bottom: 1px solid #f3f4f6;
-            transition: background-color 0.2s;
-          }
-          .pac-item:last-child {
-            border-bottom: none;
-          }
-          .pac-item:hover {
-            background-color: #f3f4f6;
-          }
-          .pac-item-query {
-            font-size: 0.875rem;
-            color: #1f2937;
-            font-weight: 500;
-          }
-          .pac-icon {
-            margin-right: 0.75rem;
-            color: #6b7280;
-          }
-          .pac-matched {
-            font-weight: 600;
-            color: #2563eb;
-          }
-        `;
-        document.head.appendChild(style);
-
-        // Handle start location selection
-        startAutocomplete.addListener("place_changed", () => {
-          const place = startAutocomplete.getPlace();
-          if (place.geometry) {
+        startAutocompleteRef.current.addListener("place_changed", () => {
+          const place = startAutocompleteRef.current?.getPlace();
+          if (place?.geometry) {
             const lat = place.geometry.location?.lat() || 0;
             const lng = place.geometry.location?.lng() || 0;
             form.setValue("start_lat", lat);
             form.setValue("start_lng", lng);
             const displayAddress = place.name || place.formatted_address || "";
             setStartPlace(displayAddress);
+
+            // Calculate route automatically if both places are set
+            setTimeout(() => {
+              const currentEndPlace = endPlace || endInputRef.current?.value || "";
+              if (displayAddress && currentEndPlace) {
+                console.log('Auto-calculating from start location:', displayAddress, 'to:', currentEndPlace);
+                calculateRoute(displayAddress, currentEndPlace);
+              }
+            }, 200);
           }
         });
+      }
 
-        // Handle end location selection
-        endAutocomplete.addListener("place_changed", () => {
-          const place = endAutocomplete.getPlace();
-          if (place.geometry) {
+      // Initialize end location autocomplete
+      if (endInputRef.current && !endAutocompleteRef.current) {
+        endAutocompleteRef.current = new google.maps.places.Autocomplete(
+            endInputRef.current,
+            {
+              fields: ["geometry", "formatted_address", "name"],
+              componentRestrictions: { country: "ke" },
+            }
+          );
+
+        endAutocompleteRef.current.addListener("place_changed", () => {
+          console.log("End location autocomplete place_changed triggered");
+          const place = endAutocompleteRef.current?.getPlace();
+          if (place?.geometry) {
             const lat = place.geometry.location?.lat() || 0;
             const lng = place.geometry.location?.lng() || 0;
             form.setValue("end_lat", lat);
             form.setValue("end_lng", lng);
             const displayAddress = place.name || place.formatted_address || "";
             setEndPlace(displayAddress);
+            console.log("End location set:", displayAddress, "lat:", lat, "lng:", lng);
 
-            // Calculate route if both places are set
-            if (startPlace) {
+            // Calculate route automatically if both places are set
+            setTimeout(() => {
+              const currentStartPlace = startPlace || startInputRef.current?.value || "";
+              if (currentStartPlace && displayAddress) {
+                console.log('Auto-calculating from start location:', currentStartPlace, 'to:', displayAddress);
+                calculateRoute(currentStartPlace, displayAddress);
+              }
+            }, 200);
+          }
+        });
+      }
+
+      // Initialize stop search autocomplete
+      if (stopSearchInputRef.current && !stopAutocompleteRef.current) {
+        stopAutocompleteRef.current = new google.maps.places.Autocomplete(
+          stopSearchInputRef.current,
+          {
+            fields: ["geometry", "formatted_address", "name"],
+            componentRestrictions: { country: "ke" },
+          }
+        );
+
+        stopAutocompleteRef.current.addListener("place_changed", () => {
+          const place = stopAutocompleteRef.current?.getPlace();
+          if (place?.geometry) {
+            const lat = place.geometry.location?.lat() || 0;
+            const lng = place.geometry.location?.lng() || 0;
+            const name = place.name || place.formatted_address || "";
+            setStopSearchTerm(name);
+            if (stopSearchInputRef.current) {
+              stopSearchInputRef.current.value = name;
+            }
+            setTimeout(() => {
+              if (stopSearchInputRef.current) {
+                stopSearchInputRef.current.blur();
+              }
+            }, 100);
+          }
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error initializing autocomplete:', error);
+      return false;
+    }
+  };
+
+  // Function to calculate route
+  const calculateRoute = async (startAddress: string, endAddress: string) => {
+    if (!window.google || !window.google.maps) return;
+
+    console.log('Calculating route from:', startAddress, 'to:', endAddress);
               setIsCalculatingRoute(true);
               const directionsService = new google.maps.DirectionsService();
               const geocoder = new google.maps.Geocoder();
 
-              // First geocode both addresses to ensure we have valid coordinates
-              Promise.all([
-                new Promise((resolve, reject) => {
-                  geocoder.geocode(
-                    { address: startPlace },
-                    (results, status) => {
+    try {
+      const [startLocation, endLocation] = await Promise.all([
+        new Promise<google.maps.LatLng>((resolve, reject) => {
+          geocoder.geocode({ address: startAddress }, (results, status) => {
                       if (status === "OK" && results?.[0]) {
                         resolve(results[0].geometry.location);
                       } else {
                         reject(new Error("Could not geocode start location"));
                       }
-                    }
-                  );
-                }),
-                new Promise((resolve, reject) => {
-                  geocoder.geocode(
-                    { address: displayAddress },
-                    (results, status) => {
+          });
+        }),
+        new Promise<google.maps.LatLng>((resolve, reject) => {
+          geocoder.geocode({ address: endAddress }, (results, status) => {
                       if (status === "OK" && results?.[0]) {
                         resolve(results[0].geometry.location);
                       } else {
                         reject(new Error("Could not geocode end location"));
                       }
-                    }
-                  );
+          });
                 }),
-              ])
-                .then(([startLocation, endLocation]) => {
-                  // Now calculate the route using the geocoded locations
+      ]);
+
                   directionsService.route(
                     {
-                      origin: startLocation as google.maps.LatLng,
-                      destination: endLocation as google.maps.LatLng,
+          origin: startLocation,
+          destination: endLocation,
                       travelMode: google.maps.TravelMode.DRIVING,
                       unitSystem: google.maps.UnitSystem.METRIC,
                     },
@@ -803,98 +1025,105 @@ export default function RoutesPage() {
                         const distance = route.legs[0].distance?.value || 0;
                         const duration = route.legs[0].duration?.value || 0;
 
-                        // Convert distance to kilometers (round to 2 decimal places)
-                        const distanceInKm =
-                          Math.round((distance / 1000) * 100) / 100;
-
-                        // Convert duration to HH:MM:SS format
+            const distanceInKm = Math.round((distance / 1000) * 100) / 100;
                         const hours = Math.floor(duration / 3600);
                         const minutes = Math.floor((duration % 3600) / 60);
                         const seconds = duration % 60;
-                        const formattedDuration = `${hours
+            const formattedDuration = `${hours.toString().padStart(2, "0")}:${minutes
                           .toString()
-                          .padStart(2, "0")}:${minutes
-                          .toString()
-                          .padStart(2, "0")}:${seconds
-                          .toString()
-                          .padStart(2, "0")}`;
+              .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
-                        // Update both state and form values
                         setCalculatedDistance(distanceInKm);
                         setCalculatedDuration(formattedDuration);
                         form.setValue("total_distance", distanceInKm);
                         form.setValue("estimated_duration", formattedDuration);
                       } else {
-                        setIsCalculatingRoute(false);
                         toast({
                           title: "Error",
-                          description:
-                            "Could not calculate route. Please check if the locations are valid and try again.",
+              description: "Could not calculate route. Please check if the locations are valid and try again.",
                           variant: "destructive",
                         });
                       }
                     }
                   );
-                })
-                .catch((error) => {
+    } catch (error) {
                   setIsCalculatingRoute(false);
                   toast({
                     title: "Error",
-                    description:
-                      error.message ||
-                      "Could not calculate route. Please check the locations and try again.",
+        description: error instanceof Error ? error.message : "Could not calculate route. Please check the locations and try again.",
                     variant: "destructive",
-                  });
-                });
-            }
-          }
-        });
+      });
+    }
+  };
 
-        // Prevent form submission on enter key and handle click events
+  useEffect(() => {
+    // Load Google Maps script using centralized loader
+    loadGoogleMaps(googleMapsApiKey)
+      .then(() => {
+        setIsMapLoaded(true);
+        // Initialize autocomplete after a short delay to ensure DOM is ready
+        setTimeout(() => {
+          initializeAutocomplete();
+        }, 100);
+
+        // Add custom styling to the autocomplete dropdown
+        const style = document.createElement("style");
+        style.textContent = `
+          .pac-container {
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid hsl(var(--border));
+            background-color: hsl(var(--popover));
+            color: hsl(var(--popover-foreground));
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+          }
+          .pac-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            border-bottom: 1px solid hsl(var(--border));
+            transition: background-color 0.2s;
+          }
+          .pac-item:last-child {
+            border-bottom: none;
+          }
+          .pac-item:hover {
+            background-color: hsl(var(--accent));
+          }
+          .pac-item-query {
+            font-size: 0.875rem;
+            color: hsl(var(--popover-foreground));
+            font-weight: 500;
+          }
+          .pac-icon {
+            margin-right: 0.75rem;
+            color: hsl(var(--muted-foreground));
+          }
+          .pac-matched {
+            font-weight: 600;
+            color: hsl(var(--primary));
+          }
+        `;
+        document.head.appendChild(style);
+
+        // Add event listeners to prevent form submission on enter
+        if (startInputRef.current) {
         startInputRef.current.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
             e.preventDefault();
           }
         });
+        }
+        if (endInputRef.current) {
         endInputRef.current.addEventListener("keydown", (e) => {
           if (e.key === "Enter") {
             e.preventDefault();
           }
         });
-
-        // Add stop search autocomplete
-        if (stopSearchInputRef.current) {
-          const stopAutocomplete = new google.maps.places.Autocomplete(
-            stopSearchInputRef.current,
-            {
-              types: ["geocode", "establishment"],
-              fields: ["geometry", "formatted_address", "name"],
-              componentRestrictions: { country: "ke" },
-            }
-          );
-
-          stopAutocomplete.addListener("place_changed", () => {
-            const place = stopAutocomplete.getPlace();
-            if (place.geometry) {
-              const lat = place.geometry.location?.lat() || 0;
-              const lng = place.geometry.location?.lng() || 0;
-              const name = place.name || place.formatted_address || "";
-              // Only update the search term, don't add to stops list
-              setStopSearchTerm(name);
-              // Clear the autocomplete to prevent it from interfering
-              if (stopSearchInputRef.current) {
-                stopSearchInputRef.current.value = name;
-              }
-              // Prevent form submission by stopping event propagation
-              setTimeout(() => {
-                if (stopSearchInputRef.current) {
-                  stopSearchInputRef.current.blur();
-                }
-              }, 100);
-            } else {
-              // console.log("No geometry found for selected place");
-            }
-          });
         }
 
         // Add click event listeners to the autocomplete items
@@ -921,9 +1150,10 @@ export default function RoutesPage() {
         return () => {
           observer.disconnect();
         };
-      }
-    })
-    .catch((error) => {
+      });
+
+    // Handle error case
+    loadGoogleMaps(googleMapsApiKey).catch((error) => {
         console.error('Failed to load Google Maps:', error);
         toast({
           title: "Error",
@@ -933,7 +1163,21 @@ export default function RoutesPage() {
       });
   }, [googleMapsApiKey]);
 
+  // Auto-calculate route when both locations are available
+  useEffect(() => {
+    if (startPlace && endPlace && isMapLoaded) {
+      // Add a small delay to ensure the school location is properly set
+      const timer = setTimeout(() => {
+        console.log('Auto-calculating route on state change:', startPlace, 'to:', endPlace);
+        calculateRoute(startPlace, endPlace);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [startPlace, endPlace, isMapLoaded]);
+
   const handleAddRoute = async (values: FormValues) => {
+    console.log("handleAddRoute called with values:", values);
     const schoolId = localStorage.getItem("schoolId");
 
     if (!schoolId) {
@@ -1036,10 +1280,20 @@ export default function RoutesPage() {
   };
 
   const handleUpdateRoute = async (values: FormValues) => {
-    if (!selectedRoute?.id) {
+    // Enhanced null/undefined checks
+    if (!selectedRoute) {
       toast({
         title: "Error",
         description: "No route selected for update",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedRoute.id || selectedRoute.id === undefined || selectedRoute.id === null) {
+      toast({
+        title: "Error",
+        description: "Selected route has invalid ID",
         variant: "destructive",
       });
       return;
@@ -1091,21 +1345,21 @@ export default function RoutesPage() {
         path: path,
       } as Omit<Route, "id"> & { path: string };
 
-      await dispatch(updateRoute({ id: selectedRoute.id, routeData })).unwrap();
+      const result = await dispatch(updateRoute({ id: selectedRoute.id, routeData }));
+      
+      // Check if the action was fulfilled or rejected
+      if (updateRoute.rejected.match(result)) {
+        console.log("Route update rejected:", result.error);
+        throw new Error(result.error.message || "Failed to update route");
+      }
 
+      // Show success message
       toast({
         title: "Success",
         description: "Route updated successfully",
       });
 
-      // Refetch data to update the lists
-      if (schoolId) {
-        dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
-        dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
-        dispatch(fetchDrivers());
-      }
-
-      // Close dialog and reset form
+      // Close dialog and reset form first
       setIsEditModalOpen(false);
       setSelectedRoute(null);
       form.reset();
@@ -1116,25 +1370,24 @@ export default function RoutesPage() {
       setIsCalculatingRoute(false);
       setRouteStops([]);
       setStopSearchTerm("");
-    } catch (err) {
 
-      let errorMessage = "Failed to update route";
-
-      if (err instanceof Error) {
-        try {
-          const errorData = JSON.parse(err.message);
-          if (typeof errorData === "object" && errorData !== null) {
-            errorMessage = JSON.stringify(errorData, null, 2);
-          } else {
-            errorMessage = err.message;
-          }
-        } catch (parseError) {
-          errorMessage = err.message;
-        }
-      } else {
-        errorMessage = String(err);
+      // Refetch data to update the lists (in background)
+      if (schoolId) {
+        dispatch(fetchRoutes({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchStudents({ schoolId: parseInt(schoolId) }));
+        dispatch(fetchDrivers());
       }
-
+    } catch (err) {
+      console.error("Route update error:", err);
+      
+      let errorMessage = "Failed to update route";
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
       toast({
         title: "Error",
         description: errorMessage,
@@ -1206,13 +1459,25 @@ export default function RoutesPage() {
     }
   };
 
+  const toggleScheduleExpansion = (routeId: number) => {
+    setExpandedScheduleRoutes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(routeId)) {
+        newSet.delete(routeId);
+      } else {
+        newSet.add(routeId);
+      }
+      return newSet;
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 px-2 sm:px-1 py-0 w-full max-w-[98vw] mx-auto">
-          <Card className="bg-white shadow-lg border-0 rounded-xl">
-            <CardHeader className="border-b border-gray-100 flex flex-row w-full items-center justify-between py-4">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Card className="bg-card shadow-lg border-0 rounded-xl">
+            <CardHeader className="border-b border-border flex flex-row w-full items-center justify-between py-4">
+              <CardTitle className="text-xl font-bold text-foreground flex items-center gap-2">
                 <Map className="w-6 h-6 text-[#f7c624]" />
                 Routes List
               </CardTitle>
@@ -1240,15 +1505,7 @@ export default function RoutesPage() {
                     }
                   }}
                 >
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      Assign Route to Student
-                    </Button>
-                  </DialogTrigger>
+                  
                   <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Assign Route to Student</DialogTitle>
@@ -1256,7 +1513,7 @@ export default function RoutesPage() {
                         {unassignedStudents.length} students available for route
                         assignment
                         {assignedStudentIds.size > 0 && (
-                          <span className="text-amber-600">
+                          <span className="text-amber-600 dark:text-amber-400">
                             {" "}
                             ({assignedStudentIds.size} already assigned)
                           </span>
@@ -1339,7 +1596,7 @@ export default function RoutesPage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Select Route</FormLabel>
-                              <p className="text-xs text-gray-500 mb-2">
+                              <p className="text-xs text-muted-foreground mb-2">
                                 Choose a route to see available stops for pickup
                                 and dropoff
                               </p>
@@ -1410,8 +1667,8 @@ export default function RoutesPage() {
                               <Label className="text-base font-semibold">
                                 Route Stops
                               </Label>
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 dark:border-blue-400"></div>
                                 Loading stops...
                               </div>
                             </div>
@@ -1470,7 +1727,7 @@ export default function RoutesPage() {
                                       </SelectContent>
                                     </Select>
                                     <FormMessage />
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <p className="text-xs text-muted-foreground mt-1">
                                       This stop will be used for both pickup and
                                       dropoff
                                     </p>
@@ -1484,22 +1741,22 @@ export default function RoutesPage() {
                               <Label className="text-sm font-medium">
                                 Route Stops Preview
                               </Label>
-                              <div className="max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                              <div className="max-h-40 overflow-y-auto border rounded-lg p-3 bg-muted">
                                 {selectedRouteStops.map((stop) => (
                                   <div
                                     key={stop.id}
-                                    className="flex items-center space-x-3 py-2 border-b border-gray-100 last:border-b-0"
+                                    className="flex items-center space-x-3 py-2 border-b border-border last:border-b-0"
                                   >
-                                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                                      <span className="text-xs font-medium text-blue-600">
+                                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                                         {stop.sequence}
                                       </span>
                                     </div>
                                     <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-900">
+                                      <p className="text-sm font-medium text-foreground">
                                         {stop.name}
                                       </p>
-                                      <p className="text-xs text-gray-500">
+                                      <p className="text-xs text-muted-foreground">
                                         Coordinates: {stop.lat.toFixed(6)},{" "}
                                         {stop.lng.toFixed(6)}
                                       </p>
@@ -1522,13 +1779,13 @@ export default function RoutesPage() {
                                         )}
                                       </div>
                                     </div>
-                                    <div className="text-xs text-gray-400">
+                                    <div className="text-xs text-muted-foreground">
                                       Stop {stop.sequence}
                                     </div>
                                   </div>
                                 ))}
                               </div>
-                              <p className="text-xs text-gray-500 mt-2">
+                              <p className="text-xs text-muted-foreground mt-2">
                                 Select pickup and dropoff stops from the options
                                 above to assign to the student.
                               </p>
@@ -1545,10 +1802,10 @@ export default function RoutesPage() {
                                   Route Stops
                                 </Label>
                               </div>
-                              <div className="p-4 border rounded-lg bg-amber-50 border-amber-200">
+                              <div className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
                                 <div className="flex items-center gap-2">
                                   <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
-                                  <span className="text-sm text-amber-700">
+                                  <span className="text-sm text-amber-700 dark:text-amber-300">
                                     No stops found for this route. The route may
                                     not have path coordinates defined.
                                   </span>
@@ -1668,7 +1925,7 @@ export default function RoutesPage() {
                   <DialogTrigger asChild>
                     <Button
                       className="bg-[#f7c624] hover:bg-[#f7c624] text-white font-semibold px-6 py-2 rounded-lg shadow"
-                      onClick={() => setIsAddDialogOpen(true)}
+                      onClick={() => handleDialogOpen('add')}
                     >
                       Add New Route
                     </Button>
@@ -1699,84 +1956,6 @@ export default function RoutesPage() {
                               </FormItem>
                             )}
                           />
-
-                          <FormField
-                            control={form.control}
-                            name="driver"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Select Driver</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(parseInt(value))
-                                  }
-                                  value={field.value.toString()}
-                                  disabled={searchedDrivers.length === 0}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue
-                                        placeholder={
-                                          searchedDrivers.length === 0
-                                            ? "No drivers available"
-                                            : "Choose a driver"
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {/* Driver Search Input */}
-                                    <div className="flex items-center px-3 pb-2">
-                                      <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                                      <input
-                                        placeholder="Search drivers by name or phone..."
-                                        value={driverSearchTerm}
-                                        onChange={(e) =>
-                                          setDriverSearchTerm(e.target.value)
-                                        }
-                                        className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                      />
-                                    </div>
-                                    <div className="max-h-[200px] overflow-y-auto">
-                                      {searchedDrivers.length === 0 ? (
-                                        <div className="px-3 py-2 text-sm text-muted-foreground">
-                                          {driverSearchTerm
-                                            ? "No drivers found matching your search"
-                                            : "No drivers available for this school"}
-                                        </div>
-                                      ) : (
-                                        searchedDrivers.map((driver) => (
-                                          <SelectItem
-                                            key={driver.id}
-                                            value={driver.id?.toString() || ""}
-                                          >
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">
-                                                {driver.user_details.first_name}{" "}
-                                                {driver.user_details.last_name}
-                                              </span>
-                                              <span className="text-xs text-muted-foreground">
-                                                {driver.phone_number ||
-                                                  "No phone"}{" "}
-                                                - {driver.license_number}
-                                              </span>
-                                            </div>
-                                          </SelectItem>
-                                        ))
-                                      )}
-                                    </div>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                {filteredDrivers.length === 0 && (
-                                  <p className="text-sm text-amber-600 mt-1">
-                                    No drivers are available for this school.
-                                    Please add drivers first.
-                                  </p>
-                                )}
-                              </FormItem>
-                            )}
-                          />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -1788,6 +1967,11 @@ export default function RoutesPage() {
                                 placeholder="Type to search for a location"
                                 value={startPlace}
                                 onChange={(e) => setStartPlace(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                  }
+                                }}
                                 className="w-full"
                                 autoComplete="off"
                               />
@@ -1801,12 +1985,27 @@ export default function RoutesPage() {
                                 placeholder="Type to search for a location"
                                 value={endPlace}
                                 onChange={(e) => setEndPlace(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                  }
+                                }}
                                 className="w-full"
                                 autoComplete="off"
                               />
                             </FormControl>
                           </FormItem>
                         </div>
+
+                        {/* Auto-calculation status */}
+                        {isCalculatingRoute && (
+                          <div className="flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <RefreshCw className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+                            <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                              Automatically calculating route distance and duration...
+                            </span>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
@@ -1832,7 +2031,7 @@ export default function RoutesPage() {
                                       disabled={isCalculatingRoute}
                                     />
                                     {isCalculatingRoute && (
-                                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                                         Calculating...
                                       </div>
                                     )}
@@ -1864,7 +2063,7 @@ export default function RoutesPage() {
                                       pattern="[0-9]{2}:[0-9]{2}:[0-9]{2}"
                                     />
                                     {isCalculatingRoute && (
-                                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                                         Calculating...
                                       </div>
                                     )}
@@ -1969,10 +2168,10 @@ export default function RoutesPage() {
                 </Dialog>
               </div>
             </CardHeader>
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-border">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search routes by name or schedule days..."
                     value={searchTerm}
@@ -1981,7 +2180,7 @@ export default function RoutesPage() {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-400" />
+                  <Filter className="h-4 w-4 text-muted-foreground" />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Filter by status" />
@@ -2029,7 +2228,7 @@ export default function RoutesPage() {
                       fileName: "routes_export",
                       title: "Routes Directory",
                     }}
-                    className="border-gray-200 hover:bg-gray-50 px-3 py-2"
+                    className="border-border hover:bg-muted px-3 py-2"
                   />
                 </div>
               </div>
@@ -2040,24 +2239,24 @@ export default function RoutesPage() {
 
             <div className="overflow-x-auto">
               <table className="min-w-full">
-                <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <thead className="bg-gradient-to-r from-muted to-muted/80 border-b border-border">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Route Name
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Driver
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Distance
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Schedule
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Route Stops
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                       Status
                     </th>
                     <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700 uppercase tracking-wider">
@@ -2071,21 +2270,8 @@ export default function RoutesPage() {
                       <td colSpan={6} className="px-6 py-8 text-center">
                         <div className="flex items-center justify-center space-x-2">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f7c624]"></div>
-                          <span className="text-gray-600 font-medium">
+                          <span className="text-muted-foreground font-medium">
                             Loading routes...
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : error ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          </div>
-                          <span className="text-red-600 font-medium">
-                            {error}
                           </span>
                         </div>
                       </td>
@@ -2094,16 +2280,16 @@ export default function RoutesPage() {
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center space-y-3">
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Map className="w-8 h-8 text-gray-400" />
+                          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                            <Map className="w-8 h-8 text-muted-foreground" />
                           </div>
                           <div>
-                            <p className="text-gray-600 font-medium">
+                            <p className="text-muted-foreground font-medium">
                               {loading
                                 ? "Loading routes..."
                                 : "No routes found"}
                             </p>
-                            <p className="text-gray-500 text-sm">
+                            <p className="text-muted-foreground text-sm">
                               {loading
                                 ? "Please wait while we fetch your routes"
                                 : "Create your first route to get started"}
@@ -2131,18 +2317,18 @@ export default function RoutesPage() {
                       return (
                         <tr
                           key={route.id}
-                          className={`hover:bg-gray-50 transition-colors duration-200 ${
-                            index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                          className={`hover:bg-muted transition-colors duration-200 ${
+                            index % 2 === 0 ? "bg-card" : "bg-muted/50"
                           }`}
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center">
                               <div className="w-2 h-2 bg-[#f7c624] rounded-full mr-3"></div>
                               <div>
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                   {route.name}
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-muted-foreground">
                                   ID: {route.id}
                                 </div>
                               </div>
@@ -2150,15 +2336,15 @@ export default function RoutesPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center">
-                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                <span className="text-xs font-medium text-blue-600">
+                              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
+                                <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
                                   {filteredDrivers
                                     ?.find((d) => d.id === route.driver)
                                     ?.user_details.first_name?.charAt(0) || "?"}
                                 </span>
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                   {filteredDrivers?.find(
                                     (d) => d.id === route.driver
                                   )?.user_details.first_name ||
@@ -2167,7 +2353,7 @@ export default function RoutesPage() {
                                     (d) => d.id === route.driver
                                   )?.user_details.last_name || ""}
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-muted-foreground">
                                   {filteredDrivers?.find(
                                     (d) => d.id === route.driver
                                   )?.license_number || "No license"}
@@ -2184,10 +2370,10 @@ export default function RoutesPage() {
                                 </span>
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-foreground">
                                   {route.total_distance} km
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-muted-foreground">
                                   {route.estimated_duration}
                                 </div>
                               </div>
@@ -2195,7 +2381,10 @@ export default function RoutesPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-1">
-                              {route.schedule_days?.slice(0, 3).map((day) => (
+                              {(expandedScheduleRoutes.has(route.id) 
+                                ? route.schedule_days 
+                                : route.schedule_days?.slice(0, 3)
+                              )?.map((day) => (
                                 <Badge
                                   key={day}
                                   variant="outline"
@@ -2207,9 +2396,13 @@ export default function RoutesPage() {
                               {route.schedule_days?.length > 3 && (
                                 <Badge
                                   variant="outline"
-                                  className="text-xs px-2 py-1 bg-gray-50 text-gray-600 border-gray-200"
+                                  className="text-xs px-2 py-1 bg-muted text-muted-foreground border-border cursor-pointer hover:bg-muted/80 transition-colors"
+                                  onClick={() => toggleScheduleExpansion(route.id)}
                                 >
-                                  +{route.schedule_days.length - 3}
+                                  {expandedScheduleRoutes.has(route.id) 
+                                    ? `-${route.schedule_days.length - 3}` 
+                                    : `+${route.schedule_days.length - 3}`
+                                  }
                                 </Badge>
                               )}
                             </div>
@@ -2219,7 +2412,7 @@ export default function RoutesPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleViewRouteStops(route)}
-                              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             >
                               <MapPin className="w-4 h-4" />
                               <span className="text-sm font-medium">
@@ -2235,7 +2428,7 @@ export default function RoutesPage() {
                               className={`${
                                 route.is_active
                                   ? "bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/20"
-                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                                  : "bg-muted text-muted-foreground border-border"
                               } font-medium`}
                             >
                               <div className="flex items-center space-x-1">
@@ -2243,7 +2436,7 @@ export default function RoutesPage() {
                                   className={`w-2 h-2 rounded-full ${
                                     route.is_active
                                       ? "bg-[#f7c624]"
-                                      : "bg-gray-400"
+                                      : "bg-muted-foreground"
                                   }`}
                                 ></div>
                                 <span>
@@ -2257,9 +2450,9 @@ export default function RoutesPage() {
                               <DropdownMenuTrigger asChild>
                                 <Button
                                   variant="ghost"
-                                  className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+                                  className="h-8 w-8 p-0 hover:bg-muted rounded-full"
                                 >
-                                  <MoreHorizontal className="h-4 w-4 text-gray-600" />
+                                  <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48">
@@ -2267,7 +2460,7 @@ export default function RoutesPage() {
                                   onClick={() => handleView(route)}
                                   className="cursor-pointer"
                                 >
-                                  <ViewIcon className="h-4 w-4 mr-2 text-blue-600" />
+                                  <ViewIcon className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
                                   <span>View Details</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -2303,8 +2496,8 @@ export default function RoutesPage() {
             </div>
 
             {/* Pagination Controls - always show at the bottom */}
-            <div className="flex items-center justify-between p-4 border-t border-gray-200">
-              <div className="text-sm text-gray-600">
+            <div className="flex items-center justify-between p-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
                 Showing {startIndex + 1}-
                 {Math.min(endIndex, filteredAndSearchedRoutes.length)} of{" "}
                 {filteredAndSearchedRoutes.length} routes
@@ -2459,98 +2652,19 @@ export default function RoutesPage() {
               onSubmit={form.handleSubmit(handleUpdateRoute)}
               className="space-y-4"
             >
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Route Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter route name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="driver"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Driver</FormLabel>
-                      <Select
-                        onValueChange={(value) =>
-                          field.onChange(parseInt(value))
-                        }
-                        value={field.value.toString()}
-                        disabled={searchedDrivers.length === 0}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue
-                              placeholder={
-                                searchedDrivers.length === 0
-                                  ? "No drivers available"
-                                  : "Choose a driver"
-                              }
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {/* Driver Search Input */}
-                          <div className="flex items-center px-3 pb-2">
-                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                            <input
-                              placeholder="Search drivers by name or phone..."
-                              value={driverSearchTerm}
-                              onChange={(e) =>
-                                setDriverSearchTerm(e.target.value)
-                              }
-                              className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                            />
-                          </div>
-                          <div className="max-h-[200px] overflow-y-auto">
-                            {searchedDrivers.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-muted-foreground">
-                                {driverSearchTerm
-                                  ? "No drivers found matching your search"
-                                  : "No drivers available for this school"}
-                              </div>
-                            ) : (
-                              searchedDrivers.map((driver) => (
-                                <SelectItem
-                                  key={driver.id}
-                                  value={driver.id?.toString() || ""}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {driver.user_details.first_name}{" "}
-                                      {driver.user_details.last_name}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {driver.phone_number || "No phone"} -{" "}
-                                      {driver.license_number}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))
-                            )}
-                          </div>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                      {filteredDrivers.length === 0 && (
-                        <p className="text-sm text-amber-600 mt-1">
-                          No drivers are available for this school. Please add
-                          drivers first.
-                        </p>
-                      )}
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Route Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter route name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormItem>
