@@ -7,8 +7,6 @@ import { fetchParents } from "@/redux/slices/parentsSlice";
 import { fetchDrivers } from "@/redux/slices/driversSlice";
 import { StatOverviewCards } from "@/components/StatOverviewCards";
 import { RecentTripsTable } from "@/components/RecentTripsTable";
-import { TripsOverview } from "@/components/TripsOverview";
-import { QueryAnalytics } from "@/components/QueryAnalytics";
 import { ThemeDemo } from "@/components/ThemeDemo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -236,18 +234,12 @@ const Overview = () => {
               </div>
             )}
 
-            Trips and Analytics Section
-            <div className=" w-full  gap-6">
-              {/* <TripsOverview /> */}
-              <QueryAnalytics />
-            </div>
-{/* 
             {/* Recent Trips - Show only if recent activity is enabled */}
-            {/* {preferences.showRecentActivity && (
+            {preferences.showRecentActivity && (
               <div className="mb-4">
                 <RecentTripsTable />
-              </div> */}
-            {/* // )} */} 
+              </div>
+            )}
 
             {/* Notifications Panel - Show only if notifications panel is enabled */}
             {preferences.showNotificationsPanel && (
@@ -392,8 +384,7 @@ const Overview = () => {
                         </h3>
                         <p className="text-sm text-muted-foreground max-w-md">
                           All dashboard sections are currently disabled. You can
-                          enable them in the Settings page under
-                          Personalization.
+                          enable them in the Settings page under Personalization.
                         </p>
                       </div>
                     </div>

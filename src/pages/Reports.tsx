@@ -32,6 +32,9 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { QueryAnalytics } from "@/components/QueryAnalytics";
+import { StatOverviewCards } from "@/components/StatOverviewCards";
+import { RecentTripsTable } from "@/components/RecentTripsTable";
 
 function StatusPill({ status }: { status: string | null | undefined }) {
   // Handle null or undefined status
@@ -162,7 +165,39 @@ export default function Reports() {
     <div className="p-8">
       <div className="mb-4 flex items-center gap-3">
         <FileText className="text-[#f7c624]" size={32} />
-        <h2 className="text-2xl font-bold text-foreground">Reports</h2>
+        <h2 className="text-2xl font-bold text-foreground">Reports & Analytics</h2>
+      </div>
+
+      {/* Statistics Overview Cards */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-foreground mb-4">Statistics Overview</h3>
+        <StatOverviewCards />
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border my-8"></div>
+
+      {/* Analytics Dashboard Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-foreground mb-4">Performance Analytics</h3>
+        <QueryAnalytics />
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border my-8"></div>
+
+      {/* Recent Trips Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-foreground mb-4">Recent Trips Activity</h3>
+        <RecentTripsTable />
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border my-8"></div>
+
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-foreground mb-2">Detailed Trip Reports</h3>
+        <p className="text-sm text-muted-foreground">View detailed trip reports with filters and performance metrics</p>
       </div>
 
       {/* Search/Filter Bar */}
