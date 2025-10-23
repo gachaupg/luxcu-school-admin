@@ -36,6 +36,12 @@ const PublicNavbar = () => {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
+              to="/home"
+              className="text-black transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
+            >
+              Home
+            </Link>
+            <Link
               to="/about"
               className="text-black transition-colors font-medium hover:text-[#f7c624] hover:scale-105 transform duration-200"
             >
@@ -96,6 +102,24 @@ const PublicNavbar = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
           <div className="px-4 py-4 space-y-3">
+            {/* Shuletrack Brand */}
+            <div className="flex items-center space-x-2 pb-3 border-b border-gray-200">
+              <img
+                src="https://res.cloudinary.com/pitz/image/upload/v1759998717/shuletrack_landscape_logo-100_gcmpht__1_-removebg-preview_kibgoq.png"
+                alt="Shuletrack"
+                className="h-8 w-auto"
+              />
+              <span className="text-lg font-bold text-[#f7c624]">Shuletrack</span>
+            </div>
+
+            {/* Navigation Links */}
+            <Link
+              to="/home"
+              className="block px-4 py-3 text-black font-medium hover:bg-gray-100 hover:text-[#f7c624] rounded-lg transition-colors"
+              onClick={closeMobileMenu}
+            >
+              Home
+            </Link>
             <Link
               to="/about"
               className="block px-4 py-3 text-black font-medium hover:bg-gray-100 hover:text-[#f7c624] rounded-lg transition-colors"
@@ -117,6 +141,8 @@ const PublicNavbar = () => {
             >
               Contact
             </Link>
+            
+            {/* Get Started Button */}
             <div className="pt-2">
               <Button
                 className="w-full bg-[#10213f] hover:bg-[#f7c624] text-white border-0 px-6 py-3 rounded-lg font-medium transition-all duration-200"
