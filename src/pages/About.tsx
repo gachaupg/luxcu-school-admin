@@ -102,7 +102,7 @@ const About = () => {
       </div>
 
       {/* Stats Section */}
-      <section id="stats" className={`py-12 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("stats") ? "animate" : ""}`}>
+      <section id="stats" className={`py-12 bg-slate-900 section-animate ${animatedSections.has("stats") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -124,7 +124,7 @@ const About = () => {
       </section>
 
       {/* Mission, Vision, Future Section */}
-      <section id="mission" className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("mission") ? "animate" : ""}`}>
+      <section id="mission" className={`py-16 bg-slate-900 section-animate ${animatedSections.has("mission") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Mission */}
@@ -274,7 +274,7 @@ const About = () => {
       </section>
 
       {/* Benefits Image Section */}
-      <section id="benefits" className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("benefits") ? "animate" : ""}`}>
+      <section id="benefits" className={`py-16 bg-slate-900 section-animate ${animatedSections.has("benefits") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -318,7 +318,7 @@ const About = () => {
       </section>
 
       {/* CTA Section */}
-      <section id="cta" className={`py-20 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("cta") ? "animate" : ""}`}>
+      <section id="cta" className={`py-20 bg-slate-900 section-animate ${animatedSections.has("cta") ? "animate" : ""}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Get Started?
@@ -347,4 +347,5 @@ const About = () => {
 };
 
 export default About;
+
 

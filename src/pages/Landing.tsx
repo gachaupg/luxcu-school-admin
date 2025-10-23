@@ -208,7 +208,7 @@ const Landing = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-slate-900 ml-10 mr-10">
+      <section className="py-12 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -229,7 +229,7 @@ const Landing = () => {
       </section>
 
       {/* Features Preview Section */}
-      <section className="py-16 bg-slate-900 ml-10 mr-10">
+      <section className="py-16 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
@@ -278,7 +278,7 @@ const Landing = () => {
       </section>
 
       {/* Quick Links Section */}
-      <section className="py-16 bg-slate-900 ml-10 mr-10">
+      <section className="py-16 bg-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 bg-slate-700 rounded-2xl overflow-hidden p-8 text-center">
@@ -321,7 +321,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-slate-900 ml-10 mr-10">
+      <section className="py-20 bg-slate-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your

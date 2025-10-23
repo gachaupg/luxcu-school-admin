@@ -240,7 +240,7 @@ const Features = () => {
       </div>
 
       {/* Main Features Grid */}
-      <section id="features" className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("features") ? "animate" : ""}`}>
+      <section id="features" className={`py-16 bg-slate-900 section-animate ${animatedSections.has("features") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
@@ -281,7 +281,7 @@ const Features = () => {
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("benefits") ? "animate" : ""}`}>
+      <section id="benefits" className={`py-16 bg-slate-900 section-animate ${animatedSections.has("benefits") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
@@ -308,7 +308,7 @@ const Features = () => {
       </section>
 
       {/* Fleet Management Section */}
-      <section id="fleet" className={`py-16 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("fleet") ? "animate" : ""}`}>
+      <section id="fleet" className={`py-16 bg-slate-900 section-animate ${animatedSections.has("fleet") ? "animate" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4 bg-[#f7c624]/20 text-[#f7c624] border-[#f7c624]/30 px-4 py-2 rounded-full">
@@ -359,7 +359,7 @@ const Features = () => {
       </section>
 
       {/* CTA Section */}
-      <section id="cta" className={`py-20 bg-slate-900 ml-10 mr-10 section-animate ${animatedSections.has("cta") ? "animate" : ""}`}>
+      <section id="cta" className={`py-20 bg-slate-900 section-animate ${animatedSections.has("cta") ? "animate" : ""}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your
