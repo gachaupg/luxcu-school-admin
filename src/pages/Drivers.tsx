@@ -248,7 +248,6 @@ const Drivers = () => {
 
             // Log created users for debugging
             if (response.created_users && response.created_users.length > 0) {
-              // console.log(
               //   `📝 Created users from file ${file.name}:`,
               //   response.created_users
               // );

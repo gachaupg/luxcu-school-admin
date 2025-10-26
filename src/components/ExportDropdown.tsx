@@ -61,7 +61,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
 
           // Debug: Log first few rows
           if (index < 3) {
-            // console.log(`📊 CSV Row ${index + 1}:`, rowData);
           }
 
           return rowData;
@@ -136,7 +135,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                 .map((row, index) => {
                   // Debug: Log first few rows
                   if (index < 3) {
-                    // console.log(`📄 PDF Row ${index + 1}:`, row);
                   }
 
                   return `
@@ -231,7 +229,6 @@ export const ExportDropdown: React.FC<ExportDropdownProps> = ({
                 .map((row, index) => {
                   // Debug: Log first few rows
                   if (index < 3) {
-                    // console.log(`📝 Word Row ${index + 1}:`, row);
                   }
 
                   return `

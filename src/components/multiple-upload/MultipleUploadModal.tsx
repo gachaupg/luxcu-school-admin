@@ -328,15 +328,9 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
     }
 
     // Debug: Log upload type and first row columns
-    console.log("Validating data for uploadType:", uploadType);
-    if (data.length > 0) {
-      console.log("Available columns:", Object.keys(data[0]));
-      console.log("First row data:", data[0]);
-    }
 
     // For vehicles and staff, skip frontend validation - let backend handle it
     if (uploadType === "vehicles" || uploadType === "staffs" || uploadType === "staff") {
-      console.log("Skipping frontend validation for", uploadType);
       return { isValid: true, errors: [] };
     }
 
@@ -446,8 +440,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
         row["Last_Background_Check"] ||
         row.lastBackgroundCheck ||
         row["LastBackgroundCheck"];
-
-      // Debug: Log what we found for this row - removed for production
 
       // Only validate if the row has some data (not completely empty)
       const hasAnyData = Object.values(row).some(
@@ -565,8 +557,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
           const headerLine = lines[0];
           const headers = parseCSVLine(headerLine).map((h) => h.trim());
 
-          // CSV Headers found - logging removed
-
           const data = lines.slice(1).map((line, lineIndex) => {
             const values = parseCSVLine(line);
             const row: any = {};
@@ -577,8 +567,6 @@ export const MultipleUploadModal: React.FC<MultipleUploadModalProps> = ({
                 .trim();
               row[header] = cleanValue;
             });
-
-            // Debug: Log first few rows - removed for production
 
             return row;
           });

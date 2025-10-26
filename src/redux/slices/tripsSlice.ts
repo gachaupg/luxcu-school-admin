@@ -181,9 +181,7 @@ export const createTrip = createAsyncThunk<
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     };
 
-    console.log("Creating trip with data:", tripData);
-    console.log("Request config:", requestConfig);
-
+   
     const response = await api.post(
       API_ENDPOINTS.TRIPS,
       tripData,
@@ -215,13 +213,10 @@ export const createTrip = createAsyncThunk<
 
     return transformedTrip;
   } catch (error) {
-    console.log("Redux createTrip error:", error);
     if (error instanceof AxiosError) {
       // Pass the entire error response data to preserve validation errors
       const errorData = error.response?.data;
-      console.log("Axios error data:", errorData);
-      console.log("Error status:", error.response?.status);
-      console.log("Error response:", error.response);
+      
       
       if (errorData) {
         return rejectWithValue(errorData);
@@ -273,18 +268,16 @@ export const updateTrip = createAsyncThunk<
           );
         }
       } catch (notificationError) {
-        console.error("Failed to send trip status change notification:", notificationError);
+        
         // Don't fail the trip update if notification fails
       }
     }
 
     return transformedTrip;
   } catch (error) {
-    console.log("Redux updateTrip error:", error);
     if (error instanceof AxiosError) {
       // Pass the entire error response data to preserve validation errors
       const errorData = error.response?.data;
-      console.log("Axios error data:", errorData);
       
       if (errorData) {
         return rejectWithValue(errorData);

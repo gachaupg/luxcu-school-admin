@@ -220,7 +220,6 @@ export default function Parents() {
         .catch((error) => {
         });
     } else {
-      // console.log("⚠️ No schoolId found in localStorage");
     }
   }, []); // Empty dependency array - only run on mount
 
@@ -491,10 +490,7 @@ export default function Parents() {
 
             // Log created users for debugging
             if (response.created_users && response.created_users.length > 0) {
-              // console.log(
-              //   `📝 Created users from file ${file.name}:`,
-              //   response.created_users
-              // );
+             
             }
           } else {
             totalFailed += 1;
@@ -747,11 +743,9 @@ export default function Parents() {
 
     // Email and address are optional - generate if missing
     if (!email.trim() || !isValidEmail(email)) {
-      // console.log("⚠️ Invalid or missing email, generating one");
     }
 
     if (!address.trim()) {
-      // console.log("⚠️ Missing address, using default");
     }
 
     // If there are validation errors, throw them
@@ -1209,13 +1203,11 @@ export default function Parents() {
     if (schoolId) {
       dispatch(fetchParents({ schoolId: parseInt(schoolId) }))
         .then((result) => {
-          // console.log("✅ Manual fetch successful:", result);
         })
         .catch((error) => {
           // console.error("❌ Manual fetch failed:", error);
         });
     } else {
-      // console.log("⚠️ No schoolId found for manual refresh");
     }
   };
 

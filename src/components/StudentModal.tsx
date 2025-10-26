@@ -160,7 +160,6 @@ export function StudentModal({
 
   // Debug form data changes
   useEffect(() => {
-    // console.log("Form data changed:", formData);
   }, [formData]);
 
   const handleSubmit = async (e: React.FormEvent) => {

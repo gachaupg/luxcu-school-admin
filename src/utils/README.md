@@ -125,7 +125,6 @@ import { createDefaultRoles } from "../redux/slices/roleSlice";
 const handleCreateDefaultRoles = async () => {
   const resultAction = await dispatch(createDefaultRoles(schoolId));
   if (createDefaultRoles.fulfilled.match(resultAction)) {
-    console.log("Default roles created successfully");
   }
 };
 ```

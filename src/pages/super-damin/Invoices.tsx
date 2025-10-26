@@ -84,8 +84,7 @@ const Invoices = () => {
   // Debug: Log invoice data structure
   useEffect(() => {
     if (invoices.length > 0) {
-      // console.log("Invoices data structure:", invoices[0]);
-      // console.log("First invoice ID:", invoices[0]?.id);
+      
     }
   }, [invoices]);
 

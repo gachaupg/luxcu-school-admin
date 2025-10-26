@@ -231,10 +231,7 @@ export default function NotificationsPage() {
     
     // Debug: Log trips data to help troubleshoot
     if (trips && trips.length > 0) {
-      console.log("🔍 Debug Trips - Total trips:", trips.length);
-      console.log("🔍 Debug Trips - School ID:", schoolId);
-      console.log("🔍 Debug Trips - Sample trip school ID:", (trips[0] as any).school || (trips[0] as any).route_details?.school?.id);
-      console.log("🔍 Debug Trips - Filtered trips:", filtered.length);
+
     }
     return filtered;
   })();

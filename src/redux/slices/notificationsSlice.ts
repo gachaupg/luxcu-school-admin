@@ -89,7 +89,6 @@ export const createNotification = createAsyncThunk<
             const userData = JSON.parse(authData.user || "{}");
             token = userData.token;
           } catch (e) {
-            // console.log("Error parsing persist:auth:", e);
           }
         }
       }
@@ -101,7 +100,7 @@ export const createNotification = createAsyncThunk<
         }
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       } else {
-        // console.log("No token found, request will be made without auth");
+       
       }
 
       // Ensure school ID is included
@@ -170,7 +169,6 @@ export const fetchNotifications = createAsyncThunk<
           const userData = JSON.parse(authData.user || "{}");
           token = userData.token;
         } catch (e) {
-          // console.log("Error parsing persist:auth:", e);
         }
       }
     }
@@ -182,7 +180,6 @@ export const fetchNotifications = createAsyncThunk<
       }
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      // console.log("No token found, request will be made without auth");
     }
 
     const schoolId = typeof params === "object" ? params.schoolId : undefined;

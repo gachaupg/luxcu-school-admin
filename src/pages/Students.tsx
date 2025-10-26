@@ -188,7 +188,6 @@ export default function Students() {
       dispatch(fetchAllRouteStops(schoolId));
       dispatch(fetchRoutes({ schoolId }));
     } else {
-      // console.log("No schoolId available, skipping data fetch");
     }
   }, [dispatch, schoolId]);
 
@@ -722,10 +721,7 @@ export default function Students() {
 
           // Parse headers using proper CSV parsing
           const headers = parseCSVLine(lines[0]).map(h => h.trim());
-          console.log("📋 CSV Headers:", headers);
-          console.log("📋 Header count:", headers.length);
-          console.log("📋 date_of_birth at index:", headers.indexOf('date_of_birth'));
-          
+         
           const gradeIndex = headers.findIndex(h => 
             h.toLowerCase() === 'grade' || 
             h.toLowerCase() === 'grade_name' ||
@@ -734,12 +730,10 @@ export default function Students() {
 
           // If no grade column found, return original file
           if (gradeIndex === -1) {
-            console.log("⚠️ No grade column found, returning original file");
             resolve(file);
             return;
           }
 
-          console.log("📍 Grade column at index:", gradeIndex);
 
           // Process data rows
           const processedLines = [headers.map(h => encodeCSVField(h)).join(",")]; // Keep headers
@@ -751,12 +745,9 @@ export default function Students() {
             // Use proper CSV parsing to handle quoted fields
             const values = parseCSVLine(line);
             
-            console.log(`📝 Row ${i} - Parsed ${values.length} fields:`, values);
-            console.log(`📝 Row ${i} - date_of_birth value (index ${headers.indexOf('date_of_birth')}):`, values[headers.indexOf('date_of_birth')]);
             
             // Ensure we have the correct number of fields (pad with empty strings if needed)
             while (values.length < headers.length) {
-              console.warn(`⚠️ Row ${i} - Missing field, padding with empty string`);
               values.push('');
             }
             
@@ -765,35 +756,26 @@ export default function Students() {
               const gradeId = getGradeIdFromName(gradeName);
               
               if (gradeId) {
-                console.log(`✅ Row ${i} - Converted grade "${gradeName}" to ID: ${gradeId}`);
                 values[gradeIndex] = gradeId.toString();
               } else {
-                console.warn(`⚠️ Row ${i} - Could not find grade ID for: ${gradeName}`);
                 // Keep original value if no match found
               }
             }
             
             // Properly encode each field before joining
             const encodedLine = values.map(v => encodeCSVField(v)).join(",");
-            console.log(`📤 Row ${i} - Encoded line:`, encodedLine);
             processedLines.push(encodedLine);
           }
 
           // Create new CSV content
           const processedCSV = processedLines.join("\n");
           
-          console.log("📦 Final processed CSV:");
-          console.log(processedCSV);
-          console.log("📦 Total lines:", processedLines.length);
-          
           // Create new File object with processed data
           const blob = new Blob([processedCSV], { type: "text/csv" });
           const processedFile = new File([blob], file.name, { type: "text/csv" });
           
-          console.log("✅ CSV preprocessing complete");
           resolve(processedFile);
         } catch (error) {
-          console.error("Error preprocessing CSV:", error);
           resolve(file); // Return original file on error
         }
       };

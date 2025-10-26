@@ -319,7 +319,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       }
       return value && value.toString().trim() !== "";
     });
-    console.log("Form validation check:", { formData, isValid });
     return isValid;
   }, [formData]);
 
@@ -415,7 +414,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
   }, [isOpen, schoolId, dispatch]);
 
   const submitTrip = async () => {
-    console.log("submitTrip called!", { isSubmitting, isFormValid, formData });
 
     // Clear previous error
     setSubmitError(null);
@@ -427,11 +425,9 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
 
     // Validate form
     const formIsValid = validateForm();
-    console.log("Form validation result:", { formIsValid, errors });
     
     if (!formIsValid) {
       const errorFields = Object.keys(errors);
-      console.log("Validation failed, error fields:", errorFields);
       
       if (errorFields.length > 0) {
         setSubmitError(`Please fix the following fields: ${errorFields.join(", ")}`);
@@ -448,8 +444,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       return;
     }
 
-    console.log("Starting submission");
-
     const tripData = {
       route: parseInt(formData.route),
       driver: parseInt(formData.driver),
@@ -461,9 +455,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       grade: parseInt(formData.grade),
       students: formData.students.length > 0 ? formData.students : undefined,
     };
-
-    console.log("Prepared trip data:", tripData);
-    console.log("School ID:", schoolId);
 
     try {
       if (mode === "create") {
@@ -484,7 +475,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       onClose();
       }
     } catch (error: unknown) {
-      console.log("ERROR CAUGHT:", error);
       
       let errorMsg = "Failed to save trip";
 
@@ -532,7 +522,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
       setSubmitError(errorMsg);
       
       // DO NOT CLOSE THE MODAL - let user fix the error and try again
-      console.log("ERROR: Modal should stay open, NOT closing");
     }
   };
 
@@ -586,8 +575,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
     }
     onClose();
   };
-
-  console.log("TripModal render - isSubmitting:", isSubmitting);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleModalOpenChange}>
@@ -1044,7 +1031,6 @@ export function TripModal({ isOpen, onClose, trip, mode }: TripModalProps) {
                       try {
                         await submitTrip();
                       } catch (error) {
-                        console.log("Error in button click:", error);
                       } finally {
                         setIsSubmitting(false);
                       }

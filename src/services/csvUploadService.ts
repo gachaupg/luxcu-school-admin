@@ -321,9 +321,6 @@ export const generateStudentsCSVTemplate = (): string => {
     row2.join(","),
   ].join("\n");
 
-  console.log("📝 Generated student CSV template:");
-  console.log(csvContent);
-
   return csvContent;
 };
 

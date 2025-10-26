@@ -291,7 +291,6 @@ export default function RoutesPage() {
               form.setValue("start_lat", schoolLocation.lat);
               form.setValue("start_lng", schoolLocation.lng);
               
-              console.log('Auto-filled start location with school:', formattedAddress);
             } else {
               // Fallback to school name if geocoding fails
               setStartPlace(schoolLocation.name);
@@ -599,14 +598,6 @@ export default function RoutesPage() {
       return matchesSearch && matchesStatus;
     }) || [];
 
-  // Debug logging
-  if (searchTerm) {
-    console.log('Search term:', searchTerm);
-    console.log('Total routes:', routes?.length || 0);
-    console.log('Filtered routes:', filteredAndSearchedRoutes.length);
-    console.log('Sample route data:', routes?.[0]);
-  }
-
   // Pagination logic
   const totalPages = Math.ceil(filteredAndSearchedRoutes.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -842,14 +833,7 @@ export default function RoutesPage() {
       dispatch(fetchRouteAssignments({ schoolId: parseInt(schoolId) }));
       dispatch(fetchGrades({ schoolId: parseInt(schoolId) }));
     } else {
-      // console.log("No schoolId found in localStorage");
-    }
-
-    // Test toast to verify notifications are working
-    toast({
-      title: "Routes Page Loaded",
-      description: "Notifications are working correctly!",
-    });
+      }
 
     // Cleanup function
     return () => {
@@ -902,7 +886,6 @@ export default function RoutesPage() {
             setTimeout(() => {
               const currentEndPlace = endPlace || endInputRef.current?.value || "";
               if (displayAddress && currentEndPlace) {
-                console.log('Auto-calculating from start location:', displayAddress, 'to:', currentEndPlace);
                 calculateRoute(displayAddress, currentEndPlace);
               }
             }, 200);
@@ -921,7 +904,6 @@ export default function RoutesPage() {
           );
 
         endAutocompleteRef.current.addListener("place_changed", () => {
-          console.log("End location autocomplete place_changed triggered");
           const place = endAutocompleteRef.current?.getPlace();
           if (place?.geometry) {
             const lat = place.geometry.location?.lat() || 0;
@@ -930,13 +912,11 @@ export default function RoutesPage() {
             form.setValue("end_lng", lng);
             const displayAddress = place.name || place.formatted_address || "";
             setEndPlace(displayAddress);
-            console.log("End location set:", displayAddress, "lat:", lat, "lng:", lng);
 
             // Calculate route automatically if both places are set
             setTimeout(() => {
               const currentStartPlace = startPlace || startInputRef.current?.value || "";
               if (currentStartPlace && displayAddress) {
-                console.log('Auto-calculating from start location:', currentStartPlace, 'to:', displayAddress);
                 calculateRoute(currentStartPlace, displayAddress);
               }
             }, 200);
@@ -984,7 +964,6 @@ export default function RoutesPage() {
   const calculateRoute = async (startAddress: string, endAddress: string) => {
     if (!window.google || !window.google.maps) return;
 
-    console.log('Calculating route from:', startAddress, 'to:', endAddress);
               setIsCalculatingRoute(true);
               const directionsService = new google.maps.DirectionsService();
               const geocoder = new google.maps.Geocoder();
@@ -1168,7 +1147,6 @@ export default function RoutesPage() {
     if (startPlace && endPlace && isMapLoaded) {
       // Add a small delay to ensure the school location is properly set
       const timer = setTimeout(() => {
-        console.log('Auto-calculating route on state change:', startPlace, 'to:', endPlace);
         calculateRoute(startPlace, endPlace);
       }, 500);
       
@@ -1177,7 +1155,6 @@ export default function RoutesPage() {
   }, [startPlace, endPlace, isMapLoaded]);
 
   const handleAddRoute = async (values: FormValues) => {
-    console.log("handleAddRoute called with values:", values);
     const schoolId = localStorage.getItem("schoolId");
 
     if (!schoolId) {
@@ -1349,7 +1326,6 @@ export default function RoutesPage() {
       
       // Check if the action was fulfilled or rejected
       if (updateRoute.rejected.match(result)) {
-        console.log("Route update rejected:", result.error);
         throw new Error(result.error.message || "Failed to update route");
       }
 
@@ -1378,7 +1354,6 @@ export default function RoutesPage() {
         dispatch(fetchDrivers());
       }
     } catch (err) {
-      console.error("Route update error:", err);
       
       let errorMessage = "Failed to update route";
       
@@ -2892,9 +2867,7 @@ export default function RoutesPage() {
                             }
                           );
                         } else {
-                          // console.log(
-                          //   "stopSearchTerm is empty or whitespace (edit modal)"
-                          // );
+                         
                         }
                       }}
                       disabled={!stopSearchTerm.trim()}

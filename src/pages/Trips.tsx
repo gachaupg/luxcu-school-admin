@@ -93,13 +93,6 @@ export default function Trips() {
   // Use all trips since backend should filter by school
   const filteredTrips = trips;
 
-  // Debug logging
-  useEffect(() => {
-    // console.log("Trips data:", trips);
-    // console.log("Filtered trips:", filteredTrips);
-    // console.log("School ID:", schoolId);
-  }, [trips, filteredTrips, schoolId]);
-
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -112,7 +105,6 @@ export default function Trips() {
         await dispatch(fetchDrivers());
         await dispatch(fetchVehicles());
       } catch (err) {
-        // console.error("Failed to load data:", err);
       }
     };
     loadData();
@@ -194,18 +186,6 @@ export default function Trips() {
         return;
       }
       
-      console.log("═══════════════════════════════════════");
-      console.log("📨 SENDING TRIP NOTIFICATION");
-      console.log("═══════════════════════════════════════");
-      console.log("Trip ID:", selectedTrip.id);
-      console.log("Route:", selectedTrip.route_name || `Route ${selectedTrip.route}`);
-      console.log("Driver:", selectedTrip.driver_name || `Driver ${selectedTrip.driver}`);
-      console.log("Vehicle:", selectedTrip.vehicle_registration || `Vehicle ${selectedTrip.vehicle}`);
-      console.log("Notification Type:", notificationType);
-      console.log("Message:", notificationMessage);
-      console.log("School ID:", schoolId);
-      console.log("───────────────────────────────────────");
-
       // Determine alert type and severity based on notification type
       let alertType = "parent_notification";
       let severity: "low" | "medium" | "high" = "low";
@@ -251,13 +231,11 @@ export default function Trips() {
 
       // Get parent IDs for students on this trip
       const tripStudentIds = selectedTrip.students || [];
-      console.log("Trip Student IDs:", tripStudentIds);
       
       // Filter students that are on this trip
       const tripStudents = students?.filter((student) => 
         tripStudentIds.includes(student.id)
       ) || [];
-      console.log("Trip Students:", tripStudents);
       
       // Get unique parent IDs from those students
       const parentIds = [...new Set(
@@ -265,28 +243,12 @@ export default function Trips() {
           .map((student) => student.parent)
           .filter((parentId): parentId is number => parentId !== undefined && parentId !== null)
       )];
-      console.log("Parent IDs for notification:", parentIds);
       
       // Update recipients with parent IDs
       notificationData.recipients = parentIds;
-      
-      console.log("Creating notification with data:", notificationData);
-      console.log("Dispatching createNotification to Redux...");
-      
+
       const result = await dispatch(createNotification(notificationData)).unwrap();
 
-      console.log("───────────────────────────────────────");
-      console.log("✅ Notification created successfully");
-      console.log("📊 Notification Status:");
-      console.log("  - Notification ID:", result.id);
-      console.log("  - Type:", notificationType);
-      console.log("  - Title:", title);
-      console.log("  - Alert Type:", alertType);
-      console.log("  - Severity:", severity);
-      console.log("  - Recipients:", parentIds.length > 0 ? `${parentIds.length} parents on this route` : "No parents found");
-      console.log("  - Parent IDs:", parentIds);
-      console.log("═══════════════════════════════════════");
-      
       toast({
         title: "Success",
         description: parentIds.length > 0 
@@ -298,16 +260,7 @@ export default function Trips() {
       setSelectedTrip(null);
       setNotificationMessage('');
     } catch (err) {
-      console.log("═══════════════════════════════════════");
-      console.log("❌ NOTIFICATION FAILED");
-      console.log("═══════════════════════════════════════");
-      console.error("Error type:", typeof err);
-      console.error("Error details:", err);
-      if (err instanceof Error) {
-        console.error("Error message:", err.message);
-        console.error("Error stack:", err.stack);
-      }
-      console.log("═══════════════════════════════════════");
+      
       
       let errorMessage = "Failed to send notification";
       

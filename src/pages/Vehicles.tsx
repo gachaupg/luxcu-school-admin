@@ -439,15 +439,7 @@ export default function Vehicles() {
     (state) => state.vehicles
   );
 
-  // Debug logging for vehicles state
-  useEffect(() => {
-    // console.log("Vehicles state updated:", {
-    //   count: vehicles.length,
-    //   vehicles: vehicles,
-    //   loading: loading,
-    //   error: error,
-    // });
-  }, [vehicles, loading, error]);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const { schools } = useAppSelector((state) => state.schools);
   const { drivers, loading: driversLoading } = useAppSelector(
@@ -487,11 +479,9 @@ export default function Vehicles() {
       try {
         if (schoolId) {
           const result = await dispatch(fetchVehicles({ schoolId }));
-          // console.log("Fetch vehicles result:", result);
         }
         await dispatch(fetchDrivers());
       } catch (err) {
-        // console.error("Failed to load data:", err);
       }
     };
     loadData();
@@ -712,7 +702,6 @@ export default function Vehicles() {
       }
 
       if (allErrors.length > 0) {
-        console.error("Upload errors:", allErrors);
         toast({
           title: "Upload Errors",
           description: `${allErrors.length} error(s) occurred. Check console for details.`,
@@ -766,13 +755,11 @@ export default function Vehicles() {
     e.preventDefault();
 
     // Prevent multiple submissions
-    if (isSubmitting) {
-      console.log("Already submitting, ignoring request");
+    if (isSubmitting) { 
       return;
     }
 
     setIsSubmitting(true);
-    console.log("Starting vehicle submission...");
 
     // Validate that we have a valid school ID
     if (!schoolId) {
@@ -786,12 +773,10 @@ export default function Vehicles() {
     }
 
     try {
-      console.log("Submitting vehicle data:", formData);
       
       // Check if we're editing or adding
       if (selectedVehicle && selectedVehicle.id) {
         // Update existing vehicle
-        console.log("Updating vehicle with ID:", selectedVehicle.id);
         await dispatch(updateVehicle({ id: selectedVehicle.id, data: formData })).unwrap();
         toast({
           title: "Success",
@@ -801,7 +786,6 @@ export default function Vehicles() {
         setSelectedVehicle(null);
       } else {
         // Add new vehicle
-        console.log("Adding new vehicle...");
         await dispatch(addVehicle(formData)).unwrap();
         toast({
           title: "Success",
@@ -828,9 +812,7 @@ export default function Vehicles() {
         has_emergency_button: true,
       });
       
-      console.log("Vehicle submission successful");
     } catch (error) {
-      console.error("Vehicle submission error:", error);
       
       // Parse error message for better user experience
       let errorMessage = selectedVehicle ? "Failed to update vehicle" : "Failed to add vehicle";
@@ -874,12 +856,11 @@ export default function Vehicles() {
         duration: 6000, // Show error longer for complex validation messages
       });
       
-      console.log("Error occurred, modal should stay open");
       // DO NOT CLOSE THE MODAL - let user fix the error and try again
       // Modal stays open so user can correct the issue
     } finally {
       setIsSubmitting(false);
-      console.log("Submission process completed, isSubmitting set to false");
+      
     }
   };
 

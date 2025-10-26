@@ -36,7 +36,6 @@ class TripNotificationService {
           const userData = JSON.parse(authData.user || "{}");
           token = userData.token;
         } catch (e) {
-          console.error("Error parsing persist:auth:", e);
         }
       }
     }
@@ -62,20 +61,18 @@ class TripNotificationService {
     tripId?: string
   ): Promise<boolean> {
     try {
-      console.log("sendTripNotification called with:", { fcmTokens: fcmTokens.length, notification, tripId });
+     
       
       const token = await this.getAuthToken();
       const schoolId = await this.getSchoolId();
 
-      console.log("Auth token and school ID:", { hasToken: !!token, schoolId });
-
+     
       if (!token) {
-        console.error("No auth token available for FCM notification");
+        
         return false;
       }
 
       if (fcmTokens.length === 0) {
-        console.warn("No FCM tokens provided for notification");
         return false;
       }
 
@@ -86,9 +83,6 @@ class TripNotificationService {
         tripId,
       };
 
-      console.log("Sending FCM notification to:", FCM_SERVER_URL);
-      console.log("Payload:", payload);
-
       const response = await fetch(`${FCM_SERVER_URL}/sendNotification`, {
         method: "POST",
         headers: {
@@ -98,19 +92,14 @@ class TripNotificationService {
         body: JSON.stringify(payload),
       });
 
-      console.log("FCM response status:", response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("FCM response error:", errorText);
         throw new Error(`FCM notification failed: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      console.log("FCM notification sent successfully:", result);
       return true;
     } catch (error) {
-      console.error("Error sending FCM notification:", error);
       return false;
     }
   }
